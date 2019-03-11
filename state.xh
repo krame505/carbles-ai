@@ -1,0 +1,55 @@
+#include <unification.xh>
+#include <list.xh>
+#include <map.xh>
+#include <stdlib.h>
+
+#ifndef _STATE_XH
+#define _STATE_XH
+
+typedef unsigned player;
+
+datatype position {
+  Out(player, unsigned);
+  Home(unsigned);
+};
+typedef datatype position position;
+
+static inline int comparePosition(position p1, position p2) {
+  return match (p1, p2)
+    (Home(_), Out(_, _) -> 1;
+     Out(_, _), Home(_) -> -1;
+     Home(i), Home(j) -> i - j;
+     Out(a, _), Out(b, _) @when (a != b) -> a - b;
+     Out(_, i), Out(_, j) -> i - j;);
+}
+
+static inline int compareUnsigned(unsigned x, unsigned y) {
+  return x - y;
+}
+
+datatype state {
+  State(map<position, player, comparePosition> board,
+        map<player, unsigned, compareUnsigned> lot);
+};
+typedef datatype state state;
+
+enum card {
+  Ace = 1,
+  Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten,
+  Jack, King, Queen
+};
+typedef enum card card;
+
+datatype action {
+  MoveOut(player);
+  Move(position from, position to);
+};
+typedef datatype action action;
+
+datatype move {
+  Play(card, list<action?>);
+  Burn(card);
+};
+typedef datatype move move;
+
+#endif
