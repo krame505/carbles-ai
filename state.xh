@@ -1,26 +1,30 @@
 #include <unification.xh>
 #include <list.xh>
 #include <map.xh>
+#include <prolog_utils.xh>
 #include <stdlib.h>
 
 #ifndef _STATE_XH
 #define _STATE_XH
 
+#define SECTOR_SIZE 18
+#define HOME_BACKTRACK_DIST 2
+
 typedef unsigned player;
 
 datatype position {
-  Out(player, unsigned);
-  Home(unsigned);
+  Out(unsigned ?);
+  Home(player ?, unsigned ?);
 };
 typedef datatype position position;
 
 static inline int comparePosition(position p1, position p2) {
   return match (p1, p2)
-    (Home(_), Out(_, _) -> 1;
-     Out(_, _), Home(_) -> -1;
-     Home(i), Home(j) -> i - j;
-     Out(a, _), Out(b, _) @when (a != b) -> a - b;
-     Out(_, i), Out(_, j) -> i - j;);
+    (Home(_, _), Out(_) -> 1;
+     Out(_), Home(_, _) -> -1;
+     Home(a, _), Home(b, _) @when (a != b) -> a - b;
+     Home(_, i), Home(_, j) -> i - j;
+     Out(i), Out(j) -> i - j;);
 }
 
 static inline int compareUnsigned(unsigned x, unsigned y) {
@@ -28,28 +32,50 @@ static inline int compareUnsigned(unsigned x, unsigned y) {
 }
 
 datatype state {
-  State(map<position, player, comparePosition> board,
-        map<player, unsigned, compareUnsigned> lot);
+  State(unsigned ?numPlayers,
+        map<position, player, comparePosition> ?board,
+        map<player, unsigned, compareUnsigned> ?lot);
 };
 typedef datatype state state;
 
 enum card {
-  Ace = 1,
+  Joker, Ace,
   Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten,
   Jack, King, Queen
 };
 typedef enum card card;
 
+typedef list<card ?> hand;
+
+datatype move {
+  MoveOut(player ?);
+  Move(position ?from, position ?to);
+  Swap(position ?, position ?);
+};
+typedef datatype move move;
+
 datatype action {
-  MoveOut(player);
-  Move(position from, position to);
+  Play(card ?, list<move ?> ?);
+  Burn(card ?);
 };
 typedef datatype action action;
 
-datatype move {
-  Play(card, list<action?>);
-  Burn(card);
-};
-typedef datatype move move;
+prolog {
+  move(state ?, move ?, state ?);
+  moves(state ?, list<move ?> ?, state ?);
+  
+  advanceStep(state ?, position ?, position ?);
+  retreatStep(state ?, position ?, position ?);
+  advance(state ?, position ?, unsigned ?, position ?);
+  retreat(state ?, position ?, unsigned ?, position ?);
+  seqAdvance(state ?, player ?, unsigned ?, list<move ?> ?);
+  
+  directCard(card ?);
+  moveOutCard(card ?);
+  cardMoves(state ?, player ?, card ?, list<move ?> ?);
+  handMoves(state ?, player ?, hand ?, list<move ?> ?);
+  action(state ?, player ?, hand ?, action ?);
+#include "state.pl"
+}
 
 #endif

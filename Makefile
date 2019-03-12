@@ -32,7 +32,7 @@ TARGET=$(BIN_DIR)/run
 # All directories contining extension header files that may be included
 INCLUDE_DIRS=. $(wildcard $(EXTS_BASE)/*/include)
 # All header files that may be included, to be included as dependencies
-INCLUDE_SOURCES=$(foreach dir,$(INCLUDE_DIRS),$(wildcard $(dir)/*.*h))
+INCLUDE_SOURCES=$(foreach dir,$(INCLUDE_DIRS),$(wildcard $(dir)/*.*h) $(wildcard $(dir)/*.pl))
 # Flags passed to ableC including the appropriate directories
 override CPPFLAGS+=$(addprefix -I,$(INCLUDE_DIRS))
 # Flags passed to Java when invoking ableC
