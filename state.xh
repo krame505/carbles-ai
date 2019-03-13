@@ -68,7 +68,7 @@ prolog {
   retreatStep(state ?, position ?, position ?);
   advance(state ?, position ?, unsigned ?, position ?);
   retreat(state ?, position ?, unsigned ?, position ?);
-  seqAdvance(state ?, player ?, unsigned ?, list<move ?> ?);
+  splitAdvance(state ?, list<position ?> ?, unsigned ?, list<move ?> ?);
   
   directCard(card ?);
   moveOutCard(card ?);

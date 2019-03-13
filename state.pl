@@ -43,11 +43,12 @@ retreat(S, X, N, Z) :-
     N1 is (N - 1), retreat(S, Y, N1, Z).
 retreat(S, X, 1, Y) :- retreatStep(S, X, Y).
 
-seqAdvance(S, P, N, [M | MS]) :-
+splitAdvance(S1, PS1, N, [M | MS]) :-
     N > 0, !,
-    M = Move(X, Y), advanceStep(S, X, Y),
-    move(S, M, S1), N1 is (N - 1), seqAdvance(S1, P, N1, MS).
-seqAdvance(_, _, 0, []).
+    between(1u, N1, N), select(X, PS1, PS2),
+    advance(S1, X, N1, Y), M = Move(X, Y),
+    move(S1, M, S2), N2 is (N - N1), splitAdvance(S2, PS2, N2, MS).
+splitAdvance(_, _, 0, []).
 
 directCard(C) :- 1 =< C, C =< 3 .
 directCard(C) :- 5 =< C, C =< 6 .
@@ -61,7 +62,7 @@ cardMoves(S, P, C, [Move(X, Y)]) :- directCard(C), S = State(_, B, _), mapContai
 cardMoves(S, P, C, [MoveOut(P)]) :- moveOutCard(C), S = State(_, _, L), mapContains(L, P, N), N > 0 .
 cardMoves(S, P, Joker, []).
 cardMoves(S, P, 4, [Move(X, Y)]) :- S = State(_, B, _), mapContains(B, X, P), retreat(S, X, 4, Y).
-cardMoves(S, P, 7, MS) :- seqAdvance(S, p, 7, MS).
+cardMoves(S, P, 7, MS) :- S = State(_, B, _), mapKeys(B, PS, P), splitAdvance(S, PS, 7, MS).
 cardMoves(S, P, Jack, [Swap(X, Y)]) :- S = State(_, B, _), mapContains(B, X, P1), mapContains(B, Y, P2), P1 =:= P2.
 
 handMoves(S, P, H, MS) :- member(C, H), handMoves(S, P, H, MS).
