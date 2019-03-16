@@ -1,4 +1,5 @@
 #include <state.xh>
+#include <colors.h>
 #include <stdbool.h>
 #include <assert.h>
 
@@ -6,6 +7,36 @@ string showPosition(position ?p) {
   return match (p)
     (?&Out(n) -> str(n);
      ?&Finish(p, n) -> str("F") + p + n;);
+}
+
+string showStatePosition(state s, position pos) {
+  match (s) {
+    State(numPlayers, board, lot) -> {
+      player p = mapGet(board, pos);
+      return EFFECT(FOREGROUND(p)) + showPosition(boundvar(alloca, pos)) + EFFECT(FOREGROUND(DEFAULT));
+    }
+  }
+}
+
+string showState(state s) {
+  string rows[8];
+  for (unsigned i = 0; i < 8; i++) {
+    rows[i] = str("");
+  }
+  match (s) {
+    State(numPlayers, board, lot) -> {
+      for (player p = 0; p < numPlayers; p++) {
+        for (unsigned i = 0; i < 8; i++) {
+          rows[7 - i] = showStatePosition(s, Out(boundvar(alloca, i + p * SECTOR_SIZE))) + rows[7 - i];
+        }
+      }
+    }
+  }
+  string result = str("");
+  for (unsigned i = 0; i < 8; i++) {
+    result += rows[i] + "\n";
+  }
+  return result;
 }
 
 string showMove(move ?m) {
@@ -25,22 +56,30 @@ string showMoves(list<move ?> ?ms) {
 string showAction(action a) {
   return match (a)
     (Play(c, ms) -> str("play ") + c + ", " + showMoves(ms);
-     Burn(c) -> str(" burn") + c;);
+     Burn(c) -> str("burn ") + c;);
+}
+
+string showActions(vector<action> a) {
+  string result = str("");
+  for (unsigned i = 0; i < a.size; i++) {
+    result += str(i) + ": " + showAction(a[i]) + "\n";
+  }
+  return result;
 }
 
 player ?copyPlayer(player ?p) {
-  return boundvar(value(p), GC_malloc);
+  return boundvar(GC_malloc, value(p));
 }
 
 position ?copyPosition(position ?p) {
   return match (p)
-    (?&Out(?&i) -> GC_malloc_Out(boundvar(i, GC_malloc));
-     ?&Finish(p, ?&i) -> GC_malloc_Finish(copyPlayer(p), boundvar(i, GC_malloc)););
+    (?&Out(?&i) -> GC_malloc_Out(boundvar(GC_malloc, i));
+     ?&Finish(p, ?&i) -> GC_malloc_Finish(copyPlayer(p), boundvar(GC_malloc, i)););
 }
 
 move ?copyMove(move ?m) {
   return match (m)
-    (?&MoveOut(?&p) -> GC_malloc_MoveOut(boundvar(p, GC_malloc));
+    (?&MoveOut(?&p) -> GC_malloc_MoveOut(boundvar(GC_malloc, p));
      ?&Move(from, to) -> GC_malloc_Move(copyPosition(from), copyPosition(to));
      ?&Swap(a, b) -> GC_malloc_Swap(copyPosition(a), copyPosition(b)););
 }
@@ -51,6 +90,12 @@ list<move ?> ?copyMoves(list<move ?> ?ms) {
      ?&[] -> nil<move ?>(GC_malloc););
 }
 
+state initialState(unsigned numPlayers) {
+  return State(boundvar(GC_malloc, numPlayers),
+               emptyMap<position, player, comparePosition>(GC_malloc),
+               emptyMap<player, unsigned, compareUnsigned>(GC_malloc));
+}
+
 state applyMove(state s, move m) {
   match (s, m) {
     State(n, board, lot), MoveOut(?&p) -> {
@@ -58,7 +103,7 @@ state applyMove(state s, move m) {
       assert(mapGet(lot, p) > 0);
       return
         State(n,
-              mapInsert(GC_malloc, board, Out(boundvar(p * SECTOR_SIZE, GC_malloc)), p),
+              mapInsert(GC_malloc, board, Out(boundvar(GC_malloc, p * SECTOR_SIZE)), p),
               mapInsert(GC_malloc, lot, p, mapGet(lot, p) - 1));
     }
     State(n, board, lot), Move(?&f, ?&t) -> {

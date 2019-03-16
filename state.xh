@@ -69,16 +69,18 @@ datatype action {
 typedef datatype action action;
 
 string showPosition(position ?p);
-string showState(state ?s);
+string showState(state s);
 string showMove(move ?m);
 string showMoves(list<move ?> ?m);
 string showAction(action a);
+string showActions(vector<action> a);
 
 player ?copyPlayer(player ?);
 position ?copyPosition(position ?);
 move ?copyMove(move ?);
 list<move ?> ?copyMoves(list<move ?> ?);
 
+state initialState(unsigned numPlayers);
 state applyMove(state, move);
 state applyMoves(state, list<move ?> ?);
 
