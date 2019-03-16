@@ -2,6 +2,7 @@
 #include <list.xh>
 #include <map.xh>
 #include <prolog_utils.xh>
+#include <string.xh>
 #include <vector.xh>
 #include <stdlib.h>
 
@@ -9,6 +10,7 @@
 #define _STATE_XH
 
 #define SECTOR_SIZE 18
+#define NUM_PIECES 4
 #define FINISH_BACKTRACK_DIST 2
 
 typedef unsigned player;
@@ -65,6 +67,12 @@ datatype action {
   Burn(card);
 };
 typedef datatype action action;
+
+string showPosition(position ?p);
+string showState(state ?s);
+string showMove(move ?m);
+string showMoves(list<move ?> ?m);
+string showAction(action a);
 
 player ?copyPlayer(player ?);
 position ?copyPosition(position ?);

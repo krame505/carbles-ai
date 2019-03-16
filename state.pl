@@ -30,7 +30,7 @@ advanceStep(State(NUM_PLAYERS, B, _), Out(I), Finish(P, 0)) :-
     (I / NUM_PLAYERS) =:= (P + 1),
     (mod(I, NUM_PLAYERS)) =:= (SECTOR_SIZE - FINISH_BACKTRACK_DIST).
 advanceStep(State(_, B, _), Finish(P, I1), Finish(P, I2)) :-
-    I2 is (I1 + 1), \+ mapContains(B, Finish(P, I2), _).
+    I2 is (I1 + 1), (I2) < NUM_PIECES, \+ mapContains(B, Finish(P, I2), _).
 
 retreatStep(State(NUM_PLAYERS, _, _), Out(I1), Out(I2)) :-
     I2 is (mod(I1 + SECTOR_SIZE * NUM_PLAYERS - 1, SECTOR_SIZE * NUM_PLAYERS)),

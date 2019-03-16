@@ -25,15 +25,42 @@ list<move ?> ?copyMoves(list<move ?> ?ms) {
 }
 
 state applyMove(state s, move m) {
-   return match (s, m)
-     (State(n, board, lot), MoveOut(?&p) ->
-      State(n, mapInsert(GC_malloc, board, Out(boundvar(p * SECTOR_SIZE, GC_malloc)), p), lot););
+  match (s, m) {
+    State(n, board, lot), MoveOut(?&p) -> {
+      return
+        State(n,
+              mapInsert(GC_malloc, board, Out(boundvar(p * SECTOR_SIZE, GC_malloc)), p),
+              mapInsert(GC_malloc, lot, mapGet(lot, p)));
+    }
+    State(n, board, lot), Move(?&f, ?&t) -> {
+      player p = mapGet(board, f);
+      return State(n, mapInsert(GC_malloc, mapDelete(GC_malloc, board, f), t, p), lot);
+    }
+    State(n, board, lot), Move(?&a, ?&b) -> {
+      player p1 = mapGet(board, a);
+      player p2 = mapGet(board, b);
+      return State(n, mapInsert(GC_malloc, mapInsert(GC_malloc, board, a, p2), b, p1), lot);
+    }
+  }
 }
 
 state applyMoves(state s, list<move ?> ?ms) {
   return match (ms)
     (?&[?&h | t] -> applyMoves(applyMove(s, h), t);
      ?&[] -> s;);
+}
+
+string showPosition(position ?p) {
+  return match (p)
+    (?&Out(n) -> str(n);
+     ?&Finish(p, n) -> str("F") + p + n;);
+}
+
+string showMove(move ?m) {
+  return match (m)
+    (?&MoveOut(p) -> str("move player ") + p + " out";
+     ?&Move(p1, p2) -> showPosition(p1) + " -> " + showPosition(p2);
+     ?&Swap(p1, p2) -> "swap " + showPosition(p1) + " with " + showPosition(p2););
 }
 
 prolog {

@@ -15,6 +15,7 @@ parser extendedParser :: cst:Root {
   edu:umn:cs:melt:ableC:concretesyntax;
   edu:umn:cs:melt:exts:ableC:prolog;
   edu:umn:cs:melt:exts:ableC:closure;
+  edu:umn:cs:melt:exts:ableC:string;
   edu:umn:cs:melt:exts:ableC:vector;
 } 
 
