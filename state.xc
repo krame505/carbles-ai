@@ -1,5 +1,32 @@
 #include <state.xh>
 #include <stdbool.h>
+#include <assert.h>
+
+string showPosition(position ?p) {
+  return match (p)
+    (?&Out(n) -> str(n);
+     ?&Finish(p, n) -> str("F") + p + n;);
+}
+
+string showMove(move ?m) {
+  return match (m)
+    (?&MoveOut(p) -> str("move player ") + p + " out";
+     ?&Move(p1, p2) -> showPosition(p1) + " -> " + showPosition(p2);
+     ?&Swap(p1, p2) -> "swap " + showPosition(p1) + " with " + showPosition(p2););
+}
+
+string showMoves(list<move ?> ?ms) {
+  return match (ms)
+    (?&[h | t@?&[_, _]] -> showMove(h) + ", " + showMoves(t);
+     ?&[h] -> showMove(h);
+     ?&[] -> str(""););
+}
+
+string showAction(action a) {
+  return match (a)
+    (Play(c, ms) -> str("play ") + c + ", " + showMoves(ms);
+     Burn(c) -> str(" burn") + c;);
+}
 
 player ?copyPlayer(player ?p) {
   return boundvar(value(p), GC_malloc);
@@ -27,16 +54,23 @@ list<move ?> ?copyMoves(list<move ?> ?ms) {
 state applyMove(state s, move m) {
   match (s, m) {
     State(n, board, lot), MoveOut(?&p) -> {
+      assert(mapContains(lot, p));
+      assert(mapGet(lot, p) > 0);
       return
         State(n,
               mapInsert(GC_malloc, board, Out(boundvar(p * SECTOR_SIZE, GC_malloc)), p),
-              mapInsert(GC_malloc, lot, mapGet(lot, p)));
+              mapInsert(GC_malloc, lot, p, mapGet(lot, p) - 1));
     }
     State(n, board, lot), Move(?&f, ?&t) -> {
+      assert(comparePosition(f, t) != 0);
+      assert(mapContains(board, f));
       player p = mapGet(board, f);
       return State(n, mapInsert(GC_malloc, mapDelete(GC_malloc, board, f), t, p), lot);
     }
     State(n, board, lot), Move(?&a, ?&b) -> {
+      assert(comparePosition(a, b) != 0);
+      assert(mapContains(board, a));
+      assert(mapContains(board, b));
       player p1 = mapGet(board, a);
       player p2 = mapGet(board, b);
       return State(n, mapInsert(GC_malloc, mapInsert(GC_malloc, board, a, p2), b, p1), lot);
@@ -48,19 +82,6 @@ state applyMoves(state s, list<move ?> ?ms) {
   return match (ms)
     (?&[?&h | t] -> applyMoves(applyMove(s, h), t);
      ?&[] -> s;);
-}
-
-string showPosition(position ?p) {
-  return match (p)
-    (?&Out(n) -> str(n);
-     ?&Finish(p, n) -> str("F") + p + n;);
-}
-
-string showMove(move ?m) {
-  return match (m)
-    (?&MoveOut(p) -> str("move player ") + p + " out";
-     ?&Move(p1, p2) -> showPosition(p1) + " -> " + showPosition(p2);
-     ?&Swap(p1, p2) -> "swap " + showPosition(p1) + " with " + showPosition(p2););
 }
 
 prolog {
