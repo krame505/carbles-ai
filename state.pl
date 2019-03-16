@@ -3,7 +3,7 @@ move(State(_, B1, L1), MoveOut(P), State(_, B2, L2)) :-
     mapInsert(B1, Out(I), P, B2),
     mapContains(L1, P, N1), N2 is (N1 - 1), mapInsert(L1, P, N2, L2).
 move(State(_, B, L1), Move(X, Y), S2) :-
-    mapContains(B, Y, P), Y \= Home(_, _), !,
+    mapContains(B, Y, P), Y \= Finish(_, _), !,
     mapContains(L1, P, N1), N2 is (N1 + 1), mapInsert(L1, P, N2, L2),
     move(State(_, B, L2), Move(X, Y), S2).
 move(State(_, B1, L), Move(X, Y), State(_, B3, L)) :-
@@ -19,17 +19,25 @@ moves(S, [], S).
 moves(S1, [M | MS], S3) :- move(S1, M, S2), moves(S2, MS, S3).
 
 advanceStep(State(NUM_PLAYERS, _, _), Out(I1), Out(I2)) :-
-    I2 is (mod(I1 + 1, SECTOR_SIZE * NUM_PLAYERS)).
-advanceStep(State(NUM_PLAYERS, B, _), Out(I), Home(P, 0)) :-
+    I2 is (mod(I1 + 1, SECTOR_SIZE * NUM_PLAYERS)),
+    (mod(I2, SECTOR_SIZE)) =\= 0 .
+advanceStep(State(NUM_PLAYERS, B, _), Out(I1), Out(I2)) :-
+    I2 is (mod(I1 + 1, SECTOR_SIZE * NUM_PLAYERS)),
+    (mod(I2, SECTOR_SIZE)) =:= 0, P2 is (I2 / SECTOR_SIZE), \+ mapContains(B, Out(I2), P2).
+advanceStep(State(NUM_PLAYERS, B, _), Out(I), Finish(P, 0)) :-
     mapContains(B, Out(I), P),
-    \+ mapContains(B, Home(0, P), _),
+    \+ mapContains(B, Finish(0, P), _),
     (I / NUM_PLAYERS) =:= (P + 1),
-    (mod(I, NUM_PLAYERS)) =:= (SECTOR_SIZE - HOME_BACKTRACK_DIST).
-advanceStep(State(_, B, _), Home(P, I1), Home(P, I2)) :-
-    I2 is (I1 + 1), \+ mapContains(B, Home(P, I2), _).
+    (mod(I, NUM_PLAYERS)) =:= (SECTOR_SIZE - FINISH_BACKTRACK_DIST).
+advanceStep(State(_, B, _), Finish(P, I1), Finish(P, I2)) :-
+    I2 is (I1 + 1), \+ mapContains(B, Finish(P, I2), _).
 
 retreatStep(State(NUM_PLAYERS, _, _), Out(I1), Out(I2)) :-
-    I2 is (mod(I1 + SECTOR_SIZE * NUM_PLAYERS - 1, SECTOR_SIZE * NUM_PLAYERS)).
+    I2 is (mod(I1 + SECTOR_SIZE * NUM_PLAYERS - 1, SECTOR_SIZE * NUM_PLAYERS)),
+    (mod(I2, SECTOR_SIZE)) =\= 0 .
+retreatStep(State(NUM_PLAYERS, B, _), Out(I1), Out(I2)) :-
+    I2 is (mod(I1 + SECTOR_SIZE * NUM_PLAYERS - 1, SECTOR_SIZE * NUM_PLAYERS)),
+    (mod(I2, SECTOR_SIZE)) =:= 0, P2 is (I2 / SECTOR_SIZE), \+ mapContains(B, Out(I2), P2).
 
 advance(S, X, N, Z) :-
     N > 1, advanceStep(S, X, Y),
@@ -45,7 +53,7 @@ retreat(S, X, 1, Y) :- retreatStep(S, X, Y).
 
 splitAdvance(S1, PS1, N, [M | MS]) :-
     N > 0, !,
-    between(1u, N1, N), select(X, PS1, PS2),
+    between(1, N1, N), select(X, PS1, PS2),
     advance(S1, X, N1, Y), M = Move(X, Y),
     move(S1, M, S2), N2 is (N - N1), splitAdvance(S2, PS2, N2, MS).
 splitAdvance(_, _, 0, []).
@@ -64,8 +72,3 @@ cardMoves(S, P, Joker, []).
 cardMoves(S, P, 4, [Move(X, Y)]) :- S = State(_, B, _), mapContains(B, X, P), retreat(S, X, 4, Y).
 cardMoves(S, P, 7, MS) :- S = State(_, B, _), mapKeys(B, PS, P), splitAdvance(S, PS, 7, MS).
 cardMoves(S, P, Jack, [Swap(X, Y)]) :- S = State(_, B, _), mapContains(B, X, P1), mapContains(B, Y, P2), P1 =:= P2.
-
-handMoves(S, P, H, MS) :- member(C, H), handMoves(S, P, H, MS).
-
-action(S, P, H, Burn(C)) :- \+ handMoves(S, P, H, _), !, member(C, H).
-action(S, P, H, Play(C, MS)) :- member(C, H), cardMoves(S, P, C, MS).

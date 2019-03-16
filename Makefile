@@ -36,10 +36,10 @@ INCLUDE_SOURCES=$(foreach dir,$(INCLUDE_DIRS),$(wildcard $(dir)/*.*h) $(wildcard
 # Flags passed to ableC including the appropriate directories
 override CPPFLAGS+=$(addprefix -I,$(INCLUDE_DIRS))
 # Flags passed to Java when invoking ableC
-override JAVAFLAGS+=-Xss32M
+override JAVAFLAGS+=-Xss100M
 
 # Flags passed to the C compiler, e.g. to enable various compiler extensions
-override CFLAGS+=-lgc
+override CFLAGS+=
 
 # All directories contining extension libraries that may be linked
 LIB_DIRS=$(wildcard $(EXTS_BASE)/*/lib)
@@ -47,7 +47,7 @@ LIB_DIRS=$(wildcard $(EXTS_BASE)/*/lib)
 override LDFLAGS+=$(addprefix -L,$(LIB_DIRS))
 # Flags passed to the linker specifying libraries to link
 # Specify libsearch is to be linked statically, everything else dynamically
-LDLIBS=-Wl,-Bstatic -lsearch -Wl,-Bdynamic -lpthread
+LDLIBS=-lpthread -lgc
 
 # All directories contining extension library sources
 SRC_DIRS=$(wildcard $(EXTS_BASE)/*/src)

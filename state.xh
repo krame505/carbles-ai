@@ -2,28 +2,31 @@
 #include <list.xh>
 #include <map.xh>
 #include <prolog_utils.xh>
+#include <vector.xh>
 #include <stdlib.h>
 
 #ifndef _STATE_XH
 #define _STATE_XH
 
 #define SECTOR_SIZE 18
-#define HOME_BACKTRACK_DIST 2
+#define FINISH_BACKTRACK_DIST 2
 
 typedef unsigned player;
 
 datatype position {
   Out(unsigned ?);
-  Home(player ?, unsigned ?);
+  Finish(player ?, unsigned ?);
 };
 typedef datatype position position;
 
+var_reference datatype position with GC_malloc;
+
 static inline int comparePosition(position p1, position p2) {
   return match (p1, p2)
-    (Home(_, _), Out(_) -> 1;
-     Out(_), Home(_, _) -> -1;
-     Home(a, _), Home(b, _) @when (a != b) -> a - b;
-     Home(_, i), Home(_, j) -> i - j;
+    (Finish(_, _), Out(_) -> 1;
+     Out(_), Finish(_, _) -> -1;
+     Finish(a, _), Finish(b, _) @when (a != b) -> a - b;
+     Finish(_, i), Finish(_, j) -> i - j;
      Out(i), Out(j) -> i - j;);
 }
 
@@ -41,11 +44,10 @@ typedef datatype state state;
 enum card {
   Joker, Ace,
   Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten,
-  Jack, King, Queen
+  Jack, King, Queen,
+  CARD_MAX
 };
 typedef enum card card;
-
-typedef list<card ?> hand;
 
 datatype move {
   MoveOut(player ?);
@@ -54,28 +56,24 @@ datatype move {
 };
 typedef datatype move move;
 
+var_reference datatype move with GC_malloc;
+
+typedef unsigned hand[CARD_MAX];
+
 datatype action {
-  Play(card ?, list<move ?> ?);
-  Burn(card ?);
+  Play(card, list<move ?> ?);
+  Burn(card);
 };
 typedef datatype action action;
 
-prolog {
-  move(state ?, move ?, state ?);
-  moves(state ?, list<move ?> ?, state ?);
-  
-  advanceStep(state ?, position ?, position ?);
-  retreatStep(state ?, position ?, position ?);
-  advance(state ?, position ?, unsigned ?, position ?);
-  retreat(state ?, position ?, unsigned ?, position ?);
-  splitAdvance(state ?, list<position ?> ?, unsigned ?, list<move ?> ?);
-  
-  directCard(card ?);
-  moveOutCard(card ?);
-  cardMoves(state ?, player ?, card ?, list<move ?> ?);
-  handMoves(state ?, player ?, hand ?, list<move ?> ?);
-  action(state ?, player ?, hand ?, action ?);
-#include "state.pl"
-}
+player ?copyPlayer(player ?);
+position ?copyPosition(position ?);
+move ?copyMove(move ?);
+list<move ?> ?copyMoves(list<move ?> ?);
+
+state applyMove(state, move);
+state applyMoves(state, list<move ?> ?);
+
+vector<action> getActions(state s, player p, hand h);
 
 #endif
