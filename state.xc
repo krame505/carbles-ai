@@ -4,16 +4,48 @@
 #include <assert.h>
 
 string showPosition(position ?p) {
-  return match (p)
-    (?&Out(n) -> str(n);
-     ?&Finish(p, n) -> str("F") + p + n;);
+  string res = match (p)
+    (?&Out(?&n) -> str(n);
+     ?&Finish(?&p, ?&n) -> str("F") + p + n;);
+  int pad = 3 - res.length;
+  assert(pad >= 0);
+  return str(" ") * ((pad + 1) / 2) + res + str(" ") * (pad / 2);
+}
+
+template<typename a>
+string wrapPlayerEffectForeground(player p, a s) {
+  string pre;
+  if (p % 16 < 8) {
+    pre = EFFECT(FOREGROUND(p % 8));
+  } else {
+    pre = EFFECT(LIGHT_FOREGROUND(p % 8));
+  }
+  string post = EFFECT(FOREGROUND(DEFAULT));
+  return pre + str(s) + post;
+}
+
+template<typename a>
+string wrapPlayerEffectBackground(player p, a s) {
+  string pre;
+  if (p % 16 < 8) {
+    pre = EFFECT(BACKGROUND(p % 8));
+  } else {
+    pre = EFFECT(LIGHT_BACKGROUND(p % 8));
+  }
+  string post = EFFECT(BACKGROUND(DEFAULT));
+  return pre + str(s) + post;
 }
 
 string showStatePosition(state s, position pos) {
+  string res = showPosition(boundvar(alloca, pos));
   match (s) {
-    State(numPlayers, board, lot) -> {
-      player p = mapGet(board, pos);
-      return EFFECT(FOREGROUND(p)) + showPosition(boundvar(alloca, pos)) + EFFECT(FOREGROUND(DEFAULT));
+    State(?&numPlayers, board, lot) -> {
+      if (mapContains(board, pos)) {
+        player p = mapGet(board, pos);
+        return wrapPlayerEffectForeground(p, res);
+      } else {
+        return res;
+      }
     }
   }
 }
@@ -24,11 +56,50 @@ string showState(state s) {
     rows[i] = str("");
   }
   match (s) {
-    State(numPlayers, board, lot) -> {
+    State(?&numPlayers, board, lot) -> {
       for (player p = 0; p < numPlayers; p++) {
-        for (unsigned i = 0; i < 8; i++) {
-          rows[7 - i] = showStatePosition(s, Out(boundvar(alloca, i + p * SECTOR_SIZE))) + rows[7 - i];
+        rows[0] = "  " + rows[0];
+        rows[7] =
+          wrapPlayerEffectBackground(p, showStatePosition(s, Out(boundvar(alloca, p * SECTOR_SIZE)))) + " " +
+          rows[7];
+        for (unsigned i = 1; i < 8; i++) {
+          rows[7 - i] = showStatePosition(s, Out(boundvar(alloca, i + p * SECTOR_SIZE))) + " " + rows[7 - i];
         }
+        rows[0] = "  " + rows[0];
+        for (unsigned i = 0; i < 7; i++) {
+          rows[i + 1] = showStatePosition(s, Out(boundvar(alloca, i + 8 + p * SECTOR_SIZE))) + " " + rows[i + 1];
+        }
+        unsigned lotCount = mapGet(lot, (p + 1) % numPlayers);
+        rows[0] =
+          "   " +
+          EFFECT(INVERSE) +
+          wrapPlayerEffectForeground((p + 1) % numPlayers,
+                                     str(lotCount > 3? " " : "⬤") + " " +
+                                     str(lotCount > 2? " " : "⬤") + " ") +
+          EFFECT(INVERSE_OFF) +
+          "     " + rows[0];
+        rows[1] =
+          "   " +
+          EFFECT(INVERSE) +
+          wrapPlayerEffectForeground((p + 1) % numPlayers,
+                                     str(lotCount > 1? " " : "⬤") + " " +
+                                     str(lotCount > 0? " " : "⬤") + " ") +
+          EFFECT(INVERSE_OFF) +
+          "     " + rows[1];
+        assert(lotCount <= 4);
+        rows[2] = "            " + rows[2];
+        for (unsigned i = 0; i < NUM_PIECES; i++) {
+          rows[6 - i] =
+            "    " +
+            wrapPlayerEffectBackground((p + 1) % numPlayers,
+                                       showStatePosition(s, Finish(boundvar(alloca, (p + 1) % numPlayers), boundvar(alloca, i)))) +
+            "     " + rows[6 - i];
+        }
+        rows[7] =
+          showStatePosition(s, Out(boundvar(alloca, 17 + p * SECTOR_SIZE))) + " " +
+          showStatePosition(s, Out(boundvar(alloca, 16 + p * SECTOR_SIZE))) + " " +
+          showStatePosition(s, Out(boundvar(alloca, 15 + p * SECTOR_SIZE))) + " " +
+          rows[7];
       }
     }
   }
@@ -91,9 +162,13 @@ list<move ?> ?copyMoves(list<move ?> ?ms) {
 }
 
 state initialState(unsigned numPlayers) {
+  map<player, unsigned, compareUnsigned> ?lot = emptyMap<player, unsigned, compareUnsigned>(GC_malloc);
+  for (player p = 0; p < numPlayers; p++) {
+    lot = mapInsert(GC_malloc, lot, p, NUM_PIECES - 1);
+  }
   return State(boundvar(GC_malloc, numPlayers),
                emptyMap<position, player, comparePosition>(GC_malloc),
-               emptyMap<player, unsigned, compareUnsigned>(GC_malloc));
+               lot);
 }
 
 state applyMove(state s, move m) {
@@ -127,45 +202,4 @@ state applyMoves(state s, list<move ?> ?ms) {
   return match (ms)
     (?&[?&h | t] -> applyMoves(applyMove(s, h), t);
      ?&[] -> s;);
-}
-
-prolog {
-  move(state ?, move ?, state ?);
-  moves(state ?, list<move ?> ?, state ?);
-  
-  advanceStep(state ?, position ?, position ?);
-  retreatStep(state ?, position ?, position ?);
-  advance(state ?, position ?, unsigned ?, position ?);
-  retreat(state ?, position ?, unsigned ?, position ?);
-  splitAdvance(state ?, list<position ?> ?, unsigned ?, list<move ?> ?);
-  
-  directCard(card ?);
-  moveOutCard(card ?);
-  cardMoves(state ?, player ?, card ?, list<move ?> ?);
-
-  // Use unsigned version of between
-#define between(A, B, C) betweenU(A, B, C)
-  
-#include "state.pl"
-
-#undef between
-}
-
-vector<action> getActions(state s, player p, hand h) {
-  vector<action> result = new vector<action>();
-  for (card c = 0; c < CARD_MAX; c++) {
-    if (h[c]) {
-      query S is s, P is p, C is c, cardMoves(S, P, C, MS) {
-        result.append(Play(c, copyMoves(MS)));
-        return false;
-      };
-    }
-  }
-  if (result.size == 0) {
-    for (card c = 0; c < CARD_MAX; c++) {
-      if (h[c]) {
-        result.append(Burn(c));
-      }
-    }
-  }
 }

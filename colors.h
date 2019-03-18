@@ -22,8 +22,10 @@
 #define INVERSE_OFF 27
 #define CONCEAL_OFF 28
 #define STRIKETHROUGH_OFF 29
-#define FOREGROUND(N) 3 << N
-#define BACKGROUND(N) 4 << N
+#define FOREGROUND(N) str(3) + (N)
+#define BACKGROUND(N) str(4) + (N)
+#define LIGHT_FOREGROUND(N) str(9) + (N)
+#define LIGHT_BACKGROUND(N) str(10) + (N)
 #define FRAMED 51
 #define ENCIRCLED 52
 #define OVERLINED 53
