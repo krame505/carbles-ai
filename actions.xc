@@ -41,4 +41,5 @@ vector<action> getActions(state s, player p, hand h) {
       }
     }
   }
+  return result;
 }

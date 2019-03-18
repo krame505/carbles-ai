@@ -74,16 +74,16 @@ string showState(state s) {
           "   " +
           EFFECT(INVERSE) +
           wrapPlayerEffectForeground((p + 1) % numPlayers,
-                                     str(lotCount > 3? " " : "⬤") + " " +
-                                     str(lotCount > 2? " " : "⬤") + " ") +
+                                     str(lotCount > 3? "◯" : "⬤") + " " +
+                                     str(lotCount > 2? "◯" : "⬤") + " ") +
           EFFECT(INVERSE_OFF) +
           "     " + rows[0];
         rows[1] =
           "   " +
           EFFECT(INVERSE) +
           wrapPlayerEffectForeground((p + 1) % numPlayers,
-                                     str(lotCount > 1? " " : "⬤") + " " +
-                                     str(lotCount > 0? " " : "⬤") + " ") +
+                                     str(lotCount > 1? "◯" : "⬤") + " " +
+                                     str(lotCount > 0? "◯" : "⬤") + " ") +
           EFFECT(INVERSE_OFF) +
           "     " + rows[1];
         assert(lotCount <= 4);
@@ -126,7 +126,8 @@ string showMoves(list<move ?> ?ms) {
 
 string showAction(action a) {
   return match (a)
-    (Play(c, ms) -> str("play ") + c + ", " + showMoves(ms);
+    (Play(c, ?&[]) -> str("play ") + c;
+     Play(c, ms) -> str("play ") + c + ", " + showMoves(ms);
      Burn(c) -> str("burn ") + c;);
 }
 
@@ -164,7 +165,7 @@ list<move ?> ?copyMoves(list<move ?> ?ms) {
 state initialState(unsigned numPlayers) {
   map<player, unsigned, compareUnsigned> ?lot = emptyMap<player, unsigned, compareUnsigned>(GC_malloc);
   for (player p = 0; p < numPlayers; p++) {
-    lot = mapInsert(GC_malloc, lot, p, NUM_PIECES - 1);
+    lot = mapInsert(GC_malloc, lot, p, NUM_PIECES);
   }
   return State(boundvar(GC_malloc, numPlayers),
                emptyMap<position, player, comparePosition>(GC_malloc),

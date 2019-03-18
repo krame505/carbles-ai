@@ -45,8 +45,7 @@ typedef datatype state state;
 
 enum card {
   Joker, Ace,
-  Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten,
-  Jack, King, Queen,
+  Jack = 11, King, Queen,
   CARD_MAX
 };
 typedef enum card card;

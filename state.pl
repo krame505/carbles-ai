@@ -53,12 +53,12 @@ retreat(S, X, 1, Y) :- retreatStep(S, X, Y).
 
 splitAdvance(S1, PS1, N, [M | MS]) :-
     N > 0, !,
-    between(1, N1, N), select(X, PS1, PS2),
+    between(1, N, N1), select(X, PS1, PS2),
     advance(S1, X, N1, Y), M = Move(X, Y),
     move(S1, M, S2), N2 is (N - N1), splitAdvance(S2, PS2, N2, MS).
 splitAdvance(_, _, 0, []).
 
-directCard(C) :- 1 =< C, C =< 3 .
+directCard(C) :- Ace =< C, C =< 3 .
 directCard(C) :- 5 =< C, C =< 6 .
 directCard(C) :- 8 =< C.
 
