@@ -119,9 +119,19 @@ string showMove(move ?m) {
 
 string showMoves(list<move ?> ?ms) {
   return match (ms)
-    (?&[h | t@?&[_, _]] -> showMove(h) + ", " + showMoves(t);
+    (?&[h | t@?&[_ | _]] -> showMove(h) + ", " + showMoves(t);
      ?&[h] -> showMove(h);
      ?&[] -> str(""););
+}
+
+string showHand(hand h) {
+  string result = str("");
+  for (card c = 0; c < CARD_MAX; c++) {
+    for (unsigned i = 0; i < h[c]; i++) {
+      result += str(c) + " ";
+    }
+  }
+  return result;
 }
 
 string showAction(action a) {
@@ -172,7 +182,7 @@ state initialState(unsigned numPlayers) {
                lot);
 }
 
-state applyMove(state s, move m) {
+state applyMove(move m, state s) {
   match (s, m) {
     State(n, board, lot), MoveOut(?&p) -> {
       assert(mapContains(lot, p));
@@ -199,8 +209,29 @@ state applyMove(state s, move m) {
   }
 }
 
-state applyMoves(state s, list<move ?> ?ms) {
+state applyMoves(list<move ?> ?ms, state s) {
   return match (ms)
-    (?&[?&h | t] -> applyMoves(applyMove(s, h), t);
+    (?&[?&h | t] -> applyMoves(t, applyMove(h, s));
      ?&[] -> s;);
+}
+
+state applyAction(action a, hand h, hand discard, state s) {
+  match (a) {
+    Play(c, ms) -> {
+      assert(h[c] > 0);
+      h[c]--;
+      if (discard) {
+        discard[c]++;
+      }
+      return applyMoves(ms, s);
+    }
+    Burn(c) -> {
+      assert(h[c] > 0);
+      h[c]--;
+      if (discard) {
+        discard[c]++;
+      }
+      return s;
+    }
+  }
 }

@@ -27,9 +27,9 @@ static inline int comparePosition(position p1, position p2) {
   return match (p1, p2)
     (Finish(_, _), Out(_) -> 1;
      Out(_), Finish(_, _) -> -1;
-     Finish(a, _), Finish(b, _) @when (a != b) -> a - b;
-     Finish(_, i), Finish(_, j) -> i - j;
-     Out(i), Out(j) -> i - j;);
+     Finish(?&a, _), Finish(?&b, _) @when (a != b) -> a - b;
+     Finish(_, ?&i), Finish(_, ?&j) -> i - j;
+     Out(?&i), Out(?&j) -> i - j;);
 }
 
 static inline int compareUnsigned(unsigned x, unsigned y) {
@@ -44,8 +44,8 @@ datatype state {
 typedef datatype state state;
 
 enum card {
-  Joker, Ace,
-  Jack = 11, King, Queen,
+  Joker, A,
+  J = 11, K, Q,
   CARD_MAX
 };
 typedef enum card card;
@@ -71,6 +71,7 @@ string showPosition(position ?p);
 string showState(state s);
 string showMove(move ?m);
 string showMoves(list<move ?> ?m);
+string showHand(hand);
 string showAction(action a);
 string showActions(vector<action> a);
 
@@ -80,8 +81,9 @@ move ?copyMove(move ?);
 list<move ?> ?copyMoves(list<move ?> ?);
 
 state initialState(unsigned numPlayers);
-state applyMove(state, move);
-state applyMoves(state, list<move ?> ?);
+state applyMove(move, state);
+state applyMoves(list<move ?> ?, state);
+state applyAction(action, hand, hand, state);
 
 vector<action> getActions(state s, player p, hand h);
 
