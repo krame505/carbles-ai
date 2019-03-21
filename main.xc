@@ -2,9 +2,10 @@
 
 int main() {
   state s = initialState(2);
-  hand h = {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
+  hand h = {5, 5, 5, 5, 5, 5, 5, 10, 5, 5, 5, 5, 5};
   while (1) {
     printf("%s\n", showState(s).text);
+    printf("%s\n", show(s).text);
     printf("%s\n", showHand(h).text);
     vector<action> actions = getActions(s, 0, h);
     for (unsigned i = 0; i < actions.size; i++) {
@@ -13,6 +14,8 @@ int main() {
     if (actions.size == 0) {
       break;
     }
-    s = applyAction(actions[rand() % actions.size], h, NULL, s);
+    action a = actions[rand() % actions.size];
+    printf("Chose %s\n", showAction(a).text);
+    s = applyAction(a, h, NULL, s);
   }
 }

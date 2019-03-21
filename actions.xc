@@ -6,11 +6,11 @@ prolog {
   move(state ?, move ?, state ?);
   moves(state ?, list<move ?> ?, state ?);
   
-  advanceStep(state ?, position ?, position ?);
-  retreatStep(state ?, position ?, position ?);
-  advance(state ?, position ?, unsigned ?, position ?);
-  retreat(state ?, position ?, unsigned ?, position ?);
-  splitAdvance(state ?, list<position ?> ?, unsigned ?, list<move ?> ?);
+  advanceStep(state ?, player ?, position ?, position ?);
+  retreatStep(state ?, player ?, position ?, position ?);
+  advance(state ?, player ?, position ?, unsigned ?, position ?);
+  retreat(state ?, player ?, position ?, unsigned ?, position ?);
+  splitAdvance(state ?, player ?, list<position ?> ?, unsigned ?, list<move ?> ?);
   
   directCard(card ?);
   moveOutCard(card ?);

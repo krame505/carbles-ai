@@ -187,18 +187,30 @@ state applyMove(move m, state s) {
     State(n, board, lot), MoveOut(?&p) -> {
       assert(mapContains(lot, p));
       assert(mapGet(lot, p) > 0);
-      return
-        State(n,
-              mapInsert(GC_malloc, board, Out(boundvar(GC_malloc, p * SECTOR_SIZE)), p),
-              mapInsert(GC_malloc, lot, p, mapGet(lot, p) - 1));
+      position dest = Out(boundvar(GC_malloc, p * SECTOR_SIZE));
+      map<position, player, comparePosition> ?newBoard = mapInsert(GC_malloc, board, dest, p);
+      map<player, unsigned, compareUnsigned> ?newLot = mapInsert(GC_malloc, lot, p, mapGet(lot, p) - 1);
+      if (mapContains(board, dest)) {
+        player destPlayer = mapGet(board, dest);
+        return State(n, newBoard, mapInsert(GC_malloc, newLot, destPlayer, mapGet(lot, destPlayer) + 1));
+      } else {
+        return State(n, newBoard, newLot);
+      }
     }
     State(n, board, lot), Move(?&f, ?&t) -> {
       assert(comparePosition(f, t) != 0);
       assert(mapContains(board, f));
       player p = mapGet(board, f);
-      return State(n, mapInsert(GC_malloc, mapDelete(GC_malloc, board, f), t, p), lot);
+      map<position, player, comparePosition> ?newBoard =
+        mapInsert(GC_malloc, mapDelete(GC_malloc, board, f), t, p);
+      if (mapContains(board, t)) {
+        player destPlayer = mapGet(board, t);
+        return State(n, newBoard, mapInsert(GC_malloc, lot, destPlayer, mapGet(lot, destPlayer) + 1));
+      } else {
+        return State(n, newBoard, lot);
+      }
     }
-    State(n, board, lot), Move(?&a, ?&b) -> {
+    State(n, board, lot), Swap(?&a, ?&b) -> {
       assert(comparePosition(a, b) != 0);
       assert(mapContains(board, a));
       assert(mapContains(board, b));
