@@ -13,11 +13,11 @@
 #define NUM_PIECES 4
 #define FINISH_BACKTRACK_DIST 2
 
-typedef unsigned player;
+typedef unsigned playerId;
 
 datatype position {
   Out(unsigned ?);
-  Finish(player ?, unsigned ?);
+  Finish(playerId ?, unsigned ?);
 };
 typedef datatype position position;
 
@@ -38,8 +38,8 @@ static inline int compareUnsigned(unsigned x, unsigned y) {
 
 datatype state {
   State(unsigned ?numPlayers,
-        map<position, player, comparePosition> ?board,
-        map<player, unsigned, compareUnsigned> ?lot);
+        map<position, playerId, comparePosition> ?board,
+        map<playerId, unsigned, compareUnsigned> ?lot);
 };
 typedef datatype state state;
 
@@ -51,7 +51,7 @@ enum card {
 typedef enum card card;
 
 datatype move {
-  MoveOut(player ?);
+  MoveOut(playerId ?);
   Move(position ?from, position ?to);
   Swap(position ?, position ?);
 };
@@ -75,7 +75,7 @@ string showHand(hand);
 string showAction(action a);
 string showActions(vector<action> a);
 
-player ?copyPlayer(player ?);
+playerId ?copyPlayerId(playerId ?);
 position ?copyPosition(position ?);
 move ?copyMove(move ?);
 list<move ?> ?copyMoves(list<move ?> ?);
@@ -85,6 +85,6 @@ state applyMove(move, state);
 state applyMoves(list<move ?> ?, state);
 state applyAction(action, hand, hand, state);
 
-vector<action> getActions(state s, player p, hand h);
+vector<action> getActions(state s, playerId p, hand h);
 
 #endif

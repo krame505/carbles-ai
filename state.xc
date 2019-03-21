@@ -6,15 +6,15 @@ prolog {
   move(state ?, move ?, state ?);
   moves(state ?, list<move ?> ?, state ?);
   
-  advanceStep(state ?, player ?, position ?, position ?);
-  retreatStep(state ?, player ?, position ?, position ?);
-  advance(state ?, player ?, position ?, unsigned ?, position ?);
-  retreat(state ?, player ?, position ?, unsigned ?, position ?);
-  splitAdvance(state ?, player ?, list<position ?> ?, unsigned ?, list<move ?> ?);
+  advanceStep(state ?, playerId ?, position ?, position ?);
+  retreatStep(state ?, playerId ?, position ?, position ?);
+  advance(state ?, playerId ?, position ?, unsigned ?, position ?);
+  retreat(state ?, playerId ?, position ?, unsigned ?, position ?);
+  splitAdvance(state ?, playerId ?, list<position ?> ?, unsigned ?, list<move ?> ?);
   
   directCard(card ?);
   moveOutCard(card ?);
-  cardMoves(state ?, player ?, card ?, list<move ?> ?);
+  cardMoves(state ?, playerId ?, card ?, list<move ?> ?);
 
   // Use unsigned version of between
 #define between(A, B, C) betweenU(A, B, C)
@@ -24,7 +24,7 @@ prolog {
 #undef between
 }
 
-vector<action> getActions(state s, player p, hand h) {
+vector<action> getActions(state s, playerId p, hand h) {
   vector<action> result = new vector<action>();
   for (card c = 0; c < CARD_MAX; c++) {
     if (h[c]) {
