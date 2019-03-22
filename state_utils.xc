@@ -3,13 +3,8 @@
 #include <stdbool.h>
 #include <assert.h>
 
-string showPosition(position ?p) {
-  string res = match (p)
-    (?&Out(?&n) -> str(n);
-     ?&Finish(?&p, ?&n) -> str("F") + p + n;);
-  int pad = 3 - res.length;
-  assert(pad >= 0);
-  return str(" ") * ((pad + 1) / 2) + res + str(" ") * (pad / 2);
+string center(unsigned pad, string s) {
+  return str(" ") * ((pad + 1) / 2) + s + str(" ") * (pad / 2);
 }
 
 template<typename a>
@@ -18,9 +13,9 @@ string wrapPlayerEffectForeground(playerId p, a s) {
   if (p % 16 < 8) {
     pre = EFFECT(FOREGROUND(p % 8));
   } else {
-    pre = EFFECT(LIGHT_FOREGROUND(p % 8));
+    pre = EFFECT(LIGHT_FOREGROUND(p % 8)) + EFFECT(ITALIC);
   }
-  string post = EFFECT(FOREGROUND(DEFAULT));
+  string post = EFFECT(FOREGROUND(DEFAULT)) + EFFECT(ITALIC_OFF);
   return pre + str(s) + post;
 }
 
@@ -36,15 +31,25 @@ string wrapPlayerEffectBackground(playerId p, a s) {
   return pre + str(s) + post;
 }
 
+string showPlayerId(playerId p) {
+  return wrapPlayerEffectForeground(p, str("player ") + p);
+}
+
+string showPosition(position ?p) {
+  return match (p)
+    (?&Out(?&n) -> str(n);
+     ?&Finish(?&p, ?&n) -> str("F") + p + n;);
+}
+
 string showStatePosition(state s, position pos) {
   string res = showPosition(boundvar(alloca, pos));
   match (s) {
     State(?&numPlayers, board, lot) -> {
       if (mapContains(board, pos)) {
         playerId p = mapGet(board, pos);
-        return wrapPlayerEffectForeground(p, res);
+        return center(3 - res.length, EFFECT(UNDERLINE) + wrapPlayerEffectForeground(p, res) + EFFECT(UNDERLINE_OFF));
       } else {
-        return res;
+        return center(3 - res.length, res);
       }
     }
   }
@@ -149,6 +154,47 @@ string showActions(vector<action> a) {
   return result;
 }
 
+void initializeDeck(hand h) {
+  h[Joker] = 4;
+  for (card c = A; c < CARD_MAX; c++) {
+    h[c] = 8;
+  }
+}
+
+unsigned getDeckSize(hand deck) {
+  unsigned result = 0;
+  for (card c = Joker; c < CARD_MAX; c++) {
+    result += deck[c];
+  }
+  return result;
+}
+
+unsigned deal(unsigned min, unsigned max, hand deck, unsigned numPlayers, hand hands[numPlayers]) {
+  unsigned deckSize = getDeckSize(deck);
+  memset(hands, 0, sizeof(hand) * numPlayers);
+  unsigned handSize;
+  for (handSize = 0; handSize < max && deckSize >= numPlayers; handSize++) {
+    for (playerId p = 0; p < numPlayers; p++) {
+      int n = rand() % deckSize;
+      card dealt;
+      for (card c = Joker; c < CARD_MAX; c++) {
+        n -= deck[c];
+        if (n <= 0) {
+          dealt = c;
+          break;
+        }
+      }
+      if (n > 0) {
+        dealt = CARD_MAX - 1;
+      }
+      hands[p][dealt]++;
+      deck[dealt]--;
+      deckSize--;
+    }
+  }
+  return handSize;
+}
+
 playerId ?copyPlayerId(playerId ?p) {
   return boundvar(GC_malloc, value(p));
 }
@@ -192,7 +238,7 @@ state applyMove(move m, state s) {
       map<playerId, unsigned, compareUnsigned> ?newLot = mapInsert(GC_malloc, lot, p, mapGet(lot, p) - 1);
       if (mapContains(board, dest)) {
         playerId destPlayer = mapGet(board, dest);
-        return State(n, newBoard, mapInsert(GC_malloc, newLot, destPlayer, mapGet(lot, destPlayer) + 1));
+        return State(n, newBoard, mapInsert(GC_malloc, newLot, destPlayer, mapGet(newLot, destPlayer) + 1));
       } else {
         return State(n, newBoard, newLot);
       }

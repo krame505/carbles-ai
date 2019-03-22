@@ -76,7 +76,7 @@ $(ABLEC_JAR): $(GRAMMAR_SOURCES)
 
 $(BIN_DIR)/%.c: %.xc $(INCLUDE_SOURCES) $(ABLEC_JAR) | $(BIN_DIR)
 	java $(JAVAFLAGS) -jar $(ABLEC_JAR) $< $(CPPFLAGS) $(XCFLAGS)
-	mv $*.i $@
+	mv $*.i $(BIN_DIR)
 	mv $*.c $@
 
 $(BIN_DIR)/%.o: %.c $(INCLUDE_SOURCES) | $(BIN_DIR)

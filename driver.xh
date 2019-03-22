@@ -1,0 +1,22 @@
+#include <unification.xh>
+#include <list.xh>
+#include <map.xh>
+#include <prolog_utils.xh>
+#include <string.xh>
+#include <vector.xh>
+#include <state.xh>
+#include <stdlib.h>
+
+#ifndef _DRIVER_XH
+#define _DRIVER_XH
+
+struct player {
+  const char *name;
+  unsigned (*getAction)(state s, hand h, hand discard, unsigned turn, playerId p, vector<action> actions);
+};
+
+typedef struct player player;
+
+playerId playGame(unsigned numPlayers, player players[numPlayers], _Bool verbose);
+
+#endif

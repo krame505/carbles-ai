@@ -1,21 +1,23 @@
-#include <state.xh>
+#include <driver.xh>
+#include <players.xh>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <assert.h>
 
-int main() {
-  state s = initialState(2);
-  hand h = {5, 5, 5, 5, 5, 5, 5, 10, 5, 5, 5, 5, 5};
-  while (1) {
-    printf("%s\n", showState(s).text);
-    printf("%s\n", show(s).text);
-    printf("%s\n", showHand(h).text);
-    vector<action> actions = getActions(s, 0, h);
-    for (unsigned i = 0; i < actions.size; i++) {
-      printf("%d: %s\n", i, showAction(actions[i]).text);
-    }
-    if (actions.size == 0) {
-      break;
-    }
-    action a = actions[rand() % actions.size];
-    printf("Chose %s\n", showAction(a).text);
-    s = applyAction(a, h, NULL, s);
+int main(unsigned argc, char *argv[]) {
+  assert(argc > 0);
+  if (argc < 2) {
+    printf("Usage: %s <# of players> <player 1> <player 2> ...\n", argv[0]);
+    return 1;
   }
+  unsigned numPlayers = atoi(argv[1]);
+  if (argc - 2 != numPlayers) {
+    printf("Wrong number of players specified: expected %d, got %d\n", numPlayers, argc - 2);
+    return 1;
+  }
+  player players[numPlayers];
+  for (unsigned i = 0; i < numPlayers; i++) {
+    players[i] = getPlayer(argv[i + 2]);
+  }
+  playGame(numPlayers, players, true);
 }

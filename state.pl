@@ -1,9 +1,8 @@
 move(State(NUM_PLAYERS, B1, L1), MoveOut(P1), State(NUM_PLAYERS, B2, L3)) :-
     I is (P1 * SECTOR_SIZE), mapContains(B1, Out(I), P2), !,
-    mapContains(L1, P1, N1), mapContains(L1, P2, N2),
     mapInsert(B1, Out(I), P1, B2),
-    N3 is (N1 - 1), mapInsert(L1, P1, N3, L2),
-    N4 is (N2 + 1), mapInsert(L2, P2, N4, L3).
+    mapContains(L1, P1, N1), N2 is (N1 - 1), mapInsert(L1, P1, N2, L2),
+    mapContains(L2, P2, N3), N4 is (N3 + 1), mapInsert(L2, P2, N4, L3).
 move(State(NUM_PLAYERS, B1, L1), MoveOut(P), State(NUM_PLAYERS, B2, L2)) :-
     I is (P * SECTOR_SIZE), !,
     mapInsert(B1, Out(I), P, B2),
@@ -33,7 +32,7 @@ advanceStep(State(NUM_PLAYERS, B, _), _, Out(I1), Out(I2)) :-
     (mod(I2, SECTOR_SIZE)) =:= 0, P2 is (I2 / SECTOR_SIZE), \+ mapContains(B, Out(I2), P2).
 advanceStep(State(NUM_PLAYERS, B, _), P, Out(I), Finish(P, 0)) :-
     \+ mapContains(B, Finish(0, P), _),
-    (I / SECTOR_SIZE) =:= (P + 1),
+    (I / SECTOR_SIZE) =:= (mod(P + 1, NUM_PLAYERS)),
     (mod(I, SECTOR_SIZE)) =:= (SECTOR_SIZE - FINISH_BACKTRACK_DIST).
 advanceStep(State(_, B, _), P, Finish(P, I1), Finish(P, I2)) :-
     I2 is (I1 + 1), (I2) < NUM_PIECES, \+ mapContains(B, Finish(P, I2), _).
@@ -85,7 +84,15 @@ cardMoves(S, P, 7, MS) :-
     mapKeys(B, XS1, P), subset(XS2, XS1),
     splitAdvance(S, P, XS2, 7, MS).
 cardMoves(S, P1, J, [Swap(X, Y)]) :-
-    S = State(_, B, _),
+    S = State(NUM_PLAYERS, B, _), MAX_PLAYER is (NUM_PLAYERS - 1),
     mapKeys(B, XS, P1), member(X, XS), X = Out(_),
+    between(0, MAX_PLAYER, P2), P1 =\= P2,
     mapKeys(B, YS, P2), member(Y, YS), Y = Out(_),
-    X \= Y, P1 =\= P2.
+    X \= Y.
+
+isWon(State(NUM_PLAYERS, B, _), P) :-
+    MAX_PLAYER is (NUM_PLAYERS - 1), between(0, MAX_PLAYER, P),
+    mapContains(B, Finish(P, 0), P),
+    mapContains(B, Finish(P, 1), P),
+    mapContains(B, Finish(P, 2), P),
+    mapContains(B, Finish(P, 3), P).

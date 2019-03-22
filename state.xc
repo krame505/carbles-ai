@@ -16,6 +16,8 @@ prolog {
   moveOutCard(card ?);
   cardMoves(state ?, playerId ?, card ?, list<move ?> ?);
 
+  isWon(state ?, playerId ?);
+
   // Use unsigned version of between
 #define between(A, B, C) betweenU(A, B, C)
   
@@ -43,3 +45,18 @@ vector<action> getActions(state s, playerId p, hand h) {
   }
   return result;
 }
+
+bool isWon(state s) {
+  return query S is s, isWon(S, _) { return true; };
+}
+
+playerId getWinner(state s) {
+  playerId winner[1];
+  bool isWon = query S is s, isWon(S, P) {
+    *winner = value(P);
+    return true;
+  };
+  assert(isWon);
+  return *winner;
+}
+

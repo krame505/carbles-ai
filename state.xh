@@ -12,6 +12,8 @@
 #define SECTOR_SIZE 18
 #define NUM_PIECES 4
 #define FINISH_BACKTRACK_DIST 2
+#define MIN_HAND 4
+#define MAX_HAND 5
 
 typedef unsigned playerId;
 
@@ -67,6 +69,7 @@ datatype action {
 };
 typedef datatype action action;
 
+string showPlayerId(playerId p);
 string showPosition(position ?p);
 string showState(state s);
 string showMove(move ?m);
@@ -80,11 +83,17 @@ position ?copyPosition(position ?);
 move ?copyMove(move ?);
 list<move ?> ?copyMoves(list<move ?> ?);
 
+void initializeDeck(hand);
+unsigned getDeckSize(hand);
+unsigned deal(unsigned min, unsigned max, hand deck, unsigned numPlayers, hand hands[numPlayers]);
+
 state initialState(unsigned numPlayers);
 state applyMove(move, state);
 state applyMoves(list<move ?> ?, state);
 state applyAction(action, hand, hand, state);
 
 vector<action> getActions(state s, playerId p, hand h);
+_Bool isWon(state s);
+playerId getWinner(state s);
 
 #endif
