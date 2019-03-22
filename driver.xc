@@ -15,7 +15,7 @@ playerId playGame(unsigned numPlayers, player players[numPlayers], bool verbose)
   unsigned handSize = 0;
   
   unsigned turn = 0;
-  playerId currentPlayer = 0, dealer = 0, handNum = 0, startingPlayer = 0;
+  playerId currentPlayer = 0, dealer = numPlayers - 1, handNum = 0, startingPlayer = 0;
   while (1) {
     if (handSize == 0) {
       if (getDeckSize(deck) < numPlayers * MIN_HAND) {
@@ -25,6 +25,9 @@ playerId playGame(unsigned numPlayers, player players[numPlayers], bool verbose)
         handNum = 0;
       } else {
         handNum++;
+      }
+      if (verbose) {
+        printf("Hand %d for dealer %s\n", handNum, showPlayerId(dealer).text);
       }
       handSize = deal(MIN_HAND, MAX_HAND, deck, numPlayers, hands);
       startingPlayer = (dealer + handNum + 1) % numPlayers;

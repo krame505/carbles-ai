@@ -32,7 +32,7 @@ advanceStep(State(NUM_PLAYERS, B, _), _, Out(I1), Out(I2)) :-
     (mod(I2, SECTOR_SIZE)) =:= 0, P2 is (I2 / SECTOR_SIZE), \+ mapContains(B, Out(I2), P2).
 advanceStep(State(NUM_PLAYERS, B, _), P, Out(I), Finish(P, 0)) :-
     \+ mapContains(B, Finish(P, 0), _),
-    (I / SECTOR_SIZE) =:= (mod(P + 1, NUM_PLAYERS)),
+    P =:= (mod(I / SECTOR_SIZE + 1, NUM_PLAYERS)),
     (mod(I, SECTOR_SIZE)) =:= (SECTOR_SIZE - FINISH_BACKTRACK_DIST).
 advanceStep(State(_, B, _), P, Finish(P, I1), Finish(P, I2)) :-
     I2 is (I1 + 1), (I2) < NUM_PIECES, \+ mapContains(B, Finish(P, I2), _).
@@ -54,11 +54,17 @@ retreat(S, P, X, N, Z) :-
     N1 is (N - 1), retreat(S, P, Y, N1, Z).
 retreat(S, P, X, 1, Y) :- retreatStep(S, P, X, Y).
 
-splitAdvance(S1, P, XS1, N, [M | MS]) :-
+seqAdvance(S, P, X, N, [Move(X, Y) | MS]) :-
+    N > 0, advanceStep(S, P, X, Y),
+    N1 is (N - 1), seqAdvance(S, P, Y, N1, MS).
+seqAdvance(_, _, _, 0, []).
+
+splitAdvance(S1, P, XS1, N, MS) :-
     N > 0, !,
     select(X, XS1, XS2), between(1, N, N1),
-    advance(S1, P, X, N1, Y), M = Move(X, Y),
-    move(S1, M, S2), N2 is (N - N1), splitAdvance(S2, P, XS2, N2, MS).
+    seqAdvance(S1, P, X, N1, MS1),
+    moves(S1, MS1, S2), N2 is (N - N1), splitAdvance(S2, P, XS2, N2, MS2),
+    append(MS1, MS2, MS).
 splitAdvance(_, _, [], 0, []).
 
 directCard(C) :- A =< C, C =< 3 .
@@ -87,8 +93,8 @@ cardMoves(S, P1, J, [Swap(X, Y)]) :-
     S = State(NUM_PLAYERS, B, _), MAX_PLAYER is (NUM_PLAYERS - 1),
     mapKeys(B, XS, P1), member(X, XS), X = Out(_),
     between(0, MAX_PLAYER, P2), P1 =\= P2,
-    mapKeys(B, YS, P2), member(Y, YS), Y = Out(_),
-    X \= Y.
+    mapKeys(B, YS, P2), member(Y, YS), Y = Out(I),
+    I =\= (P2 * SECTOR_SIZE).
 
 isWon(State(NUM_PLAYERS, B, _), P) :-
     MAX_PLAYER is (NUM_PLAYERS - 1), between(0, MAX_PLAYER, P),
