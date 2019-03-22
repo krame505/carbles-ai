@@ -1,0 +1,8 @@
+#include <driver.xh>
+
+#ifndef _HUMAN_PLAYER_XH
+#define _HUMAN_PLAYER_XH
+
+extern player humanPlayer;
+
+#endif

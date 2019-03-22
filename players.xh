@@ -1,8 +1,11 @@
 #include <driver.xh>
 #include <randomPlayer.xh>
+#include <humanPlayer.xh>
 
 #ifndef _PLAYERS_XH
 #define _PLAYERS_XH
+
+static player errorPlayer = {0};
 
 player getPlayer(const char *name);
 

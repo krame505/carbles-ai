@@ -3,5 +3,7 @@
 
 player getPlayer(const char *name) {
   return match (name)
-    ("random" -> randomPlayer;);
+    ("random" -> randomPlayer;
+     "human" -> humanPlayer;
+     _ -> errorPlayer;);
 }

@@ -18,6 +18,10 @@ int main(unsigned argc, char *argv[]) {
   player players[numPlayers];
   for (unsigned i = 0; i < numPlayers; i++) {
     players[i] = getPlayer(argv[i + 2]);
+    if (!players[i].name) {
+      printf("Invalid player %s\n", argv[i + 2]);
+      return 1;
+    }
   }
   playGame(numPlayers, players, true);
 }
