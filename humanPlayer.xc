@@ -1,5 +1,6 @@
 #include <state.xh>
 #include <driver.xh>
+#include <players.xh>
 #include <stdlib.h>
 #include <stdbool.h>
 
