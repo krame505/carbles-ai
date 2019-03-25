@@ -6,5 +6,6 @@ player getPlayer(const char *name) {
     ("random" -> randomPlayer;
      "human" -> humanPlayer;
      "rule" -> rulePlayer;
+     "heuristic" -> heuristicPlayer;
      _ -> errorPlayer;);
 }

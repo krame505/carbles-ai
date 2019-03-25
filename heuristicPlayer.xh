@@ -1,0 +1,8 @@
+#include <driver.xh>
+
+#ifndef _HEURISTIC_PLAYER_XH
+#define _HEURISTIC_PLAYER_XH
+
+extern player heuristicPlayer;
+
+#endif

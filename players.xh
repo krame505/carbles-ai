@@ -2,6 +2,7 @@
 #include <randomPlayer.xh>
 #include <humanPlayer.xh>
 #include <rulePlayer.xh>
+#include <heuristicPlayer.xh>
 
 #ifndef _PLAYERS_XH
 #define _PLAYERS_XH

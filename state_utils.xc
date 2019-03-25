@@ -276,16 +276,20 @@ state applyMoves(list<move ?> ?ms, state s) {
 state applyAction(action a, hand h, hand discard, state s) {
   match (a) {
     Play(c, ms) -> {
-      assert(h[c] > 0);
-      h[c]--;
+      if (h) {
+        assert(h[c] > 0);
+        h[c]--;
+      }
       if (discard) {
         discard[c]++;
       }
       return applyMoves(ms, s);
     }
     Burn(c) -> {
-      assert(h[c] > 0);
-      h[c]--;
+      if (h) {
+        assert(h[c] > 0);
+        h[c]--;
+      }
       if (discard) {
         discard[c]++;
       }
