@@ -5,6 +5,7 @@
 #include <stdbool.h>
 
 unsigned getHumanAction(state s, hand h, hand discard, unsigned turn, playerId p, vector<action> actions) {
+  printf("%s\n%s", showHand(h).text, showActions(actions).text);
   if (actions.size > 1) {
     unsigned result;
     bool success = false;

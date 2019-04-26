@@ -65,7 +65,7 @@ unsigned getHeuristicAction(state s, hand h, hand discard, unsigned turn, player
   unsigned max_action;
   int max_score = INT_MIN;
   for (unsigned i = 0; i < actions.size; i++) {
-    int score = getHeuristicValue(applyAction(actions[i], NULL, NULL, s), p);
+    int score = getHeuristicValue(applyAction(actions[i], s, NULL, NULL), p);
     if (score > max_score) {
       max_action = i;
       max_score = score;

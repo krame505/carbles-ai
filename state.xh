@@ -69,6 +69,8 @@ datatype action {
 };
 typedef datatype action action;
 
+card getActionCard(action);
+
 string showPlayerId(playerId p);
 string showPosition(position ?p);
 string showState(state s);
@@ -90,7 +92,7 @@ unsigned deal(unsigned min, unsigned max, hand deck, unsigned numPlayers, hand h
 state initialState(unsigned numPlayers);
 state applyMove(move, state);
 state applyMoves(list<move ?> ?, state);
-state applyAction(action, hand, hand, state);
+state applyAction(action, state, hand, hand);
 
 vector<action> getActions(state s, playerId p, hand h);
 _Bool isWon(state s);

@@ -3,6 +3,10 @@
 #include <stdbool.h>
 #include <assert.h>
 
+card getActionCard(action a) {
+  return match (a) (Play(c, _) -> c; Burn(c) -> c;);
+}
+
 string center(unsigned pad, string s) {
   return str(" ") * ((pad + 1) / 2) + s + str(" ") * (pad / 2);
 }
@@ -273,7 +277,7 @@ state applyMoves(list<move ?> ?ms, state s) {
      ?&[] -> s;);
 }
 
-state applyAction(action a, hand h, hand discard, state s) {
+state applyAction(action a, state s, hand h, hand discard) {
   match (a) {
     Play(c, ms) -> {
       if (h) {
