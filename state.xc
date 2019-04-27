@@ -3,21 +3,21 @@
 #include <assert.h>
 
 prolog {
-  move(state ?, move ?, state ?);
-  moves(state ?, list<move ?> ?, state ?);
+  move(State ?, Move ?, State ?);
+  moves(State ?, list<Move ?> ?, State ?);
   
-  advanceStep(state ?, playerId ?, position ?, position ?);
-  retreatStep(state ?, playerId ?, position ?, position ?);
-  advance(state ?, playerId ?, position ?, unsigned ?, position ?);
-  retreat(state ?, playerId ?, position ?, unsigned ?, position ?);
-  seqAdvance(state ?, playerId ?, position ?, unsigned ?, list<move ?> ?);
-  splitAdvance(state ?, playerId ?, list<position ?> ?, unsigned ?, list<move ?> ?);
+  advanceStep(State ?, PlayerId ?, Position ?, Position ?);
+  retreatStep(State ?, PlayerId ?, Position ?, Position ?);
+  advance(State ?, PlayerId ?, Position ?, unsigned ?, Position ?);
+  retreat(State ?, PlayerId ?, Position ?, unsigned ?, Position ?);
+  seqAdvance(State ?, PlayerId ?, Position ?, unsigned ?, list<Move ?> ?);
+  splitAdvance(State ?, PlayerId ?, list<Position ?> ?, unsigned ?, list<Move ?> ?);
   
-  directCard(card ?);
-  moveOutCard(card ?);
-  cardMoves(state ?, playerId ?, card ?, list<move ?> ?);
+  directCard(Card ?);
+  moveOutCard(Card ?);
+  cardMoves(State ?, PlayerId ?, Card ?, list<Move ?> ?);
 
-  isWon(state ?, playerId ?);
+  isWon(State ?, PlayerId ?);
 
   // Use unsigned version of between
 #define between(A, B, C) betweenU(A, B, C)
@@ -27,9 +27,9 @@ prolog {
 #undef between
 }
 
-vector<action> getActions(state s, playerId p, hand h) {
-  vector<action> result = new vector<action>();
-  for (card c = 0; c < CARD_MAX; c++) {
+vector<Action> getactions(State s, PlayerId p, Hand h) {
+  vector<Action> result = new vector<Action>();
+  for (Card c = 0; c < CARD_MAX; c++) {
     if (h[c]) {
       query S is s, P is p, C is c, cardMoves(S, P, C, MS) {
         result.append(Play(c, copyMoves(MS)));
@@ -38,7 +38,7 @@ vector<action> getActions(state s, playerId p, hand h) {
     }
   }
   if (result.size == 0) {
-    for (card c = 0; c < CARD_MAX; c++) {
+    for (Card c = 0; c < CARD_MAX; c++) {
       if (h[c]) {
         result.append(Burn(c));
       }
@@ -47,12 +47,12 @@ vector<action> getActions(state s, playerId p, hand h) {
   return result;
 }
 
-bool isWon(state s) {
+bool isWon(State s) {
   return query S is s, isWon(S, _) { return true; };
 }
 
-playerId getWinner(state s) {
-  playerId winner[1];
+PlayerId getWinner(State s) {
+  PlayerId winner[1];
   bool isWon = query S is s, isWon(S, P) {
     *winner = value(P);
     return true;

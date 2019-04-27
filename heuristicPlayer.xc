@@ -11,10 +11,10 @@
 #define BEHIND_CLOSE_WEIGHT 10
 #define OUT_WEIGHT 1
 
-unsigned getPlayerHeuristicValue(state s, playerId p) {
+unsigned getPlayerHeuristicValue(State s, PlayerId p) {
   unsigned result[1] = {0};
   match (s) {
-    State(?&numPlayers, board, lot) -> {
+    St(?&numPlayers, board, lot) -> {
       unsigned homeIndex = p * SECTOR_SIZE;
       unsigned boardSize = numPlayers * SECTOR_SIZE;
       query B is board, P is p, MAX_PIECE is ((unsigned)(NUM_PIECES - 1)),
@@ -45,12 +45,12 @@ unsigned getPlayerHeuristicValue(state s, playerId p) {
   return *result;
 }
 
-int getHeuristicValue(state s, playerId p) {
+int getHeuristicValue(State s, PlayerId p) {
   int result = getPlayerHeuristicValue(s, p);
   match (s) {
-    State(?&numPlayers, board, lot) -> {
+    St(?&numPlayers, board, lot) -> {
       unsigned sum = 0;
-      for (playerId p1 = 0; p1 < numPlayers; p1++) {
+      for (PlayerId p1 = 0; p1 < numPlayers; p1++) {
         if (p1 != p) {
           sum += getPlayerHeuristicValue(s, p1);
         }
@@ -61,17 +61,17 @@ int getHeuristicValue(state s, playerId p) {
   return result;
 }
 
-unsigned getHeuristicAction(state s, hand h, hand discard, unsigned turn, playerId p, vector<action> actions) {
-  unsigned max_action;
-  int max_score = INT_MIN;
+unsigned getHeuristicAction(State s, Hand h, Hand discard, unsigned turn, PlayerId p, vector<Action> actions) {
+  unsigned maxAction;
+  int maxScore = INT_MIN;
   for (unsigned i = 0; i < actions.size; i++) {
     int score = getHeuristicValue(applyAction(actions[i], s, NULL, NULL), p);
-    if (score > max_score) {
-      max_action = i;
-      max_score = score;
+    if (score > maxScore) {
+      maxAction = i;
+      maxScore = score;
     }
   }
-  return max_action;
+  return maxAction;
 }
 
-player heuristicPlayer = {"heuristic", getHeuristicAction};
+Player heuristicPlayer = {"heuristic", getHeuristicAction};

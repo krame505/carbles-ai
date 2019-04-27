@@ -3,19 +3,19 @@
 #include <stdbool.h>
 #include <assert.h>
 
-playerId playGame(unsigned numPlayers, player players[numPlayers], bool verbose) {
+PlayerId playGame(unsigned numPlayers, Player players[numPlayers], bool verbose) {
   if (numPlayers < 1) {
     fprintf(stderr, "Invalid number of players %d\n", numPlayers);
     exit(1);
   }
   
-  state s = initialState(numPlayers);
-  hand deck = {0}, discard = {0};
-  hand hands[numPlayers];
+  State s = initialState(numPlayers);
+  Hand deck = {0}, discard = {0};
+  Hand hands[numPlayers];
   unsigned handSize = 0;
   
   unsigned turn = 0;
-  playerId currentPlayer = 0, dealer = numPlayers - 1, handNum = 0, startingPlayer = 0;
+  PlayerId currentPlayer = 0, dealer = numPlayers - 1, handNum = 0, startingPlayer = 0;
   while (1) {
     if (handSize == 0) {
       if (getDeckSize(deck) < numPlayers * MIN_HAND) {
@@ -36,13 +36,13 @@ playerId playGame(unsigned numPlayers, player players[numPlayers], bool verbose)
     if (verbose) {
       printf("%s's turn\n%s\n", showPlayerId(currentPlayer).text, showState(s).text);
     }
-    vector<action> actions = getActions(s, currentPlayer, hands[currentPlayer]);
-    unsigned actionNum =
+    vector<Action> actions = getactions(s, currentPlayer, hands[currentPlayer]);
+    unsigned ActionNum =
       players[currentPlayer].getAction(s, hands[currentPlayer], discard, turn, currentPlayer, actions);
-    assert(actionNum < actions.size);
-    action a = actions[actionNum];
+    assert(ActionNum < actions.size);
+    Action a = actions[ActionNum];
     if (verbose) {
-      printf("player %d (%s): %s\n\n\n", currentPlayer, players[currentPlayer].name, showAction(a).text);
+      printf("Player %d (%s): %s\n\n\n", currentPlayer, players[currentPlayer].name, showAction(a).text);
     }
     s = applyAction(a, s, hands[currentPlayer], discard);
     if (isWon(s)) {
@@ -54,7 +54,7 @@ playerId playGame(unsigned numPlayers, player players[numPlayers], bool verbose)
       turn++;
     }
   }
-  playerId winner = getWinner(s);
+  PlayerId winner = getWinner(s);
   if (verbose) {
     printf("%s\nPlayer %d won!\n", showState(s).text, winner);
   }

@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <assert.h>
 
-card getActionCard(action a) {
+Card getActionCard(Action a) {
   return match (a) (Play(c, _) -> c; Burn(c) -> c;);
 }
 
@@ -12,7 +12,7 @@ string center(unsigned pad, string s) {
 }
 
 template<typename a>
-string wrapPlayerEffectForeground(playerId p, a s) {
+string wrapPlayerEffectForeground(PlayerId p, a s) {
   string pre;
   if (p % 16 < 8) {
     pre = EFFECT(FOREGROUND(p % 8));
@@ -24,7 +24,7 @@ string wrapPlayerEffectForeground(playerId p, a s) {
 }
 
 template<typename a>
-string wrapPlayerEffectBackground(playerId p, a s) {
+string wrapPlayerEffectBackground(PlayerId p, a s) {
   string pre;
   if (p % 16 < 8) {
     pre = EFFECT(BACKGROUND(p % 8));
@@ -35,22 +35,22 @@ string wrapPlayerEffectBackground(playerId p, a s) {
   return pre + str(s) + post;
 }
 
-string showPlayerId(playerId p) {
-  return wrapPlayerEffectForeground(p, str("player ") + p);
+string showPlayerId(PlayerId p) {
+  return wrapPlayerEffectForeground(p, str("Player ") + p);
 }
 
-string showPosition(position ?p) {
+string showPosition(Position ?p) {
   return match (p)
     (?&Out(?&n) -> str(n);
      ?&Finish(?&p, ?&n) -> str("F") + p + n;);
 }
 
-string showStatePosition(state s, position pos) {
+string showStatePosition(State s, Position pos) {
   string res = showPosition(boundvar(alloca, pos));
   match (s) {
-    State(?&numPlayers, board, lot) -> {
+    St(?&numPlayers, board, lot) -> {
       if (mapContains(board, pos)) {
-        playerId p = mapGet(board, pos);
+        PlayerId p = mapGet(board, pos);
         return center(3 - res.length, EFFECT(UNDERLINE) + wrapPlayerEffectForeground(p, res) + EFFECT(UNDERLINE_OFF));
       } else {
         return center(3 - res.length, res);
@@ -59,14 +59,14 @@ string showStatePosition(state s, position pos) {
   }
 }
 
-string showState(state s) {
+string showState(State s) {
   string rows[8];
   for (unsigned i = 0; i < 8; i++) {
     rows[i] = str("");
   }
   match (s) {
-    State(?&numPlayers, board, lot) -> {
-      for (playerId p = 0; p < numPlayers; p++) {
+    St(?&numPlayers, board, lot) -> {
+      for (PlayerId p = 0; p < numPlayers; p++) {
         rows[0] = "  " + rows[0];
         rows[7] =
           wrapPlayerEffectBackground(p, showStatePosition(s, Out(boundvar(alloca, p * SECTOR_SIZE)))) + " " +
@@ -119,23 +119,23 @@ string showState(state s) {
   return result;
 }
 
-string showMove(move ?m) {
+string showMoveDirect(Move ?m) {
   return match (m)
-    (?&MoveOut(p) -> str("move player ") + p + " out";
-     ?&Move(p1, p2) -> showPosition(p1) + " -> " + showPosition(p2);
+    (?&MoveOut(p) -> str("Move Player ") + p + " out";
+     ?&MoveDirect(p1, p2) -> showPosition(p1) + " -> " + showPosition(p2);
      ?&Swap(p1, p2) -> "swap " + showPosition(p1) + " with " + showPosition(p2););
 }
 
-string showMoves(list<move ?> ?ms) {
+string showMoves(list<Move ?> ?ms) {
   return match (ms)
-    (?&[h | t@?&[_ | _]] -> showMove(h) + ", " + showMoves(t);
-     ?&[h] -> showMove(h);
+    (?&[h | t@?&[_ | _]] -> showMoveDirect(h) + ", " + showMoves(t);
+     ?&[h] -> showMoveDirect(h);
      ?&[] -> str(""););
 }
 
-string showHand(hand h) {
+string showHand(Hand h) {
   string result = str("");
-  for (card c = 0; c < CARD_MAX; c++) {
+  for (Card c = 0; c < CARD_MAX; c++) {
     for (unsigned i = 0; i < h[c]; i++) {
       result += str(c) + " ";
     }
@@ -143,14 +143,14 @@ string showHand(hand h) {
   return result;
 }
 
-string showAction(action a) {
+string showAction(Action a) {
   return match (a)
     (Play(c, ?&[]) -> str("play ") + c;
      Play(c, ms) -> str("play ") + c + ", " + showMoves(ms);
      Burn(c) -> str("burn ") + c;);
 }
 
-string showActions(vector<action> a) {
+string showActions(vector<Action> a) {
   string result = str("");
   for (unsigned i = 0; i < a.size; i++) {
     result += str(i) + ": " + showAction(a[i]) + "\n";
@@ -158,30 +158,30 @@ string showActions(vector<action> a) {
   return result;
 }
 
-void initializeDeck(hand h) {
+void initializeDeck(Hand h) {
   h[Joker] = 4;
-  for (card c = A; c < CARD_MAX; c++) {
+  for (Card c = A; c < CARD_MAX; c++) {
     h[c] = 8;
   }
 }
 
-unsigned getDeckSize(hand deck) {
+unsigned getDeckSize(Hand deck) {
   unsigned result = 0;
-  for (card c = Joker; c < CARD_MAX; c++) {
+  for (Card c = Joker; c < CARD_MAX; c++) {
     result += deck[c];
   }
   return result;
 }
 
-unsigned deal(unsigned min, unsigned max, hand deck, unsigned numPlayers, hand hands[numPlayers]) {
+unsigned deal(unsigned min, unsigned max, Hand deck, unsigned numPlayers, Hand hands[numPlayers]) {
   unsigned deckSize = getDeckSize(deck);
-  memset(hands, 0, sizeof(hand) * numPlayers);
+  memset(hands, 0, sizeof(Hand) * numPlayers);
   unsigned handSize;
   for (handSize = 0; handSize < max && deckSize >= numPlayers; handSize++) {
-    for (playerId p = 0; p < numPlayers; p++) {
+    for (PlayerId p = 0; p < numPlayers; p++) {
       int n = rand() % deckSize;
-      card dealt;
-      for (card c = Joker; c < CARD_MAX; c++) {
+      Card dealt;
+      for (Card c = Joker; c < CARD_MAX; c++) {
         n -= deck[c];
         if (n <= 0) {
           dealt = c;
@@ -199,85 +199,85 @@ unsigned deal(unsigned min, unsigned max, hand deck, unsigned numPlayers, hand h
   return handSize;
 }
 
-playerId ?copyPlayerId(playerId ?p) {
+PlayerId ?copyPlayerId(PlayerId ?p) {
   return boundvar(GC_malloc, value(p));
 }
 
-position ?copyPosition(position ?p) {
+Position ?copyPosition(Position ?p) {
   return match (p)
     (?&Out(?&i) -> GC_malloc_Out(boundvar(GC_malloc, i));
      ?&Finish(p, ?&i) -> GC_malloc_Finish(copyPlayerId(p), boundvar(GC_malloc, i)););
 }
 
-move ?copyMove(move ?m) {
+Move ?copyMoveDirect(Move ?m) {
   return match (m)
     (?&MoveOut(?&p) -> GC_malloc_MoveOut(boundvar(GC_malloc, p));
-     ?&Move(from, to) -> GC_malloc_Move(copyPosition(from), copyPosition(to));
+     ?&MoveDirect(from, to) -> GC_malloc_MoveDirect(copyPosition(from), copyPosition(to));
      ?&Swap(a, b) -> GC_malloc_Swap(copyPosition(a), copyPosition(b)););
 }
 
-list<move ?> ?copyMoves(list<move ?> ?ms) {
+list<Move ?> ?copyMoves(list<Move ?> ?ms) {
   return match (ms)
-    (?&[h | t] -> cons(GC_malloc, copyMove(h), copyMoves(t));
-     ?&[] -> nil<move ?>(GC_malloc););
+    (?&[h | t] -> cons(GC_malloc, copyMoveDirect(h), copyMoves(t));
+     ?&[] -> nil<Move ?>(GC_malloc););
 }
 
-state initialState(unsigned numPlayers) {
-  map<playerId, unsigned, compareUnsigned> ?lot = emptyMap<playerId, unsigned, compareUnsigned>(GC_malloc);
-  for (playerId p = 0; p < numPlayers; p++) {
+State initialState(unsigned numPlayers) {
+  map<PlayerId, unsigned, compareUnsigned> ?lot = emptyMap<PlayerId, unsigned, compareUnsigned>(GC_malloc);
+  for (PlayerId p = 0; p < numPlayers; p++) {
     lot = mapInsert(GC_malloc, lot, p, NUM_PIECES);
   }
-  return State(boundvar(GC_malloc, numPlayers),
-               emptyMap<position, playerId, comparePosition>(GC_malloc),
+  return St(boundvar(GC_malloc, numPlayers),
+               emptyMap<Position, PlayerId, comparePosition>(GC_malloc),
                lot);
 }
 
-state applyMove(move m, state s) {
+State applyMoveDirect(Move m, State s) {
   match (s, m) {
-    State(n, board, lot), MoveOut(?&p) -> {
+    St(n, board, lot), MoveOut(?&p) -> {
       assert(mapContains(lot, p));
       assert(mapGet(lot, p) > 0);
-      position dest = Out(boundvar(GC_malloc, p * SECTOR_SIZE));
-      map<position, playerId, comparePosition> ?newBoard = mapInsert(GC_malloc, board, dest, p);
-      map<playerId, unsigned, compareUnsigned> ?newLot = mapInsert(GC_malloc, lot, p, mapGet(lot, p) - 1);
+      Position dest = Out(boundvar(GC_malloc, p * SECTOR_SIZE));
+      map<Position, PlayerId, comparePosition> ?newBoard = mapInsert(GC_malloc, board, dest, p);
+      map<PlayerId, unsigned, compareUnsigned> ?newLot = mapInsert(GC_malloc, lot, p, mapGet(lot, p) - 1);
       if (mapContains(board, dest)) {
-        playerId destPlayer = mapGet(board, dest);
-        return State(n, newBoard, mapInsert(GC_malloc, newLot, destPlayer, mapGet(newLot, destPlayer) + 1));
+        PlayerId destPlayer = mapGet(board, dest);
+        return St(n, newBoard, mapInsert(GC_malloc, newLot, destPlayer, mapGet(newLot, destPlayer) + 1));
       } else {
-        return State(n, newBoard, newLot);
+        return St(n, newBoard, newLot);
       }
     }
-    State(n, board, lot), Move(?&f, ?&t) -> {
+    St(n, board, lot), MoveDirect(?&f, ?&t) -> {
       assert(comparePosition(f, t) != 0);
       assert(mapContains(board, f));
-      playerId p = mapGet(board, f);
-      map<position, playerId, comparePosition> ?newBoard =
+      PlayerId p = mapGet(board, f);
+      map<Position, PlayerId, comparePosition> ?newBoard =
         mapInsert(GC_malloc, mapDelete(GC_malloc, board, f), t, p);
       if (mapContains(board, t)) {
-        playerId destPlayer = mapGet(board, t);
-        return State(n, newBoard, mapInsert(GC_malloc, lot, destPlayer, mapGet(lot, destPlayer) + 1));
+        PlayerId destPlayer = mapGet(board, t);
+        return St(n, newBoard, mapInsert(GC_malloc, lot, destPlayer, mapGet(lot, destPlayer) + 1));
       } else {
-        return State(n, newBoard, lot);
+        return St(n, newBoard, lot);
       }
     }
-    State(n, board, lot), Swap(?&a, ?&b) -> {
+    St(n, board, lot), Swap(?&a, ?&b) -> {
       assert(comparePosition(a, b) != 0);
       assert(mapContains(board, a));
       assert(mapContains(board, b));
-      playerId p1 = mapGet(board, a);
-      playerId p2 = mapGet(board, b);
-      return State(n, mapInsert(GC_malloc, mapInsert(GC_malloc, board, a, p2), b, p1), lot);
+      PlayerId p1 = mapGet(board, a);
+      PlayerId p2 = mapGet(board, b);
+      return St(n, mapInsert(GC_malloc, mapInsert(GC_malloc, board, a, p2), b, p1), lot);
     }
   }
 }
 
-state applyMoves(list<move ?> ?ms, state s) {
+State applyMoves(list<Move ?> ?ms, State s) {
   return match (ms)
-    (?&[?&h | t] -> applyMoves(t, applyMove(h, s));
+    (?&[?&h | t] -> applyMoves(t, applyMoveDirect(h, s));
      ?&[] -> s;);
 }
 
-state applyAction(action a, state s, hand h, hand discard) {
+State applyAction(Action a, State s, Hand h, Hand discard) {
   match (a) {
     Play(c, ms) -> {
       if (h) {

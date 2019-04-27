@@ -8,8 +8,8 @@
 #ifndef _PLAYERS_XH
 #define _PLAYERS_XH
 
-static player errorPlayer = {0};
+static Player errorPlayer = {0};
 
-player getPlayer(const char *name);
+Player getPlayer(const char *name);
 
 #endif

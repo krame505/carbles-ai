@@ -15,17 +15,17 @@
 #define MIN_HAND 4
 #define MAX_HAND 5
 
-typedef unsigned playerId;
+typedef unsigned PlayerId;
 
-datatype position {
+datatype Position {
   Out(unsigned ?);
-  Finish(playerId ?, unsigned ?);
+  Finish(PlayerId ?, unsigned ?);
 };
-typedef datatype position position;
+typedef datatype Position Position;
 
-var_reference datatype position with GC_malloc;
+var_reference datatype Position with GC_malloc;
 
-static inline int comparePosition(position p1, position p2) {
+static inline int comparePosition(Position p1, Position p2) {
   return match (p1, p2)
     (Finish(_, _), Out(_) -> 1;
      Out(_), Finish(_, _) -> -1;
@@ -38,64 +38,64 @@ static inline int compareUnsigned(unsigned x, unsigned y) {
   return x - y;
 }
 
-datatype state {
-  State(unsigned ?numPlayers,
-        map<position, playerId, comparePosition> ?board,
-        map<playerId, unsigned, compareUnsigned> ?lot);
+datatype State {
+  St(unsigned ?numPlayers,
+     map<Position, PlayerId, comparePosition> ?board,
+     map<PlayerId, unsigned, compareUnsigned> ?lot);
 };
-typedef datatype state state;
+typedef datatype State State;
 
-enum card {
+enum Card {
   Joker, A,
   J = 11, Q, K,
   CARD_MAX
 };
-typedef enum card card;
+typedef enum Card Card;
 
-datatype move {
-  MoveOut(playerId ?);
-  Move(position ?from, position ?to);
-  Swap(position ?, position ?);
+datatype Move {
+  MoveOut(PlayerId ?);
+  MoveDirect(Position ?from, Position ?to);
+  Swap(Position ?, Position ?);
 };
-typedef datatype move move;
+typedef datatype Move Move;
 
-var_reference datatype move with GC_malloc;
+var_reference datatype Move with GC_malloc;
 
-typedef unsigned hand[CARD_MAX];
+typedef unsigned Hand[CARD_MAX];
 
-datatype action {
-  Play(card, list<move ?> ?);
-  Burn(card);
+datatype Action {
+  Play(Card, list<Move ?> ?);
+  Burn(Card);
 };
-typedef datatype action action;
+typedef datatype Action Action;
 
-card getActionCard(action);
+Card getActionCard(Action);
 
-string showPlayerId(playerId p);
-string showPosition(position ?p);
-string showState(state s);
-string showMove(move ?m);
-string showMoves(list<move ?> ?m);
-string showHand(hand);
-string showAction(action a);
-string showActions(vector<action> a);
+string showPlayerId(PlayerId p);
+string showPosition(Position ?p);
+string showState(State s);
+string showMoveDirect(Move ?m);
+string showMoves(list<Move ?> ?m);
+string showHand(Hand);
+string showAction(Action a);
+string showActions(vector<Action> a);
 
-playerId ?copyPlayerId(playerId ?);
-position ?copyPosition(position ?);
-move ?copyMove(move ?);
-list<move ?> ?copyMoves(list<move ?> ?);
+PlayerId ?copyPlayerId(PlayerId ?);
+Position ?copyPosition(Position ?);
+Move ?copyMoveDirect(Move ?);
+list<Move ?> ?copyMoves(list<Move ?> ?);
 
-void initializeDeck(hand);
-unsigned getDeckSize(hand);
-unsigned deal(unsigned min, unsigned max, hand deck, unsigned numPlayers, hand hands[numPlayers]);
+void initializeDeck(Hand);
+unsigned getDeckSize(Hand);
+unsigned deal(unsigned min, unsigned max, Hand deck, unsigned numPlayers, Hand hands[numPlayers]);
 
-state initialState(unsigned numPlayers);
-state applyMove(move, state);
-state applyMoves(list<move ?> ?, state);
-state applyAction(action, state, hand, hand);
+State initialState(unsigned numPlayers);
+State applyMoveDirect(Move, State);
+State applyMoves(list<Move ?> ?, State);
+State applyAction(Action, State, Hand, Hand);
 
-vector<action> getActions(state s, playerId p, hand h);
-_Bool isWon(state s);
-playerId getWinner(state s);
+vector<Action> getactions(State s, PlayerId p, Hand h);
+_Bool isWon(State s);
+PlayerId getWinner(State s);
 
 #endif

@@ -1,0 +1,36 @@
+#include <state.xh>
+#include <driver.xh>
+
+#ifndef _SEARCH_PLAYER_XH
+#define _SEARCH_PLAYER_XH
+
+// Max # of Cards considered to occur in a Hand
+#define MAX_PROB_HAND 4
+
+typedef struct probHand probHand;
+struct probHand {
+  unsigned size;
+  float probs[CARD_MAX][MAX_PROB_HAND];
+};
+
+probHand applyProbHandAction(Action a, const probHand *h);
+
+typedef struct GameTree GameTree;
+
+datatype NodeStatus {
+  Unexpanded();
+  Expanded(vector<GameTree> children, unsigned trials, vector<unsigned> wins);
+};
+
+struct GameTree {
+  PlayerId player;
+  Action action;
+  State state;
+  probHand hand;
+  GameTree *parent;
+  datatype NodeStatus status;
+};
+
+extern Player searchPlayer;
+
+#endif

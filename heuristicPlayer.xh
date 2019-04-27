@@ -3,9 +3,9 @@
 #ifndef _HEURISTIC_PLAYER_XH
 #define _HEURISTIC_PLAYER_XH
 
-unsigned getPlayerHeuristicValue(state s, playerId p);
-int getHeuristicValue(state s, playerId p);
+unsigned getPlayerHeuristicValue(State s, PlayerId p);
+int getHeuristicValue(State s, PlayerId p);
 
-extern player heuristicPlayer;
+extern Player heuristicPlayer;
 
 #endif

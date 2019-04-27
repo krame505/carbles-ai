@@ -3,6 +3,6 @@
 #ifndef _RULE_PLAYER_XH
 #define _RULE_PLAYER_XH
 
-extern player rulePlayer;
+extern Player rulePlayer;
 
 #endif
