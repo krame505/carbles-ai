@@ -4,131 +4,185 @@
 #include <prolog_utils.xh>
 #include <stdlib.h>
 #include <stdbool.h>
-//#include <math.h>
+#include <math.h>
 #include <assert.h>
-/*
-probHand applyProbHandAction(Action a, const probHand *h) {
-  Card played = getActionCard(a);
-  assert(h->probs[played][0] > 0);
-  probHand result = {h->size - 1, h->probs};
-  for (unsigned i = 0; i < MAX_PROB_HAND - 1; i++) {
-    result.probs[played][i] = h->probs[played][i + 1];
-  }
-  result.probs[played][MAX_PROB_HAND - 1] = 0;
-  if (result.size < MAX_PROB_HAND) {
-    for (unsigned i = 0; i < CARD_MAX; i++) {
-      result.probs[i][result.size] = 0;
-    }
-  }
-  return result;
-}
+
+#define NUM_PLAYOUTS 300
 
 PlayerId guessWinner(State s) {
   match (s) {
     St(?&numPlayers, _, _) -> {
       PlayerId maxPlayer;
-      int maxScore = -1;
+      int maxScore = INT_MIN;
       for (PlayerId p = 0; p < numPlayers; p++) {
-        unsigned score = getPlayerHeuristicValue(s, p);
-        if (score > maxScore) {
+        int score = getPlayerHeuristicValue(s, p);
+        if (score >= maxScore) {
           maxScore = score;
           maxPlayer = p;
         }
       }
       return maxPlayer;
     }
+    _ -> { assert(false); }
   }
 }
 
-PlayerId playout(State s, PlayerId p, probHand hands[]) {
-  if (isWon(s)) {
-    return getWinner(s);
-  } else {
-    match (s) {
-      St(?&numPlayers, _, _) -> {
-        PlayerId maxPlayer;
-        int maxScore = -1;
-        for (PlayerId p = 0; p < numPlayers; p++) {
-          unsigned score = getPlayerHeuristicValue(s, p);
-          if (score > maxScore) {
-            maxScore = score;
-            maxPlayer = p;
+PlayerId playout(State s, PlayerId p, Hand hands[]) {
+  while (!isWon(s)) {
+    vector<Action> actions = getActions(s, p, hands[p]);
+    if (actions.size) {
+      s = applyAction(actions[rand() % actions.size], s, hands[p], NULL);
+    } else {
+      return guessWinner(s);
+    }
+  }
+  return getWinner(s);
+}
+
+void backpropagate(GameTree *t, PlayerId winner) {
+  match (t) {
+    !NULL@&{.state = St(?&numPlayers, _, _), .parent=parent, .status=Expanded(_, trials, wins)} -> {
+      t->status.contents.Expanded.trials++;
+      wins[winner]++;
+      backpropagate(parent, winner);
+    }
+  }
+}
+
+float weight(GameTree *t) {
+  PlayerId p = t->parent->player;
+  return match (t->status, t->parent->status)
+    (Unexpanded(), _ -> INFINITY;
+     Expanded(_, trials, wins), Expanded(_, parentTrials, _) ->
+     (float)wins[p] / trials + sqrt(2 * log2((float)parentTrials) / trials);
+     Leaf(winner) @when(winner == p), _ -> INFINITY;
+     Leaf(_), _ -> 0;);
+}
+
+void expand(GameTree *t, Hand potentialHands[], Hand hands[]) {
+  match (t) {
+    &{p, _, s@St(?&numPlayers, _, _), parent, .status=Unexpanded()} -> {
+      if (getDeckSize(hands[p]) > 0) {
+        // Construct the children
+        PlayerId newPlayer = (p + 1) % numPlayers;
+        vector<Action> actions = getActions(s, p, potentialHands[p]);
+        assert(actions.size > 0);
+        if (actions[0].tag != Action_Burn) {
+          // Always include actions for burning cards
+          for (Card c = 0; c < CARD_MAX; c++) {
+            if (potentialHands[c]) {
+              actions.append(Burn(c));
+            }
           }
         }
-        return maxPlayer;
-      }
-    }
-  }
-}
-
-probHand *getPrevHand(PlayerId p, GameTree *t, const probHand initialhands[]) {
-  match (t) {
-    &{p1} @when (p == p1) -> {
-      return &t->h;
-    }
-    &{.parent=parent} -> {
-      return getPrevHand(p, parent, initialhands);
-    }
-    NULL -> { return &initialhands[p]; }
-  }
-}
-
-void recordResult(GameTree *t, PlayerId winner) {
-  match (t) {
-    &{.s = St(?&numPlayers, _, ), .parent=parent, .status=Expanded(_, trials, wins)} -> {
-      *trials++;
-      wins[winner]++;
-      recordResult(parent, winner);
-    }
-  }
-}
-
-void expandTree(GameTree *t, const probHand initialhands[]) {
-  match (t) {
-    &{p, _, s@St(?&numPlayers, _, _), h, parent, .status=Unexpanded()} -> {
-      // Compute all possible actions
-      Hand newHand;
-      for (Card c = 0; c < CARD_MAX; c++) {
-        newHand[c] = h.probs[c][0] > 0;
-      }
-      vector<Action> actions = getactions(s, p, newHand);
-
-      // Construct the children
-      PlayerId newPlayer = (p + 1) % numPlayers;
-      PlayerId prevProbHand = getPrevHand(p, parent, initialhands);
-      vector<GameTree> children = new vector<GameTree>(actions.size);
-      for (unsigned i = 0; i < actions.size; i++) {
-        Action a = actions[i];
-        State newSt = applyAction(a, s, NULL, NULL);
-        probHand newProbHand = applyProbHandAction(a, prevProbHand);
-        children[i] = (GameTree){
-          newPlayer, a, newSt, newProbHand,
-          t, &trials[i], &wins[i],
-          Unexpanded()
-        };
-      }
-
-      // Expand the node
-      vector<unsigned> wins = new vector<unsigned>(numPlayers, 0);
-      t->status = Expanded(children, 0, wins);
-
-      // Perform a playout
-      probHand hands[numPlayers];
-      for (PlayerId p = 0; p < numPlayers; p++) {
-        hands[p] = getPrevHand(p, &children[i], initialhands);
-      }
-      recordResult(t, playout(s, p, hands));
-    }
-    &{p, _, .status=Expanded(children, trials, wins)} -> {
-      for (unsigned i = 0; i < 0; i++)
-      Card played = getActionCard(a);
+        vector<GameTree> children = new vector<GameTree>(actions.size);
+        for (unsigned i = 0; i < actions.size; i++) {
+          Action a = actions[i];
+          State newState = applyAction(a, s, NULL, NULL);
+          children[i] = (GameTree){
+            newPlayer, a, newState, t,
+            isWon(newState)? Leaf(getWinner(newState)) : Unexpanded()
+          };
+        }
       
+        // Expand the node
+        vector<unsigned> wins = new vector<unsigned>(numPlayers, 0);
+        t->status = Expanded(children, 0, wins);
+        PlayerId winner = playout(s, p, hands);
+        backpropagate(t, winner);
+      } else {
+        PlayerId winner = guessWinner(s);
+        t->status = Leaf(winner);
+        backpropagate(t, winner);
+      }
+    }
+    &{p, .status=Expanded(children, trials, wins)} -> {
+      assert(children.size > 0);
+      float maxWeight = -INFINITY;
+      GameTree *maxChild = NULL;
+      for (unsigned i = 0; i < children.size; i++) {
+        GameTree *child = &children[i];
+        if (child->action.tag != Action_Burn && hands[p][getActionCard(child->action)]) {
+          float w = weight(child);
+          if (w >= maxWeight) {
+            maxWeight = w;
+            maxChild = child;
+          }
+        }
+      }
+      if (maxWeight == -INFINITY) {
+        for (unsigned i = 0; i < children.size; i++) {
+          GameTree *child = &children[i];
+          if (hands[p][getActionCard(child->action)]) {
+            float w = weight(child);
+            if (w >= maxWeight) {
+              maxWeight = w;
+              maxChild = child;
+            }
+          }
+        }
+      }
+      assert(maxChild != NULL);
+      hands[p][getActionCard(maxChild->action)]--;
+      expand(maxChild, potentialHands, hands);
+    }
+    &{p, .status=Leaf(winner)} -> {
+      backpropagate(t, winner);
     }
   }
 }
-*/
+
 unsigned getSearchAction(State s, Hand h, Hand discard, unsigned turn, PlayerId p, vector<Action> actions) {
-  
+  match (s) {
+    St(?&numPlayers, _, _) -> {
+      Hand remaining;
+      initializeDeck(remaining);
+      for (Card c = 0; c < CARD_MAX; c++) {
+        remaining[c] -= (h[c] + discard[c]);
+      }
+      Hand potentialHands[numPlayers];
+      for (PlayerId p1 = 0; p1 < numPlayers; p1++) {
+        memcpy(potentialHands[p1], p == p1? h : remaining, sizeof(Hand));
+      }
+
+      GameTree t = {p, {0}, s, NULL, Unexpanded()};
+      for (unsigned i = 0; i < NUM_PLAYOUTS; i++) {
+        Hand trialDeck;
+        memcpy(trialDeck, remaining, sizeof(Hand));
+        Hand hands[numPlayers];
+        unsigned size = getDeckSize(h);
+        deal(size, size, trialDeck, numPlayers - 1, hands);
+        for (PlayerId p1 = numPlayers - 1; p1 > p; p1--) {
+          memcpy(hands[p1], hands[p1 - 1], sizeof(Hand));
+        }
+        memcpy(hands[p], h, sizeof(Hand));
+        expand(&t, potentialHands, hands);
+      }
+
+      match (t) {
+        {.status=Expanded(children, _, _)} -> {
+          float maxScore = -INFINITY;
+          unsigned maxAction;
+          printf("%s\n", showHand(h).text);
+          for (unsigned i = 0; i < actions.size; i++) {
+            float w = match (children[i].status)
+              (Expanded(_, trials, wins) -> (float)wins[p] / trials;
+               Leaf(winner) @when(winner == p) -> 1;
+               Leaf(_) -> 0;
+               Unexpanded() -> -INFINITY;);
+            printf("%3f: %s\n", w, showAction(children[i].action).text);
+            if (w > maxScore) {
+              maxScore = w;
+              maxAction = i;
+            }
+          }
+          return maxAction;
+        }
+        _ -> { assert(false); }
+      }
+    }
+    _ -> { assert(false); }
+  }
 }
 
 Player searchPlayer = {"search", getSearchAction};

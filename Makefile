@@ -47,7 +47,7 @@ LIB_DIRS=$(wildcard $(EXTS_BASE)/*/lib)
 override LDFLAGS+=$(addprefix -L,$(LIB_DIRS))
 # Flags passed to the linker specifying libraries to link
 # Specify libsearch is to be linked statically, everything else dynamically
-LDLIBS=-lpthread -lgc
+LDLIBS=-lpthread -lgc -lm
 
 # All directories contining extension library sources
 SRC_DIRS=$(wildcard $(EXTS_BASE)/*/src)
