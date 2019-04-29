@@ -183,14 +183,13 @@ unsigned deal(unsigned min, unsigned max, Hand deck, unsigned numPlayers, Hand h
       Card dealt;
       for (Card c = Joker; c < CARD_MAX; c++) {
         n -= deck[c];
-        if (n <= 0) {
+        if (n < 0) {
           dealt = c;
           break;
         }
       }
-      if (n > 0) {
-        dealt = CARD_MAX - 1;
-      }
+      assert(n < 0);
+      assert(deck[dealt] > 0);
       hands[p][dealt]++;
       deck[dealt]--;
       deckSize--;

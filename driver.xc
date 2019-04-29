@@ -19,7 +19,7 @@ PlayerId playGame(unsigned numPlayers, Player players[numPlayers], bool verbose)
   while (1) {
     if (handSize == 0) {
       if (getDeckSize(deck) < numPlayers * MIN_HAND) {
-        memset(discard, 0, CARD_MAX);
+        memset(discard, 0, sizeof(Hand));
         initializeDeck(deck);
         dealer = (dealer + 1) % numPlayers;
         handNum = 0;
@@ -36,11 +36,11 @@ PlayerId playGame(unsigned numPlayers, Player players[numPlayers], bool verbose)
     if (verbose) {
       printf("%s's turn\n%s\n", showPlayerId(currentPlayer).text, showState(s).text);
     }
-    vector<Action> actions = getactions(s, currentPlayer, hands[currentPlayer]);
-    unsigned ActionNum =
+    vector<Action> actions = getActions(s, currentPlayer, hands[currentPlayer]);
+    unsigned actionNum =
       players[currentPlayer].getAction(s, hands[currentPlayer], discard, turn, currentPlayer, actions);
-    assert(ActionNum < actions.size);
-    Action a = actions[ActionNum];
+    assert(actionNum < actions.size);
+    Action a = actions[actionNum];
     if (verbose) {
       printf("Player %d (%s): %s\n\n\n", currentPlayer, players[currentPlayer].name, showAction(a).text);
     }

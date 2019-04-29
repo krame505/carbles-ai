@@ -94,7 +94,7 @@ State applyMoveDirect(Move, State);
 State applyMoves(list<Move ?> ?, State);
 State applyAction(Action, State, Hand, Hand);
 
-vector<Action> getactions(State s, PlayerId p, Hand h);
+vector<Action> getActions(State s, PlayerId p, Hand h);
 _Bool isWon(State s);
 PlayerId getWinner(State s);
 

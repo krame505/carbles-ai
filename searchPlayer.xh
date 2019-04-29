@@ -8,8 +8,8 @@ typedef struct GameTree GameTree;
 
 datatype NodeStatus {
   Unexpanded();
-  Expanded(vector<GameTree> children, unsigned trials, vector<unsigned> wins);
-  Leaf(PlayerId winner);
+  Expanded(vector<GameTree> children, unsigned trials, vector<float> wins);
+  Leaf(vector<float> wins);
 };
 
 struct GameTree {
