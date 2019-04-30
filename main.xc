@@ -15,10 +15,10 @@ int main(unsigned argc, char *argv[]) {
     printf("Wrong number of players specified: expected %d, got %d\n", numPlayers, argc - 2);
     return 1;
   }
-  Player players[numPlayers];
+  Player *players[numPlayers];
   for (unsigned i = 0; i < numPlayers; i++) {
     players[i] = getPlayer(argv[i + 2]);
-    if (!players[i].name) {
+    if (!players[i]->name) {
       printf("Invalid player %s\n", argv[i + 2]);
       return 1;
     }

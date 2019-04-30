@@ -20,6 +20,15 @@ struct GameTree {
   datatype NodeStatus status;
 };
 
-extern Player searchPlayer;
+typedef struct SearchPlayer SearchPlayer;
+struct SearchPlayer {
+  Player super;
+  unsigned timeout;
+  unsigned playoutDepth;
+  float explore;
+};
+
+Player *newSearchPlayer(unsigned timeout, unsigned playoutDepth, float explore);
+extern SearchPlayer searchPlayer;
 
 #endif

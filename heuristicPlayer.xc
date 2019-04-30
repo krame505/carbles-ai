@@ -61,7 +61,7 @@ int getHeuristicValue(State s, PlayerId p) {
   return result;
 }
 
-unsigned getHeuristicAction(State s, Hand h, Hand discard, unsigned turn, PlayerId p, vector<Action> actions) {
+unsigned getHeuristicAction(Player *this, State s, Hand h, Hand discard, unsigned turn, PlayerId p, vector<Action> actions) {
   unsigned maxAction;
   int maxScore = INT_MIN;
   for (unsigned i = 0; i < actions.size; i++) {

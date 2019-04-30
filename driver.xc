@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <assert.h>
 
-PlayerId playGame(unsigned numPlayers, Player players[numPlayers], bool verbose) {
+PlayerId playGame(unsigned numPlayers, Player *players[numPlayers], bool verbose) {
   if (numPlayers < 1) {
     fprintf(stderr, "Invalid number of players %d\n", numPlayers);
     exit(1);
@@ -37,12 +37,12 @@ PlayerId playGame(unsigned numPlayers, Player players[numPlayers], bool verbose)
       printf("%s's turn\n%s\n", showPlayerId(currentPlayer).text, showState(s).text);
     }
     vector<Action> actions = getActions(s, currentPlayer, hands[currentPlayer]);
-    unsigned actionNum =
-      players[currentPlayer].getAction(s, hands[currentPlayer], discard, turn, currentPlayer, actions);
+    Player *p = players[currentPlayer];
+    unsigned actionNum = p->getAction(p, s, hands[currentPlayer], discard, turn, currentPlayer, actions);
     assert(actionNum < actions.size);
     Action a = actions[actionNum];
     if (verbose) {
-      printf("Player %d (%s): %s\n\n\n", currentPlayer, players[currentPlayer].name, showAction(a).text);
+      printf("Player %d (%s): %s\n\n\n", currentPlayer, p->name, showAction(a).text);
     }
     s = applyAction(a, s, hands[currentPlayer], discard);
     if (isWon(s)) {

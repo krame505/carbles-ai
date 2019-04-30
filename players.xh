@@ -10,6 +10,6 @@
 
 static Player errorPlayer = {0};
 
-Player getPlayer(const char *name);
+Player *getPlayer(const char *name);
 
 #endif

@@ -10,13 +10,13 @@
 #ifndef _DRIVER_XH
 #define _DRIVER_XH
 
-struct Player {
-  const char *name;
-  unsigned (*getAction)(State s, Hand h, Hand discard, unsigned turn, PlayerId p, vector<Action> actions);
-};
-
 typedef struct Player Player;
 
-PlayerId playGame(unsigned numPlayers, Player players[numPlayers], _Bool verbose);
+struct Player {
+  const char *name;
+  unsigned (*getAction)(Player *this, State s, Hand h, Hand discard, unsigned turn, PlayerId p, vector<Action> actions);
+};
+
+PlayerId playGame(unsigned numPlayers, Player *players[numPlayers], _Bool verbose);
 
 #endif
