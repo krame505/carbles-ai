@@ -29,19 +29,19 @@ int main(unsigned argc, char *argv[]) {
   
   unsigned wins[numPlayers];
   memset(wins, 0, sizeof(wins));
-  unsigned n;
+  unsigned n, numGames = 0;
 #pragma omp parallel for num_threads(8)
   for (n = 0; n < GAMES; n++) {
     struct GC_stack_base sb;
     GC_get_stack_base(&sb);
     GC_register_my_thread(&sb);
     
-    printf("Starting game %d\n", n);
     PlayerId winner = playGame(numPlayers, players, false);
 #pragma omp critical
     {
+      numGames++;
       wins[winner]++;
-      printf("\nFinished game %d:\n", n);
+      printf("\nFinished game %d:\n", numGames);
       for (unsigned i = 0; i < numPlayers; i++) {
         printf("%3d: %d\n", ((SearchPlayer*)players[i])->playoutDepth, wins[i]);
       }
