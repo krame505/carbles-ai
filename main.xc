@@ -17,7 +17,7 @@
 #define TEST
 #define GAMES 1000
 #define TIMEOUT 10
-unsigned playoutDepth[] = {0, 10, 20, 50, 100, 200};
+unsigned playoutDepth[] = {0, 5, 10, 15, 20, 25};
 
 int main(unsigned argc, char *argv[]) {
 #ifdef TEST
@@ -29,10 +29,8 @@ int main(unsigned argc, char *argv[]) {
   
   unsigned numPlayers = sizeof(playoutDepth) / sizeof(playoutDepth[0]);
   SearchPlayer searchPlayers[numPlayers];
-  Player *players[numPlayers];
   for (unsigned i = 0; i < numPlayers; i++) {
-      searchPlayers[i] = makeSearchPlayer(TIMEOUT, playoutDepth[i]);
-      players[i] = (Player *)&searchPlayers[i];
+    searchPlayers[i] = makeSearchPlayer(TIMEOUT, playoutDepth[i]);
   }
   
   unsigned wins[numPlayers];
@@ -47,8 +45,24 @@ int main(unsigned argc, char *argv[]) {
     GC_get_stack_base(&sb);
     GC_register_my_thread(&sb);
 # endif
+
+    PlayerId ps[numPlayers];
+    for (unsigned i = 0; i < numPlayers; i++) {
+      ps[i] = i;
+    }
+    for (unsigned i = 0; i < 100; i++) {
+      unsigned a = rand() % numPlayers;
+      unsigned b = rand() % numPlayers;
+      unsigned temp = ps[a];
+      ps[a] = ps[b];
+      ps[b] = temp;
+    }
+    Player *players[numPlayers];
+    for (unsigned i = 0; i < numPlayers; i++) {
+      players[i] = (Player*)&searchPlayers[ps[i]];
+    }
     
-    PlayerId winner = playGame(numPlayers, players, false);
+    PlayerId winner = ps[playGame(numPlayers, players, false)];
 # if NUM_THREADS > 1
 #  pragma omp critical
 # endif
