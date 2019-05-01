@@ -8,9 +8,8 @@
 #include <assert.h>
 #include <time.h>
 
-#define TIMEOUT 7
+#define TIMEOUT 10
 #define PLAYOUT_DEPTH 100
-#define EXPLORE 2
 
 vector<float> score(State s) {
   match (s) {
@@ -25,8 +24,10 @@ vector<float> score(State s) {
           totalScore += score;
           scores[p1] = score;
         }
-        for (PlayerId p1 = 0; p1 < numPlayers; p1++) {
-          scores[p1] /= totalScore;
+        if (totalScore > 0) {
+          for (PlayerId p1 = 0; p1 < numPlayers; p1++) {
+            scores[p1] /= totalScore;
+          }
         }
       }
       return scores;
@@ -87,24 +88,20 @@ float weight(SearchPlayer *this, GameTree *t) {
   return match (t->status, t->parent->status)
     (Unexpanded(), _ -> INFINITY;
      Expanded(_, trials, wins), Expanded(_, parentTrials, _) ->
-     (float)wins[p] / trials + sqrt(this->explore * log2((float)parentTrials) / trials);
+     (float)wins[p] / trials + sqrtf(2 * log2f((float)parentTrials) / trials);
      Leaf(scores), _ -> scores[p];);
 }
 
-void expand(SearchPlayer *this, GameTree *t, int knownPlayer, Hand knownHand, Hand remaining, Hand deck, Hand hands[]) {
-  Hand fullDeck;
+void expand(SearchPlayer *this, GameTree *t, Hand deck, Hand hands[]) {
   match (t) {
     &{p, _, St(?&numPlayers, _, _)} -> {
       // Re-deal from deck if the hand is empty
       unsigned handSize = getDeckSize(hands[p]);
       while (handSize == 0) {
         if (getDeckSize(deck) < numPlayers * MIN_HAND) {
-          initializeDeck(fullDeck);
-          remaining = fullDeck;
           initializeDeck(deck);
         }
         handSize = deal(MIN_HAND, MAX_HAND, deck, numPlayers, hands);
-        knownPlayer = -1;
       }
     }
   }
@@ -118,14 +115,14 @@ void expand(SearchPlayer *this, GameTree *t, int knownPlayer, Hand knownHand, Ha
       } else {
         // Compute valid actions
         PlayerId newPlayer = (p + 1) % numPlayers;
-        vector<Action> actions = getActions(s, p, p == knownPlayer? knownHand : remaining);
+        Hand fullDeck;
+        initializeDeck(fullDeck);
+        vector<Action> actions = getActions(s, p, fullDeck);
         assert(actions.size > 0);
-        if (p != knownPlayer && actions[0].tag != Action_Burn) {
-          // Include actions for burning cards when the hand is uncertain
+        if (actions[0].tag != Action_Burn) {
+          // Include actions for burning cards
           for (Card c = 0; c < CARD_MAX; c++) {
-            if (remaining[c]) {
-              actions.append(Burn(c));
-            }
+            actions.append(Burn(c));
           }
         }
         
@@ -160,9 +157,9 @@ void expand(SearchPlayer *this, GameTree *t, int knownPlayer, Hand knownHand, Ha
           }
         }
       }
-      assert(maxChild != NULL);
+      //assert(maxChild != NULL);
       hands[p][getActionCard(maxChild->action)]--;
-      expand(this, maxChild, knownPlayer, knownHand, remaining, deck, hands);
+      expand(this, maxChild, deck, hands);
     }
     &{p, .status=Leaf(scores)} -> {
       backpropagate(t, scores);
@@ -179,15 +176,29 @@ unsigned getSearchAction(SearchPlayer *this, State s, Hand h, Hand discard, unsi
   
   match (s) {
     St(?&numPlayers, _, _) -> {
-      printf("%s\n", showHand(h).text);
+      //printf("%s\n", showHand(h).text);
+      // Construct the deck of remaining cards that may be held by another player
       Hand remaining;
       initializeDeck(remaining);
       for (Card c = 0; c < CARD_MAX; c++) {
         remaining[c] -= (h[c] + discard[c]);
       }
 
+      // Construct the initial children
+      GameTree t;
+      PlayerId newPlayer = (p + 1) % numPlayers;
+      vector<GameTree> children = new vector<GameTree>(actions.size);
+      for (unsigned i = 0; i < actions.size; i++) {
+        Action a = actions[i];
+        State newState = applyAction(a, s, NULL, NULL);
+        children[i] = (GameTree){
+          newPlayer, a, newState, &t, Unexpanded()
+        };
+      }
+      t = (GameTree){p, {0}, s, NULL, Expanded(children, 0, new vector<float>(numPlayers, 0))};
+
+      // Perform playouts
       unsigned numPlayouts = 0;
-      GameTree t = {p, {0}, s, NULL, Unexpanded()};
       while ((clock() - start) / CLOCKS_PER_SEC < this->timeout) {
         Hand trialDeck;
         memcpy(trialDeck, remaining, sizeof(Hand));
@@ -198,11 +209,12 @@ unsigned getSearchAction(SearchPlayer *this, State s, Hand h, Hand discard, unsi
         memcpy(hands[p], h, sizeof(Hand));
         dealt = deal(size - 1, size, trialDeck, numPlayers - p - 1, hands + p + 1);
         assert(dealt >= size - 1);
-        expand(this, &t, p, h, remaining, trialDeck, hands);
+        expand(this, &t, trialDeck, hands);
         numPlayouts++;
       }
-      printf("Finished %d playouts\n", numPlayouts);
+      //printf("Finished %d playouts\n", numPlayouts);
 
+      // Find the child with the highest ration of wins for p / trials
       match (t) {
         {.status=Expanded(children, _, _)} -> {
           float maxScore = -INFINITY;
@@ -212,7 +224,7 @@ unsigned getSearchAction(SearchPlayer *this, State s, Hand h, Hand discard, unsi
               (Expanded(_, trials, wins) -> (float)wins[p] / trials;
                Leaf(scores) -> scores[p];
                Unexpanded() -> -INFINITY;);
-            printf("%3f: %s\n", w, showAction(children[i].action).text);
+            //printf("%3f: %s\n", w, showAction(children[i].action).text);
             if (w > maxScore) {
               maxScore = w;
               maxAction = i;
@@ -227,11 +239,11 @@ unsigned getSearchAction(SearchPlayer *this, State s, Hand h, Hand discard, unsi
   }
 }
 
-Player *newSearchPlayer(unsigned timeout, unsigned playoutDepth, float explore) {
-  SearchPlayer p = {{"search", (unsigned (*)(Player *, State, Hand, Hand, unsigned, PlayerId, vector<Action>))getSearchAction}, timeout, playoutDepth, explore};
-  Player *result = GC_malloc(sizeof(p));
-  memcpy(result, &p, sizeof(p));
-  return result;
+SearchPlayer makeSearchPlayer(unsigned timeout, unsigned playoutDepth) {
+  return (SearchPlayer){
+    {"search", (unsigned (*)(Player *, State, Hand, Hand, unsigned, PlayerId, vector<Action>))getSearchAction},
+      timeout, playoutDepth
+        };
 }
 
-SearchPlayer searchPlayer = {{"search", (unsigned (*)(Player *, State, Hand, Hand, unsigned, PlayerId, vector<Action>))getSearchAction}, TIMEOUT, PLAYOUT_DEPTH, EXPLORE};
+SearchPlayer searchPlayer = {{"search", (unsigned (*)(Player *, State, Hand, Hand, unsigned, PlayerId, vector<Action>))getSearchAction}, TIMEOUT, PLAYOUT_DEPTH};

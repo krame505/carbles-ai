@@ -25,10 +25,9 @@ struct SearchPlayer {
   Player super;
   unsigned timeout;
   unsigned playoutDepth;
-  float explore;
 };
 
-Player *newSearchPlayer(unsigned timeout, unsigned playoutDepth, float explore);
+SearchPlayer makeSearchPlayer(unsigned timeout, unsigned playoutDepth);
 extern SearchPlayer searchPlayer;
 
 #endif
