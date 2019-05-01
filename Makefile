@@ -39,7 +39,7 @@ override CPPFLAGS+=$(addprefix -I,$(INCLUDE_DIRS))
 override JAVAFLAGS+=-Xss1G -Xmx8G
 
 # Flags passed to the C compiler, e.g. to enable various compiler extensions
-override CFLAGS+=
+override CFLAGS+=-fopenmp
 
 # All directories contining extension libraries that may be linked
 LIB_DIRS=$(wildcard $(EXTS_BASE)/*/lib)
@@ -47,7 +47,7 @@ LIB_DIRS=$(wildcard $(EXTS_BASE)/*/lib)
 override LDFLAGS+=$(addprefix -L,$(LIB_DIRS))
 # Flags passed to the linker specifying libraries to link
 # Specify libsearch is to be linked statically, everything else dynamically
-LDLIBS=-lpthread -lgc -lm
+LDLIBS=-lpthread -lgc -lm -lgomp
 
 # All directories contining extension library sources
 SRC_DIRS=$(wildcard $(EXTS_BASE)/*/src)
