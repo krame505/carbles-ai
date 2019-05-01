@@ -71,8 +71,9 @@ int main(unsigned argc, char *argv[]) {
       wins[winner]++;
       printf("\nFinished game %d:\n", numGames);
       for (unsigned i = 0; i < numPlayers; i++) {
-        printf("%3d: %d\n", ((SearchPlayer*)players[i])->playoutDepth, wins[i]);
+        printf("%3d: %d\n", searchPlayers[i].playoutDepth, wins[i]);
       }
+      fflush(stdout);
     }
 # if NUM_THREADS > 1
     GC_unregister_my_thread();
