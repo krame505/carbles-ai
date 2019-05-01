@@ -88,7 +88,7 @@ float weight(SearchPlayer *this, GameTree *t) {
   return match (t->status, t->parent->status)
     (Unexpanded(), _ -> INFINITY;
      Expanded(_, trials, wins), Expanded(_, parentTrials, _) ->
-     (float)wins[p] / trials + sqrtf(2 * log2f((float)parentTrials) / trials);
+     (float)wins[p] / trials + sqrtf(2 * logf((float)parentTrials) / trials);
      Leaf(scores), _ -> scores[p];);
 }
 
