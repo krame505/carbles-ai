@@ -1,4 +1,10 @@
-#define GC_THREADS
+#ifndef NUM_THREADS
+# define NUM_THREADS 8
+#endif
+
+#if NUM_THREADS > 1
+# define GC_THREADS
+#endif
 
 #include <driver.xh>
 #include <players.xh>
@@ -15,9 +21,11 @@ unsigned playoutDepth[] = {0, 10, 20, 50, 100, 200};
 
 int main(unsigned argc, char *argv[]) {
 #ifdef TEST
+# if NUM_THREADS > 1
   GC_INIT();
   GC_allow_register_threads();
-  omp_set_num_threads(8);
+  omp_set_num_threads(NUM_THREADS);
+#endif
   
   unsigned numPlayers = sizeof(playoutDepth) / sizeof(playoutDepth[0]);
   SearchPlayer searchPlayers[numPlayers];
@@ -30,14 +38,20 @@ int main(unsigned argc, char *argv[]) {
   unsigned wins[numPlayers];
   memset(wins, 0, sizeof(wins));
   unsigned n, numGames = 0;
-#pragma omp parallel for num_threads(8)
+# if NUM_THREADS > 1
+#  pragma omp parallel for
+# endif
   for (n = 0; n < GAMES; n++) {
+# if NUM_THREADS > 1
     struct GC_stack_base sb;
     GC_get_stack_base(&sb);
     GC_register_my_thread(&sb);
+# endif
     
     PlayerId winner = playGame(numPlayers, players, false);
-#pragma omp critical
+# if NUM_THREADS > 1
+#  pragma omp critical
+# endif
     {
       numGames++;
       wins[winner]++;
@@ -46,7 +60,9 @@ int main(unsigned argc, char *argv[]) {
         printf("%3d: %d\n", ((SearchPlayer*)players[i])->playoutDepth, wins[i]);
       }
     }
+# if NUM_THREADS > 1
     GC_unregister_my_thread();
+# endif
   }
   
 #else
