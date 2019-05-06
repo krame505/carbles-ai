@@ -9,7 +9,7 @@
 #include <time.h>
 
 #define TIMEOUT 10
-#define PLAYOUT_DEPTH 100
+#define PLAYOUT_DEPTH 0
 
 vector<float> score(State s) {
   match (s) {
@@ -157,7 +157,7 @@ void expand(SearchPlayer *this, GameTree *t, Hand deck, Hand hands[]) {
           }
         }
       }
-      //assert(maxChild != NULL);
+      assert(maxChild != NULL);
       hands[p][getActionCard(maxChild->action)]--;
       expand(this, maxChild, deck, hands);
     }
@@ -216,7 +216,8 @@ unsigned getSearchAction(SearchPlayer *this, State s, Hand h, Hand discard, unsi
 
       // Find the child with the highest ration of wins for p / trials
       match (t) {
-        {.status=Expanded(children, _, _)} -> {
+        {.status=Expanded(children, trials, wins)} -> {
+          printf("Win confidence: %f\n", (float)wins[p] / trials);
           float maxScore = -INFINITY;
           unsigned maxAction;
           for (unsigned i = 0; i < actions.size; i++) {

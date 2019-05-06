@@ -17,7 +17,7 @@
 #define TEST
 #define GAMES 1000
 #define TIMEOUT 10
-unsigned playoutDepth[] = {0, 5, 10, 15, 20, 25};
+char *playerNames[] = {"search", "search", "heuristic", "heuristic", "rule", "rule"};
 
 int main(unsigned argc, char *argv[]) {
 #ifdef TEST
@@ -25,13 +25,9 @@ int main(unsigned argc, char *argv[]) {
   GC_INIT();
   GC_allow_register_threads();
   omp_set_num_threads(NUM_THREADS);
-#endif
+# endif
   
-  unsigned numPlayers = sizeof(playoutDepth) / sizeof(playoutDepth[0]);
-  SearchPlayer searchPlayers[numPlayers];
-  for (unsigned i = 0; i < numPlayers; i++) {
-    searchPlayers[i] = makeSearchPlayer(TIMEOUT, playoutDepth[i]);
-  }
+  unsigned numPlayers = sizeof(playerNames) / sizeof(playerNames[0]);
   
   unsigned wins[numPlayers];
   memset(wins, 0, sizeof(wins));
@@ -59,7 +55,7 @@ int main(unsigned argc, char *argv[]) {
     }
     Player *players[numPlayers];
     for (unsigned i = 0; i < numPlayers; i++) {
-      players[i] = (Player*)&searchPlayers[ps[i]];
+      players[i] = getPlayer(playerNames[ps[i]]);
     }
     
     PlayerId winner = ps[playGame(numPlayers, players, false)];
@@ -71,7 +67,7 @@ int main(unsigned argc, char *argv[]) {
       wins[winner]++;
       printf("\nFinished game %d:\n", numGames);
       for (unsigned i = 0; i < numPlayers; i++) {
-        printf("%3d: %d\n", searchPlayers[i].playoutDepth, wins[i]);
+        printf("%s: %d\n", playerNames[i], wins[i]);
       }
       fflush(stdout);
     }
