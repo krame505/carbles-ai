@@ -7,6 +7,7 @@ Player *getPlayer(const char *name) {
      "human" -> &humanPlayer;
      "rule" -> &rulePlayer;
      "heuristic" -> &heuristicPlayer;
+     "heuristic_search" -> (Player*)&heuristicSearchPlayer;
      "search" -> (Player*)&searchPlayer;
      _ -> &errorPlayer;);
 }

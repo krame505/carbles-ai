@@ -24,10 +24,11 @@ typedef struct SearchPlayer SearchPlayer;
 struct SearchPlayer {
   Player super;
   unsigned timeout;
-  unsigned playoutDepth;
+  vector<float> (*playoutHand)(SearchPlayer *this, State s, PlayerId p, Hand hands[]);
 };
 
-SearchPlayer makeSearchPlayer(unsigned timeout, unsigned playoutDepth);
+SearchPlayer makeSearchPlayer(unsigned timeout, vector<float> (*playoutHand)(SearchPlayer *this, State s, PlayerId p, Hand hands[]));
+extern SearchPlayer heuristicSearchPlayer;
 extern SearchPlayer searchPlayer;
 
 #endif

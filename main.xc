@@ -17,7 +17,7 @@
 #define TEST
 #define GAMES 1000
 #define TIMEOUT 10
-char *playerNames[] = {"search", "search", "heuristic", "heuristic", "rule", "rule"};
+char *playerNames[] = {"search", "heuristic", "rule"};
 
 int main(unsigned argc, char *argv[]) {
 #ifdef TEST
@@ -67,7 +67,7 @@ int main(unsigned argc, char *argv[]) {
       wins[winner]++;
       printf("\nFinished game %d:\n", numGames);
       for (unsigned i = 0; i < numPlayers; i++) {
-        printf("%s: %d\n", playerNames[i], wins[i]);
+        printf("  %s: %d\n", playerNames[i], wins[i]);
       }
       fflush(stdout);
     }
@@ -79,19 +79,15 @@ int main(unsigned argc, char *argv[]) {
 #else
   assert(argc > 0);
   if (argc < 2) {
-    printf("Usage: %s <# of players> <player 1> <player 2> ...\n", argv[0]);
+    printf("Usage: %s <player 1> <player 2> ...\n", argv[0]);
     return 1;
   }
-  unsigned numPlayers = atoi(argv[1]);
-  if (argc - 2 != numPlayers) {
-    printf("Wrong number of players specified: expected %d, got %d\n", numPlayers, argc - 2);
-    return 1;
-  }
+  unsigned numPlayers = argc - 1;
   Player *players[numPlayers];
   for (unsigned i = 0; i < numPlayers; i++) {
-    players[i] = getPlayer(argv[i + 2]);
+    players[i] = getPlayer(argv[i + 1]);
     if (!players[i]->name) {
-      printf("Invalid player %s\n", argv[i + 2]);
+      printf("Invalid player %s\n", argv[i + 1]);
       return 1;
     }
   }
