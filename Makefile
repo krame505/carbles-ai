@@ -12,8 +12,8 @@ DRIVER_DIR=drivers
 BIN_DIR=bin
 # The directory in which to place configuration-specific generated files
 TARGET_DIR=$(BIN_DIR)/$(CONF)
-# The directory in which to place driver-specific, configuration-specific generated files
-DRIVER_TARGET_DIR=$(TARGET_DIR)/$(DRIVER_DIR)
+# Additional directories for make to find files
+VPATH=$(DRIVER_DIR):$(TARGET_DIR)
 
 # The name of the jar file to build
 ABLEC_JAR_NAME=ableC.jar
@@ -37,22 +37,30 @@ XC_FILES=$(COMMON_XC_FILES) $(DRIVER_XC_FILES)
 # C files to be generated that should be included in all targets
 COMMON_GEN_C_FILES=$(addprefix $(TARGET_DIR)/,$(COMMON_XC_FILES:.xc=.c))
 # C files to be generated that are target-specific
-DRIVER_GEN_C_FILES=$(addprefix $(TARGET_DIR)/,$(DRIVER_XC_FILES:.xc=.c))
+DRIVER_GEN_C_FILES=$(addprefix $(TARGET_DIR)/,$(DRIVER_XC_FILES:$(DRIVER_DIR)/%.xc=%.c))
 # All C files to be generated
 GEN_C_FILES=$(COMMON_GEN_C_FILES) $(DRIVER_GEN_C_FILES)
+# C source files to be compiled that should be included in all targets
+COMMON_C_FILES=$(wildcard *.c)
+# C source files to be compiled that are target-specific
+DRIVER_C_FILES=$(wildcard $(DRIVER_DIR)/*.c)
+# All C source files to be compiled
+C_FILES=$(COMMON_C_FILES) $(DRIVER_C_FILES)
 # All object files that should be included in all targets
-COMMON_OBJECTS=$(addprefix $(TARGET_DIR)/,$(COMMON_XC_FILES:.xc=.o))
+COMMON_OBJECTS=$(COMMON_GEN_C_FILES:.c=.o) $(addprefix $(TARGET_DIR)/,$(COMMON_C_FILES:.c=.o))
 # All object files that should be included in all targets
-DRIVER_OBJECTS=$(addprefix $(TARGET_DIR)/,$(DRIVER_XC_FILES:.xc=.o))
+DRIVER_OBJECTS=$(DRIVER_GEN_C_FILES:.c=.o) $(addprefix $(TARGET_DIR)/,$(DRIVER_C_FILES:$(DRIVER_DIR)/%.c=%.o))
 # All object files that should be generated
 OBJECTS=$(COMMON_OBJECTS) $(DRIVER_OBJECTS)
 # All executables that should be generated
-TARGETS=$(addprefix $(TARGET_DIR)/,$(DRIVER_XC_FILES:$(DRIVER_DIR)/%.xc=%))
+TARGETS=$(DRIVER_OBJECTS:.o=)
 
 # All directories contining extension header files that may be included
 INCLUDE_DIRS=. $(wildcard $(EXTS_BASE)/*/include)
-# All header files that may be included, to be included as dependencies
-INCLUDE_SOURCES=$(foreach dir,$(INCLUDE_DIRS),$(wildcard $(dir)/*.*h) $(wildcard $(dir)/*.pl))
+# All header files that may be included, to be included as dependencies in XC files
+XC_INCLUDE_SOURCES=$(foreach dir,$(INCLUDE_DIRS),$(wildcard $(dir)/*.*h) $(wildcard $(dir)/*.pl))
+# All header files that may be included, to be included as dependencies in C files
+C_INCLUDE_SOURCES=$(foreach dir,$(INCLUDE_DIRS),$(wildcard $(dir)/*.h))
 # Flags passed to ableC including the appropriate directories
 override CPPFLAGS+=$(addprefix -I,$(INCLUDE_DIRS))
 # Flags passed to Java when invoking ableC
@@ -99,18 +107,18 @@ $(ABLEC_JAR): $(GRAMMAR_SOURCES) | $(BIN_DIR)
 	touch $(wildcard $(ARTIFACT)/*.sv)
 	silver-ableC -o $@ $(SVFLAGS) $(ARTIFACT)
 
-$(TARGET_DIR)/%.c: %.xc $(INCLUDE_SOURCES) $(ABLEC_JAR) | $(TARGET_DIR) $(DRIVER_TARGET_DIR)
+$(TARGET_DIR)/%.c: %.xc $(XC_INCLUDE_SOURCES) $(ABLEC_JAR) | $(TARGET_DIR)
 	java $(JAVAFLAGS) -jar $(ABLEC_JAR) $< $(CPPFLAGS) $(XCFLAGS)
-	mv $*.i $(dir $@)
-	mv $*.c $@
+	mv $(<:.xc=.i) $(dir $@)
+	mv $(<:.xc=.c) $@
 
-$(TARGET_DIR)/%.o: $(TARGET_DIR)/%.c $(INCLUDE_SOURCES) | $(TARGET_DIR) $(DRIVER_TARGET_DIR)
+$(TARGET_DIR)/%.o: %.c $(C_INCLUDE_SOURCES) | $(TARGET_DIR)
 	$(CC) -c $(CPPFLAGS) $(CFLAGS) $< -o $@
 
-$(TARGET_DIR)/%: $(TARGET_DIR)/$(DRIVER_DIR)/%.o $(COMMON_OBJECTS) $(SRC_SOURCES) | libs
+$(TARGET_DIR)/%: $(TARGET_DIR)/%.o $(COMMON_OBJECTS) $(SRC_SOURCES) | libs
 	$(CC) $(LDFLAGS) $< $(COMMON_OBJECTS) $(LOADLIBES) $(LDLIBS) -o $@
 
-$(BIN_DIR) $(TARGET_DIR) $(DRIVER_TARGET_DIR):
+$(BIN_DIR) $(TARGET_DIR):
 	mkdir -p $@
 
 # Remove everything but C files and ableC jar
