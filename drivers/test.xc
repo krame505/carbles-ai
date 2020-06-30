@@ -66,7 +66,7 @@ int main(unsigned argc, char *argv[]) {
       trialPlayers[i] = players[ps[i]];
     }
 
-    PlayerId winner = ps[playGame(numPlayers, players, false)];
+    PlayerId winner = ps[playQuietGame(numPlayers, players)];
 # if NUM_THREADS > 1
 #  pragma omp critical
 # endif

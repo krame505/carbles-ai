@@ -17,5 +17,5 @@ int main(unsigned argc, char *argv[]) {
       return 1;
     }
   }
-  playGame(numPlayers, players, true);
+  playConsoleGame(numPlayers, players, stdout);
 }
