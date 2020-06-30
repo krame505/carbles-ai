@@ -10,32 +10,40 @@
 #include <players.xh>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <assert.h>
 #include <omp.h>
 #include <gc.h>
 
-#define TEST
-#define GAMES 1000
-#define TIMEOUT 10
-char *playerNames[] = {"search", "heuristic", "rule"};
-
 int main(unsigned argc, char *argv[]) {
-#ifdef TEST
+  if (argc < 2) {
+    printf("Usage: %s <number of games> <player 1> <player 2> ...\n", argv[0]);
+    return 1;
+  }
+
+  unsigned games = atoi(argv[1]);
+
+  unsigned numPlayers = argc - 2;
+  Player *players[numPlayers];
+  for (unsigned i = 0; i < numPlayers; i++) {
+    players[i] = getPlayer(argv[i + 2]);
+    if (!players[i]->name) {
+      printf("Invalid player %s\n", argv[i + 2]);
+      return 1;
+    }
+  }
+
 # if NUM_THREADS > 1
   GC_INIT();
   GC_allow_register_threads();
   omp_set_num_threads(NUM_THREADS);
 # endif
-  
-  unsigned numPlayers = sizeof(playerNames) / sizeof(playerNames[0]);
-  
+
   unsigned wins[numPlayers];
   memset(wins, 0, sizeof(wins));
   unsigned n, numGames = 0;
 # if NUM_THREADS > 1
 #  pragma omp parallel for
 # endif
-  for (n = 0; n < GAMES; n++) {
+  for (n = 0; n < games; n++) {
 # if NUM_THREADS > 1
     struct GC_stack_base sb;
     GC_get_stack_base(&sb);
@@ -53,11 +61,11 @@ int main(unsigned argc, char *argv[]) {
       ps[a] = ps[b];
       ps[b] = temp;
     }
-    Player *players[numPlayers];
+    Player *trialPlayers[numPlayers];
     for (unsigned i = 0; i < numPlayers; i++) {
-      players[i] = getPlayer(playerNames[ps[i]]);
+      trialPlayers[i] = players[ps[i]];
     }
-    
+
     PlayerId winner = ps[playGame(numPlayers, players, false)];
 # if NUM_THREADS > 1
 #  pragma omp critical
@@ -67,7 +75,7 @@ int main(unsigned argc, char *argv[]) {
       wins[winner]++;
       printf("\nFinished game %d:\n", numGames);
       for (unsigned i = 0; i < numPlayers; i++) {
-        printf("  %s: %d\n", playerNames[i], wins[i]);
+        printf("  %s: %d\n", players[i]->name, wins[i]);
       }
       fflush(stdout);
     }
@@ -75,22 +83,4 @@ int main(unsigned argc, char *argv[]) {
     GC_unregister_my_thread();
 # endif
   }
-  
-#else
-  assert(argc > 0);
-  if (argc < 2) {
-    printf("Usage: %s <player 1> <player 2> ...\n", argv[0]);
-    return 1;
-  }
-  unsigned numPlayers = argc - 1;
-  Player *players[numPlayers];
-  for (unsigned i = 0; i < numPlayers; i++) {
-    players[i] = getPlayer(argv[i + 1]);
-    if (!players[i]->name) {
-      printf("Invalid player %s\n", argv[i + 1]);
-      return 1;
-    }
-  }
-  playGame(numPlayers, players, true);
-#endif
 }
