@@ -1,0 +1,9 @@
+#include <state.xh>
+#include <driver.xh>
+
+#ifndef _SERVER_XH
+#define _SERVER_XH
+
+void serve(const char *port);
+
+#endif
