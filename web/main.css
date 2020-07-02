@@ -1,6 +1,7 @@
 table {
   border-collapse: collapse;
   table-layout: fixed;
+  margin-bottom: 20px;
 }
 
 td {
@@ -22,10 +23,45 @@ td {
   color: white;
 }
 
-.messages {
+#status {
+  display: flex;
+}
+
+#controls {
+  flex-grow: 1;
+}
+
+#messages {
+  flex-grow: 1;
   height: 150px;
   overflow-y: scroll;
-  width: 500px;
   padding: 10px;
-  border-style: solid;
+}
+
+a {
+  outline: none;
+  text-decoration: none;
+  padding: 2px 1px 0;
+  font-size: 20px;
+}
+
+a:link {
+  color: blue;
+}
+
+a:visited {
+  color: blue;
+}
+
+a:focus {
+  background: #BAE498;
+}
+
+a:hover {
+  background: #CDFEAA;
+}
+
+a:active {
+  background: #265301;
+  color: #CDFEAA;
 }

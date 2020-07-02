@@ -6,9 +6,10 @@
 PlayerId playGame(
     unsigned numPlayers, Player *players[numPlayers],
     closure<(PlayerId) -> void> updateTurn,
+    closure<(PlayerId, Hand) -> void> updateHand,
     closure<(State) -> void> updateState,
     closure<(string) -> void> log) {
-  if (numPlayers < 1) {
+  if (numPlayers < 1 || numPlayers > MAX_PLAYERS) {
     fprintf(stderr, "Invalid number of players %d\n", numPlayers);
     exit(1);
   }
@@ -34,6 +35,9 @@ PlayerId playGame(
       handSize = deal(MIN_HAND, MAX_HAND, deck, numPlayers, hands);
       startingPlayer = (dealer + handNum + 1) % numPlayers;
       currentPlayer = startingPlayer;
+      for (PlayerId p = 0; p < numPlayers; p++) {
+        updateHand(p, hands[p]);
+      }
     }
     updateTurn(currentPlayer);
     updateState(s);
@@ -44,6 +48,7 @@ PlayerId playGame(
     Action a = actions[actionNum];
     log("Player " + str(currentPlayer) + " (" + p->name + "): " + showAction(a));
     s = applyAction(a, s, hands[currentPlayer], discard);
+    updateHand(currentPlayer, hands[currentPlayer]);
     if (isWon(s)) {
       break;
     }
@@ -63,6 +68,7 @@ PlayerId playQuietGame(unsigned numPlayers, Player *players[numPlayers]) {
   return playGame(
       numPlayers, players,
       lambda (PlayerId p) -> void {},
+      lambda (PlayerId p, Hand h) -> void {},
       lambda (State s) -> void {},
       lambda (string msg) -> void {});
 }
@@ -72,6 +78,7 @@ PlayerId playConsoleGame(unsigned numPlayers, Player *players[numPlayers], FILE 
   return playGame(
       numPlayers, players,
       lambda (PlayerId p) -> void { fprintf(out, "\n\n%s's turn\n", showPlayerId(p).text); },
+      lambda (PlayerId p, Hand h) -> void {},
       lambda (State s) -> void { fprintf(out, "%s\n", showState(s).text); },
       lambda (string msg) -> void { fprintf(out, "%s\n", msg.text); });
 }

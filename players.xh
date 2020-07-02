@@ -4,6 +4,7 @@
 #include <rulePlayer.xh>
 #include <heuristicPlayer.xh>
 #include <searchPlayer.xh>
+#include <server.xh>
 
 #ifndef _PLAYERS_XH
 #define _PLAYERS_XH

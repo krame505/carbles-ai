@@ -184,11 +184,11 @@ string jsonState(State s, PlayerId turn) {
       for (PlayerId p = 0; p < numPlayers; p++) {
         for (unsigned i = 0; i < SECTOR_SIZE; i++) {
           if (p || i) result += ", ";
-          result += jsonStatePosition(s, Out(boundvar(GC_malloc, i + p * SECTOR_SIZE)));
+          result += jsonStatePosition(s, Out(boundvar(alloca, i + p * SECTOR_SIZE)));
         }
         for (unsigned i = 0; i < NUM_PIECES; i++) {
           result += ", ";
-          result += jsonStatePosition(s, Finish(boundvar(GC_malloc, p), boundvar(GC_malloc, i)));
+          result += jsonStatePosition(s, Finish(boundvar(alloca, p), boundvar(alloca, i)));
         }
       }
       result += "}, \"lot\": [";
@@ -212,6 +212,7 @@ string jsonActions(vector<Action> a) {
     if (i) result += ", ";
     result += show(showAction(a[i]));
   }
+  result += "]";
   return result;
 }
 

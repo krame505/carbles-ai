@@ -21,6 +21,7 @@ struct Player {
 PlayerId playGame(
     unsigned numPlayers, Player *players[numPlayers],
     closure<(PlayerId) -> void> updateTurn,
+    closure<(PlayerId, Hand) -> void> updateHand,
     closure<(State) -> void> updateState,
     closure<(string) -> void> log);
 PlayerId playQuietGame(unsigned numPlayers, Player *players[numPlayers]);
