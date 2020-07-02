@@ -4,6 +4,8 @@
 #ifndef _SERVER_XH
 #define _SERVER_XH
 
-void serve(const char *port);
+PlayerId playServerGame(unsigned numPlayers, Player *players[numPlayers]);
+
+void startServer(const char *port);
 
 #endif

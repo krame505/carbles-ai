@@ -1,0 +1,31 @@
+table {
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+td {
+  width: 30px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.lotCell {
+  color: white;
+  border-radius: 0.7em;
+}
+
+.slotCell {
+  background: tan;
+}
+
+.slot {
+  color: white;
+}
+
+.messages {
+  background: lightgray;
+  height: 150px;
+  overflow-y: scroll;
+  width: 500px;
+  padding: 10px;
+}

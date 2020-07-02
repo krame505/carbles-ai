@@ -80,6 +80,11 @@ string showHand(Hand);
 string showAction(Action a);
 string showActions(vector<Action> a);
 
+string jsonPosition(Position ?p);
+string jsonState(State s);
+string jsonHand(Hand);
+string jsonActions(vector<Action> a);
+
 PlayerId ?copyPlayerId(PlayerId ?);
 Position ?copyPosition(Position ?);
 Move ?copyMoveDirect(Move ?);

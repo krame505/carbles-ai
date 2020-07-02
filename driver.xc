@@ -30,7 +30,7 @@ PlayerId playGame(
       } else {
         handNum++;
       }
-      log("Hand " + str(handNum) + " for dealer " + showPlayerId(dealer));
+      log("Hand " + str(handNum) + " for dealer Player " + dealer);
       handSize = deal(MIN_HAND, MAX_HAND, deck, numPlayers, hands);
       startingPlayer = (dealer + handNum + 1) % numPlayers;
       currentPlayer = startingPlayer;

@@ -1,3 +1,5 @@
+#define GC_THREADS
+
 #include <driver.xh>
 #include <server.xh>
 #include <players.xh>
@@ -5,8 +7,6 @@
 #include <stdbool.h>
 
 int main(unsigned argc, char *argv[]) {
-
-  /*
   if (argc < 2) {
     printf("Usage: %s <player 1> <player 2> ...\n", argv[0]);
     return 1;
@@ -20,7 +20,13 @@ int main(unsigned argc, char *argv[]) {
       return 1;
     }
   }
-  playGame(numPlayers, players, true); */
 
-  serve("8080");
+  GC_INIT();
+  GC_allow_register_threads();
+
+  startServer("8000");
+
+  while (true) {
+    playServerGame(numPlayers, players);
+  }
 }
