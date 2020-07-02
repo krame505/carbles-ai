@@ -88,11 +88,13 @@ function updateBoard(state) {
   }
 }
 
-function reloadBoard() {
+function reloadState() {
   $.ajax({url: "state.json"}).done(
       function (s) {
 	state = JSON.parse(s)
 	updateBoard(state)
+	turn.innerHTML = `Player ${state.turn}'s turn`
+	turn.style.color = getColor(state.turn)
       })
 }
 
@@ -105,7 +107,7 @@ function connect() {
   const ws = new WebSocket("ws://" + location.host) // Only used to listen
   ws.onmessage = function (event) {
     addMessage(event.data)
-    reloadBoard()
+    reloadState()
   }
   ws.onclose = function(e) {
     console.log('Socket is closed. Reconnect will be attempted in 1 second.', e.reason);
@@ -115,5 +117,5 @@ function connect() {
 
 function init() {
   connect()
-  reloadBoard()
+  reloadState()
 }

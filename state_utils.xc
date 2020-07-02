@@ -174,11 +174,12 @@ string jsonStatePosition(State s, Position pos) {
   }
 }
 
-string jsonState(State s) {
+string jsonState(State s, PlayerId turn) {
   match (s) {
     St(?&numPlayers, board, lot) -> {
       string result =
-          "{\"numPlayers\": " + str(numPlayers) +
+          "{\"turn\": " + str(turn) +
+          ", \"numPlayers\": " + str(numPlayers) +
           ", \"board\": {";
       for (PlayerId p = 0; p < numPlayers; p++) {
         for (unsigned i = 0; i < SECTOR_SIZE; i++) {

@@ -23,9 +23,9 @@ td {
 }
 
 .messages {
-  background: lightgray;
   height: 150px;
   overflow-y: scroll;
   width: 500px;
   padding: 10px;
+  border-style: solid;
 }
