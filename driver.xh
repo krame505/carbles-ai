@@ -5,6 +5,7 @@
 #include <string.xh>
 #include <vector.xh>
 #include <state.xh>
+#include <stdio.h>
 #include <stdlib.h>
 
 #ifndef _DRIVER_XH
@@ -17,6 +18,13 @@ struct Player {
   unsigned (*getAction)(Player *this, State s, Hand h, Hand discard, unsigned turn, PlayerId p, vector<Action> actions);
 };
 
-PlayerId playGame(unsigned numPlayers, Player *players[numPlayers], _Bool verbose);
+PlayerId playGame(
+    unsigned numPlayers, Player *players[numPlayers],
+    closure<(PlayerId) -> void> updateTurn,
+    closure<(PlayerId, Hand) -> void> updateHand,
+    closure<(State) -> void> updateState,
+    closure<(string) -> void> log);
+PlayerId playQuietGame(unsigned numPlayers, Player *players[numPlayers]);
+PlayerId playConsoleGame(unsigned numPlayers, Player *players[numPlayers], FILE *out);
 
 #endif

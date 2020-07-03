@@ -121,8 +121,8 @@ string showState(State s) {
 
 string showMoveDirect(Move ?m) {
   return match (m)
-    (?&MoveOut(p) -> str("Move Player ") + p + " out";
-     ?&MoveDirect(p1, p2) -> showPosition(p1) + " -> " + showPosition(p2);
+    (?&MoveOut(p) -> str("move Player ") + p + " out";
+     ?&MoveDirect(p1, p2) -> showPosition(p1) + " → " + showPosition(p2);
      ?&Swap(p1, p2) -> "swap " + showPosition(p1) + " with " + showPosition(p2););
 }
 
@@ -155,6 +155,64 @@ string showActions(vector<Action> a) {
   for (unsigned i = 0; i < a.size; i++) {
     result += str(i) + ": " + showAction(a[i]) + "\n";
   }
+  return result;
+}
+
+string jsonPosition(Position ?p) {
+  return show(showPosition(p));
+}
+
+string jsonStatePosition(State s, Position pos) {
+  match (s) {
+    St(?&numPlayers, board, lot) -> {
+      if (mapContains(board, pos)) {
+        return jsonPosition(boundvar(alloca, pos)) + ": " + str(mapGet(board, pos));
+      } else {
+        return jsonPosition(boundvar(alloca, pos)) + ": null";
+      }
+    }
+  }
+}
+
+string jsonState(State s, PlayerId turn) {
+  match (s) {
+    St(?&numPlayers, board, lot) -> {
+      string result =
+          "{\"turn\": " + str(turn) +
+          ", \"numPlayers\": " + str(numPlayers) +
+          ", \"board\": {";
+      for (PlayerId p = 0; p < numPlayers; p++) {
+        for (unsigned i = 0; i < SECTOR_SIZE; i++) {
+          if (p || i) result += ", ";
+          result += jsonStatePosition(s, Out(boundvar(alloca, i + p * SECTOR_SIZE)));
+        }
+        for (unsigned i = 0; i < NUM_PIECES; i++) {
+          result += ", ";
+          result += jsonStatePosition(s, Finish(boundvar(alloca, p), boundvar(alloca, i)));
+        }
+      }
+      result += "}, \"lot\": [";
+      for (PlayerId p = 0; p < numPlayers; p++) {
+        if (p) result += ", ";
+        result += str(mapGet(lot, p));
+      }
+      result += "]}";
+      return result;
+    }
+  }
+}
+
+string jsonHand(Hand h) {
+  return show(showHand(h));
+}
+
+string jsonActions(vector<Action> a) {
+  string result = str("[");
+  for (unsigned i = 0; i < a.size; i++) {
+    if (i) result += ", ";
+    result += show(showAction(a[i]));
+  }
+  result += "]";
   return result;
 }
 

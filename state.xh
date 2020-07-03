@@ -15,6 +15,8 @@
 #define MIN_HAND 4
 #define MAX_HAND 5
 
+#define MAX_PLAYERS 52 / MIN_HAND
+
 typedef unsigned PlayerId;
 
 datatype Position {
@@ -79,6 +81,11 @@ string showMoves(list<Move ?> ?m);
 string showHand(Hand);
 string showAction(Action a);
 string showActions(vector<Action> a);
+
+string jsonPosition(Position ?p);
+string jsonState(State s, PlayerId turn);
+string jsonHand(Hand);
+string jsonActions(vector<Action> a);
 
 PlayerId ?copyPlayerId(PlayerId ?);
 Position ?copyPosition(Position ?);
