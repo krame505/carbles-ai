@@ -27,10 +27,10 @@ void printGameTree(GameTree tree, unsigned depth) {
         printGameTree(children[i], depth + 1);
       }
     }
-    {_, a, St(?&numPlayers, _, _), parent, Leaf(wins)} -> {
+    {_, a, St(?&numPlayers, _, _), parent, Leaf(winner)} -> {
       printf("%sleaf", (str("  ") * depth).text);
       if (parent != NULL) {
-        printf(" %f", wins[parent->player]);
+        printf(" %d", winner == parent->player);
       }
       if (depth > 0) {
         printf(": %s", showAction(a).text);
@@ -155,7 +155,7 @@ float weight(SearchPlayer *this, GameTree *t) {
     (Unexpanded(), _ -> INFINITY;
      Expanded(_, trials, wins), Expanded(_, parentTrials, _) ->
      (float)wins[p] / trials + sqrtf(2 * logf((float)parentTrials) / trials);
-     Leaf(scores), _ -> scores[p];);
+     Leaf(winner), _ -> p == winner;);
 }
 
 void expand(SearchPlayer *this, GameTree *t, Hand deck, Hand hands[]) {
@@ -175,9 +175,8 @@ void expand(SearchPlayer *this, GameTree *t, Hand deck, Hand hands[]) {
   match (t) {
     &{p, _, s@St(?&numPlayers, _, _), parent, .status=Unexpanded()} -> {
       if (isWon(s)) {
-        vector<float> scores = heuristicScore(s);
-        t->status = Leaf(scores);
-        backpropagate(t, scores);
+        t->status = Leaf(getWinner(s));
+        backpropagate(t, heuristicScore(s));
       } else {
         // Compute valid actions
         PlayerId newPlayer = (p + 1) % numPlayers;
@@ -243,8 +242,8 @@ void expand(SearchPlayer *this, GameTree *t, Hand deck, Hand hands[]) {
       hands[p][getActionCard(maxChild->action)]--;
       expand(this, maxChild, deck, hands);
     }
-    &{p, .status=Leaf(scores)} -> {
-      backpropagate(t, scores);
+    &{.state=s, .status=Leaf(_)} -> {
+      backpropagate(t, heuristicScore(s));
     }
   }
 }
@@ -296,19 +295,19 @@ unsigned getSearchAction(SearchPlayer *this, State s, Hand h, Hand discard, unsi
         numPlayouts++;
         clock_gettime(CLOCK_MONOTONIC, &finish);
       } while (finish.tv_sec - start.tv_sec < this->timeout);
-      //printf("Finished %d playouts\n", numPlayouts);
+      printf("Finished %d playouts\n", numPlayouts);
 
       // Find the child with the highest ration of wins for p / trials
       match (t) {
         {.status=Expanded(children, trials, wins)} -> {
-          //printf("Win confidence: %f\n", (float)wins[p] / trials);
+          printf("Win confidence: %f\n", (float)wins[p] / trials);
           //printGameTree(t, 0);
           float maxScore = -INFINITY;
           unsigned maxAction;
           for (unsigned i = 0; i < actions.size; i++) {
             float w = match (children[i].status)
               (Expanded(_, trials, wins) -> (float)wins[p] / trials;
-               Leaf(scores) -> scores[p];
+               Leaf(winner) -> winner == p;
                Unexpanded() -> -INFINITY;);
             if (w > maxScore) {
               maxScore = w;

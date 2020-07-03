@@ -33,16 +33,16 @@ PlayerId playGame(unsigned numPlayers, Player *players[numPlayers], bool verbose
       startingPlayer = (dealer + handNum + 1) % numPlayers;
       currentPlayer = startingPlayer;
     }
+    Player *p = players[currentPlayer];
     if (verbose) {
-      printf("%s's turn\n%s\n", showPlayerId(currentPlayer).text, showState(s).text);
+      printf("%s's turn (%s)\n%s\n", showPlayerId(currentPlayer).text, p->name, showState(s).text);
     }
     vector<Action> actions = getActions(s, currentPlayer, hands[currentPlayer]);
-    Player *p = players[currentPlayer];
     unsigned actionNum = p->getAction(p, s, hands[currentPlayer], discard, turn, currentPlayer, actions);
     assert(actionNum < actions.size);
     Action a = actions[actionNum];
     if (verbose) {
-      printf("Player %d (%s): %s\n\n\n", currentPlayer, p->name, showAction(a).text);
+      printf("Player %d: %s\n\n\n", currentPlayer, showAction(a).text);
     }
     s = applyAction(a, s, hands[currentPlayer], discard);
     if (isWon(s)) {

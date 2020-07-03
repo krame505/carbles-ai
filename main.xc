@@ -14,9 +14,8 @@
 #include <omp.h>
 #include <gc.h>
 
-#define TEST
+//#define TEST
 #define GAMES 1000
-#define TIMEOUT 10
 char *playerNames[] = {"search", "heuristic", "rule"};
 
 int main(unsigned argc, char *argv[]) {
