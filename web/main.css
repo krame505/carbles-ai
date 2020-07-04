@@ -17,6 +17,7 @@ td {
 
 .slotCell {
   background: tan;
+  border: 2px solid black;
 }
 
 .slot {
@@ -29,12 +30,13 @@ td {
 
 #controls {
   flex-grow: 1;
+  min-width: 400px;
 }
 
 #messages {
   flex-grow: 1;
-  height: 150px;
   overflow-y: scroll;
+  height: 300px;
   padding: 10px;
 }
 

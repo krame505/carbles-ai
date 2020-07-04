@@ -295,12 +295,12 @@ unsigned getSearchAction(SearchPlayer *this, State s, Hand h, Hand discard, unsi
         numPlayouts++;
         clock_gettime(CLOCK_MONOTONIC, &finish);
       } while (finish.tv_sec - start.tv_sec < this->timeout);
-      printf("Finished %d playouts\n", numPlayouts);
+      //printf("Finished %d playouts\n", numPlayouts);
 
       // Find the child with the highest ration of wins for p / trials
       match (t) {
         {.status=Expanded(children, trials, wins)} -> {
-          printf("Win confidence: %f\n", (float)wins[p] / trials);
+          //printf("Win confidence: %f\n", (float)wins[p] / trials);
           //printGameTree(t, 0);
           float maxScore = -INFINITY;
           unsigned maxAction;

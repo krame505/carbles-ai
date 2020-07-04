@@ -5,8 +5,7 @@ function getColor(player) {
   return ['black', 'red', 'blue', 'green', 'orange', 'purple', 'brown', 'silver', 'gold', 'maroon', 'turquoise', 'mauve', 'scarlet'][player]
 }
 
-function updateCell(cell, label, state, highlight=null) {
-  cell.style.border = '1px solid black'
+function updateCell(cell, label, state, l, r, t, b, highlight=null) {
   cell.innerHTML = `
 <div class="slot"
     <span class="label">${label}</span>
@@ -15,6 +14,12 @@ function updateCell(cell, label, state, highlight=null) {
     </span>
 </div>`
   cell.className = "slotCell"
+  
+  if (l) cell.style.borderLeft = '0px'
+  if (r) cell.style.borderRight = '0px'
+  if (t) cell.style.borderTop = '0px'
+  if (b) cell.style.borderBottom = '0px'
+  
   if (highlight != null) {
     cell.style.backgroundColor = getColor(highlight)
   }
@@ -38,19 +43,19 @@ function updateBoard(state) {
   for (p = 0; p < state.numPlayers; p++) {
     let prevP = (p + state.numPlayers - 1) % state.numPlayers
 
-    let home = rows[7].insertCell(0)
-    updateCell(home, prevP * SECTOR_SIZE, state, prevP)
+    let home = rows[7].insertCell(0);
+    updateCell(home, prevP * SECTOR_SIZE, state, false, true, true, false, prevP)
     for (i = 1; i < 8; i++) {
-      updateCell(rows[7 - i].insertCell(0), i + prevP * SECTOR_SIZE, state)
+      updateCell(rows[7 - i].insertCell(0), i + prevP * SECTOR_SIZE, state, false, false, i < 7, true)
     }
     for (i = 0; i < 7; i++) {
-      updateCell(rows[i + 1].insertCell(0), i + 8 + prevP * SECTOR_SIZE, state)
+      updateCell(rows[i + 1].insertCell(0), i + 8 + prevP * SECTOR_SIZE, state, i == 6, false, true, i < 6)
     }
     rows[0].cells[0].colSpan = 2
     for (i = 0; i < 7; i++) {
       rows[i].insertCell(0)
     }
-    updateCell(rows[7].insertCell(0), 15 + prevP * SECTOR_SIZE, state)
+    updateCell(rows[7].insertCell(0), 15 + prevP * SECTOR_SIZE, state, true, true, false, false)
     rows[0].insertCell(0)
     let lot = rows[1].insertCell(0)
     lot.className = 'lotCell'
@@ -70,13 +75,13 @@ function updateBoard(state) {
     rows[2].insertCell(0)
     for (i = 0; i < NUM_PIECES; i++) {
       let cell = rows[6 - i].insertCell(0)
-      updateCell(cell, "F" + p + i, state, p)
+      updateCell(cell, "F" + p + i, state, false, false, i < NUM_PIECES - 1, true, p)
     }
-    updateCell(rows[7].insertCell(0), 16 + prevP * SECTOR_SIZE, state)
+    updateCell(rows[7].insertCell(0), 16 + prevP * SECTOR_SIZE, state, true, true, true, false)
     for (i = 0; i < 7; i++) {
       rows[i].insertCell(0)
     }
-    updateCell(rows[7].insertCell(0), 17 + prevP * SECTOR_SIZE, state)
+    updateCell(rows[7].insertCell(0), 17 + prevP * SECTOR_SIZE, state, true, true, false, false)
   }
 
   // Fill in header
