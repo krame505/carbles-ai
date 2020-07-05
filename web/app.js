@@ -1,6 +1,11 @@
 const SECTOR_SIZE = 18
 const NUM_PIECES = 4
 
+const urlParams = new URLSearchParams(window.location.search)
+const room = urlParams.get('room')
+var started = false
+var id = null
+
 function getColor(player) {
   return ['black', 'red', 'blue', 'green', 'orange', 'purple', 'brown', 'silver', 'gold', 'maroon', 'turquoise', 'mauve', 'scarlet'][player]
 }
@@ -99,28 +104,31 @@ function updateBoard(state) {
 }
 
 function reloadState() {
-  let urlParams = new URLSearchParams(window.location.search)
-  let player = urlParams.get('player')
-  $.ajax({url: "state.json"}).done(
-      function (s) {
-	state = JSON.parse(s)
-	updateBoard(state)
-	turn.innerHTML = `Player ${state.turn}'s turn`
-	turn.style.color = getColor(state.turn)
-      })
-  if (player != null) {
-    $.ajax({url: "player_state.json?player=" + player}).done(
-	function (s) {
-	  state = JSON.parse(s)
-	  hand.innerHTML = "Current hand: " + state.hand
-	  actions.innerHTML = ""
-	  state.actions.forEach(
-	      function (a, i) {
-		actions.innerHTML +=
-		    `<li><a href="#" ping="action?player=${player}&action=${i}">${a}</a></li>`
-	      })
+  console.log('Reloading state')
+  $.ajax({url: "state.json?room=" + room}).done(
+    function (s) {
+      console.log("Got state: " + s)
+      state = JSON.parse(s)
+      updateBoard(state.board)
+      started = state.turn != null
+      if (started) {
+        turn.innerHTML = `Player ${state.turn}'s turn`
+        turn.style.color = getColor(state.turn)
+        startEndGame.innerHTML = "End Game"
+      } else {
+        turn.innerHTML = ""
+        startEndGame.innerHTML = "Start Game"
+      }
+      if (state.hand != null) {
+        hand.innerHTML = "Current hand: " + state.hand
+      }
+      actions.innerHTML = ""
+      state.actions.forEach(
+	function (a, i) {
+	  actions.innerHTML +=
+	    `<li><a href="#" ping="action?room=${room}&action=${i}">${a}</a></li>`
 	})
-  }
+    })
 }
 
 function addMessage(msg) {
@@ -144,5 +152,19 @@ function connect() {
 
 function init() {
   connect()
+  $.ajax({url: "register?room=" + room})
+  $(window).bind('beforeunload', function() {
+    $.ajax({url: "unregister?room=" + room})
+  })
   reloadState()
+}
+
+function handleStartEndGame() {
+  if (started) {
+    if (confirm("Really end the game?")) {
+      $.ajax({url: "end?room=" + room})
+    }
+  } else {
+    $.ajax({url: "start?room=" + room})
+  }
 }

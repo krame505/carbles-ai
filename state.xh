@@ -83,7 +83,7 @@ string showAction(Action a);
 string showActions(vector<Action> a);
 
 string jsonPosition(Position ?p);
-string jsonState(State s, PlayerId turn);
+string jsonState(State s);
 string jsonHand(Hand);
 string jsonActions(vector<Action> a);
 

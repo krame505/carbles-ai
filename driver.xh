@@ -13,9 +13,11 @@
 
 typedef struct Player Player;
 
+typedef unsigned (*PlayerCallback)(Player *this, State s, Hand h, Hand discard, unsigned turn, PlayerId p, vector<Action> actions);
+
 struct Player {
   const char *name;
-  unsigned (*getAction)(Player *this, State s, Hand h, Hand discard, unsigned turn, PlayerId p, vector<Action> actions);
+  PlayerCallback getAction;
 };
 
 PlayerId playGame(

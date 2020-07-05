@@ -4,10 +4,6 @@
 #ifndef _SERVER_XH
 #define _SERVER_XH
 
-extern Player webPlayer;
-
-PlayerId playServerGame(unsigned numPlayers, Player *players[numPlayers]);
-
-void startServer(const char *port);
+void serve(const char *port);
 
 #endif

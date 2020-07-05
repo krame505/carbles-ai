@@ -324,11 +324,8 @@ unsigned getSearchAction(SearchPlayer *this, State s, Hand h, Hand discard, unsi
 }
 
 SearchPlayer makeSearchPlayer(unsigned timeout, vector<float> (*playoutHand)(SearchPlayer *this, State s, PlayerId p, Hand hands[])) {
-  return (SearchPlayer){
-    {"search", (unsigned (*)(Player *, State, Hand, Hand, unsigned, PlayerId, vector<Action>))getSearchAction},
-      timeout, playoutHand
-        };
+  return (SearchPlayer){{"search", (PlayerCallback)getSearchAction}, timeout, playoutHand};
 }
 
-SearchPlayer heuristicSearchPlayer = {{"heuristic_search", (unsigned (*)(Player *, State, Hand, Hand, unsigned, PlayerId, vector<Action>))getSearchAction}, TIMEOUT, playoutHeuristicScoreHand};
-SearchPlayer searchPlayer = {{"search", (unsigned (*)(Player *, State, Hand, Hand, unsigned, PlayerId, vector<Action>))getSearchAction}, TIMEOUT, rulePlayoutHand};
+SearchPlayer heuristicSearchPlayer = {{"heuristic_search", (PlayerCallback)getSearchAction}, TIMEOUT, playoutHeuristicScoreHand};
+SearchPlayer searchPlayer = {{"search", (PlayerCallback)getSearchAction}, TIMEOUT, rulePlayoutHand};

@@ -5,7 +5,7 @@ ABLEC_BASE?=../ableC
 EXTS_BASE?=../extensions
 
 # The configuration currently being built
-CONF?=rel
+CONF?=dbg
 # The directory containing main files
 DRIVER_DIR=drivers
 # The top-level directory in which to place generated files
