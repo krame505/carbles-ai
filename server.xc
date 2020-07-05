@@ -25,6 +25,7 @@ struct Room {
   unsigned numWeb;
   unsigned numAI;
   unsigned numRandom;
+  unsigned numPlayersInGame;
   Player *players[MAX_PLAYERS];
   bool gameInProgress;
   bool gameCancelled;
@@ -40,6 +41,7 @@ struct Room {
 };
 
 struct PlayerConn {
+  bool inGame;
   PlayerId id;
   string name; // TODO
 };
@@ -53,7 +55,7 @@ static void createRoom(const char *roomId) {
   *room = (Room){
     emptyMap<const char *, PlayerConn *, strcmp>(GC_malloc),
     emptyMap<const char *, PlayerConn *, strcmp>(GC_malloc),
-    0, 0, 0,
+    0, 0, 0, 0,
     {0}, false, false, 0, initialState(0), {0}, vec<Action>[], 0, false,
     PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER
   };
@@ -90,14 +92,15 @@ static void notifyHandler(struct mg_connection *nc, int ev, void *ev_data) {
     
     if (mapContains(room->connections, connId)) {
       pthread_mutex_lock(&serverMutex);
-      mg_send_websocket_frame(nc, WEBSOCKET_OP_TEXT, msg.text, msg.length + 1);
+      mg_send_websocket_frame(nc, WEBSOCKET_OP_TEXT, msg.text, msg.length);
       pthread_mutex_unlock(&serverMutex);
     }
   }
 }
 
 static void notify(const char *roomId, string msg, bool mainThread) {
-  struct notification n = {str(roomId).text, msg};
+  string encoded = "{\"room\": " + show(roomId) + ", \"content\": " + show(msg) + "}";
+  struct notification n = {str(roomId).text, encoded};
   if (mainThread) {
     for (struct mg_connection *nc = mg_next(&mgr, NULL); nc != NULL; nc = mg_next(&mgr, nc)) {
       notifyHandler(nc, -1, &n);
@@ -121,6 +124,16 @@ static void sendEmpty(struct mg_connection *nc) {
   pthread_mutex_unlock(&serverMutex);
 }
 
+static string jsonList(vector<string> v) {
+  string result = str("[");
+  for (unsigned i = 0; i < v.size; i++) {
+    if (i) result += ", ";
+    result += show(v[i]);
+  }
+  result += "]";
+  return result;
+}
+
 static void handleState(struct mg_connection *nc, struct http_message *hm) {
   // Get form variables
   char roomId[10] = {0};
@@ -137,25 +150,44 @@ static void handleState(struct mg_connection *nc, struct http_message *hm) {
 
     if (mapContains(room->connections, connId)) {
       PlayerConn *conn = mapGet(room->connections, connId);
-      PlayerId p = conn->id;
 
-      unsigned numPlayers = room->numWeb + room->numAI + room->numRandom;
-      if (p < numPlayers) {
+      if (!room->gameInProgress || conn->id < room->numPlayersInGame) {
         pthread_mutex_lock(&serverMutex);
         
         // Send headers
         mg_printf(nc, "%s", "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n");
     
         // Generate and send response
-        vector<Action> actions = p == room->turn? getActions(room->state, p, room->hands[p]) : vec<Action>[];
+        vector<string> playersInRoom = vec<string>[];
+        vector<string> playersInGame = new vector<string>(room->numPlayersInGame);
+        mapForeach(room->connections, lambda (const char *connId, PlayerConn *conn) -> void {
+            playersInRoom.append(conn->name);
+            if (room->gameInProgress && conn->inGame) {
+              playersInGame[conn->id] = conn->name;
+            }
+          });
+        if (room->gameInProgress) {
+          for (PlayerId p = 0; p < room->numPlayersInGame; p++) {
+            if (strcmp(room->players[p]->name, "web")) {
+              playersInGame[p] = "Player " + str(p) + " (" + room->players[p]->name + ")";
+            }
+          }
+        }
+        
+        vector<Action> actions =
+               room->gameInProgress && conn->id == room->turn?
+               getActions(room->state, conn->id, room->hands[conn->id]) :
+               vec<Action>[];
+        
         string result = str("{") +
           (room->gameInProgress?
            "\"turn\": " + str(room->turn) +
-           ", \"hand\": " + jsonHand(room->hands[p]) +
+           ", \"hand\": " + jsonHand(room->hands[conn->id]) +
+           ", \"playersInGame\": " + jsonList(playersInGame) +
            ", "
            : str("")) +
           "\"board\": " + jsonState(room->state) +
-          ", \"players\": " + jsonState(room->state) +
+          ", \"playersInRoom\": " + jsonList(playersInRoom) +
           ", \"id\": " + conn->id +
           ", \"actions\": " + jsonActions(actions) + "}";
         mg_printf_http_chunk(nc, "%s", result.text);
@@ -200,7 +232,7 @@ static void handleRegister(struct mg_connection *nc, struct http_message *hm) {
       room->droppedConnections = mapDelete(GC_malloc, room->droppedConnections, connId);
     } else {
       conn = GC_malloc(sizeof(PlayerConn));
-      *conn = (PlayerConn){0, str(connId)};
+      *conn = (PlayerConn){false, 0, str(connId)};
     }
     if (strlen(name)) {
       conn->name = str(name);
@@ -273,26 +305,31 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
     pthread_mutex_lock(&room->mutex);
 
     if (!room->gameInProgress) {
-      unsigned numPlayers = room->numWeb + room->numAI + room->numRandom;
-      for (unsigned i = 0; i < numPlayers; i++) {
+      // Assign all players currently in the room
+      room->numPlayersInGame = room->numWeb + room->numAI + room->numRandom;
+      for (unsigned i = 0; i < room->numPlayersInGame; i++) {
         room->players[i] = NULL;
       }
       mapForeach(room->connections, lambda (const char *connId, PlayerConn *conn) -> void {
           PlayerId p;
-          do { p = rand() % numPlayers; } while (room->players[p] != NULL);
+          do { p = rand() % room->numPlayersInGame; } while (room->players[p] != NULL);
           WebPlayer *webPlayer = GC_malloc(sizeof(WebPlayer));
           *webPlayer = makeWebPlayer(str(roomId).text);
           room->players[p] = (Player*)webPlayer;
+          conn->inGame = true;
           conn->id = p;
+        });
+      mapForeach(room->droppedConnections, lambda (const char *connId, PlayerConn *conn) -> void {
+          conn->inGame = false;
         });
       for (unsigned i = 0; i < room->numAI; i++) {
         PlayerId p;
-        do { p = rand() % numPlayers; } while (room->players[p] != NULL);
+        do { p = rand() % room->numPlayersInGame; } while (room->players[p] != NULL);
         room->players[p] = (Player*)&heuristicSearchPlayer;
       }
       for (unsigned i = 0; i < room->numRandom; i++) {
         PlayerId p;
-        do { p = rand() % numPlayers; } while (room->players[p] != NULL);
+        do { p = rand() % room->numPlayersInGame; } while (room->players[p] != NULL);
         room->players[p] = &randomPlayer;
       }
       room->gameInProgress = true;

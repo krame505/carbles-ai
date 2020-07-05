@@ -5,6 +5,7 @@ const urlParams = new URLSearchParams(window.location.search)
 const room = urlParams.get('room')
 var started = false
 var id = null
+var playersInGame = []
 
 function getColor(player) {
   return ['black', 'red', 'blue', 'green', 'orange', 'purple', 'brown', 'silver', 'gold', 'maroon', 'turquoise', 'mauve', 'scarlet'][player]
@@ -94,7 +95,7 @@ function updateBoard(state) {
   let head = board.createTHead()
   for (p = state.numPlayers - 1; p >= 0; p--) {
     let headCell = document.createElement('th')
-    headCell.innerHTML = "Player " + p
+    headCell.innerHTML = playersInGame[p]
     headCell.colSpan = 3
     head.append(headCell)
     let spaceCell = document.createElement('th')
@@ -109,25 +110,34 @@ function reloadState() {
     function (s) {
       console.log("Got state: " + s)
       state = JSON.parse(s)
-      updateBoard(state.board)
       started = state.turn != null
       if (started) {
         turn.innerHTML = `Player ${state.turn}'s turn`
+        hand.innerHTML = "Current hand: " + state.hand
         turn.style.color = getColor(state.turn)
         startEndGame.innerHTML = "End Game"
+        playersInGame = state.playersInGame
       } else {
         turn.innerHTML = ""
+        hand.innerHTML = ""
         startEndGame.innerHTML = "Start Game"
+        playersInGame = []
+        for (i = 0; i < state.board.numPlayers; i++) {
+          playersInGame.push("Player " + i)
+        }
       }
-      if (state.hand != null) {
-        hand.innerHTML = "Current hand: " + state.hand
-      }
+      playersInRoom.innerHTML = ""
+      state.playersInRoom.forEach(
+        function (p, i) {
+          playersInRoom.innerHTML += p + "   "
+        })
       actions.innerHTML = ""
       state.actions.forEach(
 	function (a, i) {
 	  actions.innerHTML +=
 	    `<li><a href="#" ping="action?room=${room}&action=${i}">${a}</a></li>`
 	})
+      updateBoard(state.board)
     })
 }
 
@@ -139,10 +149,14 @@ function addMessage(msg) {
 function connect() {
   const ws = new WebSocket("ws://" + location.host) // Only used to listen
   ws.onmessage = function (event) {
-    if (event.data) {
-      addMessage(event.data)
+    console.log("Got message: " + event.data)
+    msg = JSON.parse(event.data)
+    if (msg.room == room) {
+      if (msg.content) {
+        addMessage(msg.content)
+      }
+      reloadState()
     }
-    reloadState()
   }
   ws.onclose = function(e) {
     console.log('Socket is closed. Reconnect will be attempted in 1 second.', e.reason)
