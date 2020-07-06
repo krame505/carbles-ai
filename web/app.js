@@ -2,7 +2,7 @@ const SECTOR_SIZE = 18
 const NUM_PIECES = 4
 
 const urlParams = new URLSearchParams(window.location.search)
-const room = urlParams.get('room')
+const room = urlParams.get('room') != null? urlParams.get('room') : "default"
 var started = false
 var id = null
 var playersInGame = []

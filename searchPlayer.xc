@@ -7,6 +7,7 @@
 #include <math.h>
 #include <assert.h>
 #include <time.h>
+#include <pthread.h>
 
 #define TIMEOUT 15
 #define HEURISTIC_PLAYOUT_DEPTH 10
@@ -253,10 +254,10 @@ unsigned getSearchAction(SearchPlayer *this, State s, Hand h, Hand discard, unsi
   if (actions.size <= 1) {
     return 0;
   }
-  
+
   struct timespec start, finish;
   clock_gettime(CLOCK_MONOTONIC, &start);
-  
+
   match (s) {
     St(?&numPlayers, _, _) -> {
       // Construct the deck of remaining cards that may be held by another player
@@ -294,6 +295,7 @@ unsigned getSearchAction(SearchPlayer *this, State s, Hand h, Hand discard, unsi
         expand(this, &t, trialDeck, hands);
         numPlayouts++;
         clock_gettime(CLOCK_MONOTONIC, &finish);
+        pthread_testcancel(); // This is a long-running task, allow cancellation at this point
       } while (finish.tv_sec - start.tv_sec < this->timeout);
       //printf("Finished %d playouts\n", numPlayouts);
 
