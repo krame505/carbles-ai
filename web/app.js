@@ -105,7 +105,6 @@ function updateBoard(state) {
 }
 
 function reloadState() {
-  console.log('Reloading state')
   $.ajax({url: "state.json?room=" + room}).done(
     function (s) {
       console.log("Got state: " + s)
@@ -160,15 +159,15 @@ function connect() {
     console.log('Socket is closed. Reconnect will be attempted in 1 second.', e.reason)
     setTimeout(connect, 1000)
   }
+  $.ajax({url: "register?room=" + room})
+  reloadState()
 }
 
 function init() {
   connect()
-  $.ajax({url: "register?room=" + room})
   $(window).bind('beforeunload', function() {
     $.ajax({url: "unregister?room=" + room})
   })
-  reloadState()
 }
 
 function updateAutoPlayers() {
