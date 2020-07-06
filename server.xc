@@ -26,6 +26,7 @@ struct Room {
   unsigned numRandom;
   unsigned numPlayersInGame;
   Player *players[MAX_PLAYERS];
+  vector<string> playerNames;
   bool gameInProgress;
   PlayerId turn;
   State state;
@@ -57,7 +58,7 @@ static void createRoom(const char *roomId) {
     emptyMap<const char *, PlayerConn *, strcmp>(GC_malloc),
     emptyMap<const char *, PlayerConn *, strcmp>(GC_malloc),
     0, 0, 0, 0,
-    {0}, false, 0, initialState(0), {0}, vec<Action>[], false, 0, false,
+    {0}, vec<string>[], false, 0, initialState(0), {0}, vec<Action>[], false, 0, false,
     false, 0, PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER
   };
   rooms = mapInsert(GC_malloc, rooms, str(roomId).text, room);
@@ -152,23 +153,16 @@ static void handleState(struct mg_connection *nc, struct http_message *hm) {
 
         // Generate and send response
         vector<string> playersInRoom = vec<string>[];
-        vector<string> playersInGame = new vector<string>(room->numPlayersInGame);
         mapForeach(room->connections, lambda (const char *connId, PlayerConn *conn) -> void {
             playersInRoom.append(conn->name);
-            if (room->gameInProgress && conn->inGame) {
-              playersInGame[conn->id] = conn->name;
-            }
           });
+        vector<string> playersInGame;
         if (room->gameInProgress) {
-          for (PlayerId p = 0; p < room->numPlayersInGame; p++) {
-            if (strcmp(room->players[p]->name, "web")) {
-              playersInGame[p] = "Player " + str(p) + " (" + room->players[p]->name + ")";
-            }
-          }
+          playersInGame = room->playerNames;
         } else {
           match (room->state) {
             St(?&numPlayers, _, _) -> {
-              resize_vector(playersInGame, numPlayers);
+              playersInGame = new vector<string>(numPlayers);
               for (PlayerId p = 0; p < numPlayers; p++) {
                 playersInGame[p] = "Player " + str(p);
               }
@@ -212,7 +206,7 @@ static void handleRegister(struct mg_connection *nc, struct http_message *hm) {
   char roomId[10] = {0}, name[50] = {0};
   mg_get_http_var(&hm->query_string, "room", roomId, sizeof(roomId));
   mg_get_http_var(&hm->query_string, "name", name, sizeof(name));
-  
+
   // Compute the connection id
   char connId[100];
   mg_conn_addr_to_str(nc, connId, sizeof(connId), MG_SOCK_STRINGIFY_IP | MG_SOCK_STRINGIFY_REMOTE);
@@ -340,13 +334,13 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
     pthread_mutex_lock(&room->mutex);
 
     unsigned numPlayers = room->numWeb + room->numAI + room->numRandom;
-    if (!room->gameInProgress) {
+    if (!room->gameInProgress && numPlayers) {
       if (numPlayers > MAX_PLAYERS) {
         notify(roomId, "Too many players! Limit is " + str(MAX_PLAYERS), true);
       } else {
         room->numPlayersInGame = numPlayers;
+        resize_vector(room->playerNames, numPlayers);
         // Assign all players currently in the room
-        numPlayers = numPlayers;
         for (unsigned i = 0; i < numPlayers; i++) {
           room->players[i] = NULL;
         }
@@ -356,6 +350,7 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
             WebPlayer *webPlayer = GC_malloc(sizeof(WebPlayer));
             *webPlayer = makeWebPlayer(str(roomId).text);
             room->players[p] = (Player*)webPlayer;
+            room->playerNames[p] = conn->name;
             conn->inGame = true;
             conn->id = p;
           });
@@ -365,12 +360,14 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
         for (unsigned i = 0; i < room->numAI; i++) {
           PlayerId p;
           do { p = rand() % numPlayers; } while (room->players[p] != NULL);
-          room->players[p] = (Player*)&aiPlayer;
+          room->players[p] = (Player*)&heuristicSearchPlayer;
+          room->playerNames[p] = "Player " + str(p) + " (AI)";
         }
         for (unsigned i = 0; i < room->numRandom; i++) {
           PlayerId p;
           do { p = rand() % numPlayers; } while (room->players[p] != NULL);
           room->players[p] = &randomPlayer;
+          room->playerNames[p] = "Player " + str(p) + " (random)";
         }
         room->gameInProgress = true;
         if (room->threadRunning) {
@@ -540,6 +537,7 @@ static void *runServerGame(void *arg) {
 
   PlayerId winner = playGame(
       room->numWeb + room->numAI + room->numRandom, room->players,
+      lambda (PlayerId p) -> room->playerNames[p],
       lambda (PlayerId p) -> void {
         pthread_mutex_lock(&room->mutex);
         room->turn = p;

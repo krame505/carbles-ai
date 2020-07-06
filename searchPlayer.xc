@@ -331,4 +331,3 @@ SearchPlayer makeSearchPlayer(unsigned timeout, vector<float> (*playoutHand)(Sea
 
 SearchPlayer heuristicSearchPlayer = {{"heuristic_search", (PlayerCallback)getSearchAction}, TIMEOUT, playoutHeuristicScoreHand};
 SearchPlayer searchPlayer = {{"search", (PlayerCallback)getSearchAction}, TIMEOUT, rulePlayoutHand};
-SearchPlayer aiPlayer = {{"AI", (PlayerCallback)getSearchAction}, TIMEOUT, playoutHeuristicScoreHand};
