@@ -416,7 +416,10 @@ static void handleEnd(struct mg_connection *nc, struct http_message *hm) {
 
     if (room->gameInProgress) {
       room->gameInProgress = false;
+      pthread_mutex_unlock(&room->mutex);
       pthread_cancel(room->thread);
+      pthread_join(room->thread, NULL);
+      pthread_mutex_lock(&room->mutex);
       room->threadRunning = false;
       
       // Send empty response
@@ -576,6 +579,10 @@ static void *runServerGame(void *arg) {
   return NULL;
 }
 
+static void cleanup(void *mutex) {
+  pthread_mutex_unlock((pthread_mutex_t *)mutex);
+}
+
 static unsigned getWebAction(WebPlayer *this, State s, Hand h, Hand discard, unsigned turn, PlayerId p, vector<Action> a) {
   if (!running) {
     fprintf(stderr, "Web server isn't running!\n");
@@ -591,13 +598,17 @@ static unsigned getWebAction(WebPlayer *this, State s, Hand h, Hand discard, uns
   notify(this->roomId, str(""), false);
 
   // Wait for response
+  unsigned result;
+  pthread_cleanup_push(cleanup, &room->mutex);
   pthread_mutex_lock(&room->mutex);
   while (!room->actionReady || room->action >= a.length) {
     pthread_cond_wait(&room->cv, &room->mutex);
   }
-  unsigned result = room->action;
-
+  result = room->action;
+  
   pthread_mutex_unlock(&room->mutex);
+  pthread_cleanup_pop(0);
+
   return result;
 }
 
