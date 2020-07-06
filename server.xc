@@ -374,7 +374,7 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
         for (unsigned i = 0; i < room->numAI; i++) {
           PlayerId p;
           do { p = rand() % numPlayers; } while (room->players[p] != NULL);
-          room->players[p] = (Player*)&heuristicSearchPlayer;
+          room->players[p] = (Player*)&aiPlayer;
         }
         for (unsigned i = 0; i < room->numRandom; i++) {
           PlayerId p;

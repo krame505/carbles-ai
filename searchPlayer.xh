@@ -30,5 +30,6 @@ struct SearchPlayer {
 SearchPlayer makeSearchPlayer(unsigned timeout, vector<float> (*playoutHand)(SearchPlayer *this, State s, PlayerId p, Hand hands[]));
 extern SearchPlayer heuristicSearchPlayer;
 extern SearchPlayer searchPlayer;
+extern SearchPlayer aiPlayer; // Default AI player
 
 #endif
