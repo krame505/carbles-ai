@@ -8,7 +8,7 @@ var id = null
 var playersInGame = []
 
 function getColor(player) {
-  return ['black', 'red', 'blue', 'green', 'orange', 'purple', 'brown', 'silver', 'gold', 'maroon', 'turquoise', 'mauve', 'scarlet'][player]
+  return ['black', 'red', 'blue', 'green', 'orange', 'purple', 'brown', 'silver', 'gold', 'maroon', 'turquoise', 'indigo', 'midnightblue'][player]
 }
 
 function updateCell(cell, label, state, l, r, t, b, highlight=null) {
@@ -110,27 +110,25 @@ function reloadState() {
     function (s) {
       console.log("Got state: " + s)
       state = JSON.parse(s)
+      playersInGame = state.playersInGame
       started = state.turn != null
       if (started) {
-        turn.innerHTML = `Player ${state.turn}'s turn`
+        turn.innerHTML = `${playersInGame[state.turn]}'s turn`
         hand.innerHTML = "Current hand: " + state.hand
         turn.style.color = getColor(state.turn)
         startEndGame.innerHTML = "End Game"
-        playersInGame = state.playersInGame
       } else {
         turn.innerHTML = ""
         hand.innerHTML = ""
         startEndGame.innerHTML = "Start Game"
-        playersInGame = []
-        for (i = 0; i < state.board.numPlayers; i++) {
-          playersInGame.push("Player " + i)
-        }
       }
       playersInRoom.innerHTML = ""
       state.playersInRoom.forEach(
         function (p, i) {
           playersInRoom.innerHTML += p + "   "
         })
+      aiPlayers.value = state.aiPlayers
+      randomPlayers.value = state.randomPlayers
       actions.innerHTML = ""
       state.actions.forEach(
 	function (a, i) {
@@ -171,6 +169,10 @@ function init() {
     $.ajax({url: "unregister?room=" + room})
   })
   reloadState()
+}
+
+function updateAutoPlayers() {
+  $.ajax({url: `autoplayers?room=${room}&ai=${aiPlayers.value}&random=${randomPlayers.value}`})
 }
 
 function handleStartEndGame() {

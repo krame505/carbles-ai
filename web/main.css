@@ -24,6 +24,10 @@ td {
   color: white;
 }
 
+.numInput {
+  width: 30px;
+}
+
 #status {
   display: flex;
 }
