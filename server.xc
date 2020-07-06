@@ -28,14 +28,15 @@ struct Room {
   unsigned numPlayersInGame;
   Player *players[MAX_PLAYERS];
   bool gameInProgress;
-  bool gameCancelled;
   PlayerId turn;
   State state;
   Hand hands[MAX_PLAYERS];
   vector<Action> actions;
   unsigned action;
   bool actionReady;
-  
+
+  bool threadRunning;
+  pthread_t thread;
   pthread_mutex_t mutex;
   pthread_cond_t cv;
 };
@@ -56,8 +57,8 @@ static void createRoom(const char *roomId) {
     emptyMap<const char *, PlayerConn *, strcmp>(GC_malloc),
     emptyMap<const char *, PlayerConn *, strcmp>(GC_malloc),
     0, 0, 0, 0,
-    {0}, false, false, 0, initialState(0), {0}, vec<Action>[], 0, false,
-    PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER
+    {0}, false, 0, initialState(0), {0}, vec<Action>[], 0, false,
+    false, 0, PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER
   };
   rooms = mapInsert(GC_malloc, rooms, str(roomId).text, room);
   pthread_mutex_unlock(&roomsMutex);
@@ -382,7 +383,11 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
           room->players[p] = &randomPlayer;
         }
         room->gameInProgress = true;
-        mg_start_thread(&runServerGame, (void*)(str(roomId).text));
+        if (room->threadRunning) {
+          pthread_join(room->thread, NULL);
+        }
+        pthread_create(&room->thread, NULL, &runServerGame, (void*)(str(roomId).text));
+        room->threadRunning = true;
       
         // Send empty response
         sendEmpty(nc);
@@ -410,11 +415,14 @@ static void handleEnd(struct mg_connection *nc, struct http_message *hm) {
     pthread_mutex_lock(&room->mutex);
 
     if (room->gameInProgress) {
-      room->gameCancelled = true;
-      pthread_cond_signal(&room->cv);
+      room->gameInProgress = false;
+      pthread_cancel(room->thread);
+      room->threadRunning = false;
       
       // Send empty response
       sendEmpty(nc);
+      
+      notify(roomId, str("Game ended."), true);
       success = true;
     }
     pthread_mutex_unlock(&room->mutex);
@@ -586,15 +594,6 @@ static unsigned getWebAction(WebPlayer *this, State s, Hand h, Hand discard, uns
   pthread_mutex_lock(&room->mutex);
   while (!room->actionReady || room->action >= a.length) {
     pthread_cond_wait(&room->cv, &room->mutex);
-
-    // Handle incoming cancel requests
-    if (room->gameCancelled) {
-      room->gameInProgress = false;
-      room->gameCancelled = false;
-      notify(this->roomId, str("Game ended."), false);
-      pthread_mutex_unlock(&room->mutex);
-      pthread_exit(NULL);
-    }
   }
   unsigned result = room->action;
 
