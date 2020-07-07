@@ -13,13 +13,19 @@
   <body onpageshow="init();">
     <h1>Carbles Online</h1>
 
+    <input type="text" size="50" readonly id="joinLink">
+    <button onclick="copyLink()">Copy join link</button>
+    <button onclick="location.href='index.html'">Create a new room</button>
+    
+    <br><br>
+
     <div>
       Players in room: <span id="playersInRoom"></span>
     </div>
     
     <form>
-      AI players: <input type="number" min=0 id="aiPlayers" onchange="updateAutoPlayers()" class="numInput"><br>
-      Random players: <input type="number" min=0 id="randomPlayers" onchange="updateAutoPlayers()" class="numInput"><br>
+      AI players: <input type="number" min="0" id="aiPlayers" onchange="updateAutoPlayers()" class="numInput"><br>
+      Random players: <input type="number" min="0" id="randomPlayers" onchange="updateAutoPlayers()" class="numInput"><br>
     </form>
 
     <button id="startEndGame" onclick="handleStartEndGame()">Start Game</button>
@@ -38,5 +44,9 @@
       <div id="messages"></div>
     </div>
 
+    <footer>
+      <p>Author: Lucas Kramer</p>
+      <p>Are you good at CSS web design?  This page desperately needs your help!  Accepting contributions at <a href="https://github.com/krame505/carbles-ai">github.com/krame505/carbles-ai</a>.</p>
+    </footer>
   </body>
 </html>

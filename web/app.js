@@ -3,6 +3,7 @@ const NUM_PIECES = 4
 
 const urlParams = new URLSearchParams(window.location.search)
 const room = urlParams.get('room') != null? urlParams.get('room') : "default"
+const name = urlParams.get('name') != null? urlParams.get('name') : prompt("Please enter your name", "")
 var started = false
 var id = null
 var playersInGame = []
@@ -132,7 +133,7 @@ function reloadState() {
       state.actions.forEach(
 	function (a, i) {
 	  actions.innerHTML +=
-	    `<li><a href="#" ping="action?room=${room}&action=${i}">${a}</a></li>`
+	    `<li><a href="#" ping="action?room=${room}&action=${i}" class="action">${a}</a></li>`
 	})
       updateBoard(state.board)
     })
@@ -159,15 +160,23 @@ function connect() {
     console.log('Socket is closed. Reconnect will be attempted in 1 second.', e.reason)
     setTimeout(connect, 1000)
   }
-  $.ajax({url: "register?room=" + room})
+  $.ajax({url: `register?room=${room}&name=${name}`})
   reloadState()
 }
 
 function init() {
+  let url = new URL(window.location)
+  joinLink.value = `${url.origin}${url.pathname}?room=${room}`
   connect()
   $(window).bind('beforeunload', function() {
     $.ajax({url: "unregister?room=" + room})
   })
+}
+
+function copyLink() {
+  joinLink.select()
+  joinLink.setSelectionRange(0, 99999) // For mobile devices
+  document.execCommand("copy");
 }
 
 function updateAutoPlayers() {

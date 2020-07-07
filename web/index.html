@@ -9,7 +9,21 @@
   </head>
 
   <body onload="init();">
-    <h1>Welcome!</h1>
+    <h1>Carbles Online</h1>
+    Welcome!  Carbles is a game combining cards and marbles, with elements of strategy and chance.
+    
+    <h2>Create or Join a Room</h2>
+    <form action="/game.html" method="get">
+      <label for="room">Room code</label>
+      <input type="text" maxlength="10" required id="room" name="room"><br><br>
+      <label for="name">Your name:</label>
+      <input type="text" maxlength="100" required id="name" name="name"><br><br>
+      <input type="submit" value="Join!">
+    </form>
 
+    <footer>
+      <p>Author: Lucas Kramer</p>
+      <p>Are you good at CSS web design?  This page desperately needs your help!  Accepting contributions at <a href="https://github.com/krame505/carbles-ai">github.com/krame505/carbles-ai</a>.</p>
+    </footer>
   </body>
 </html>
