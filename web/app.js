@@ -125,7 +125,7 @@ function reloadState() {
       playersInRoom.innerHTML = ""
       state.playersInRoom.forEach(
         function (p, i) {
-          playersInRoom.innerHTML += p + "   "
+          playersInRoom.innerHTML += (i? ",  " : "") + p
         })
       aiPlayers.value = state.aiPlayers
       randomPlayers.value = state.randomPlayers
