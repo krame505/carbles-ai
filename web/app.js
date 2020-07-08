@@ -133,7 +133,7 @@ function reloadState() {
       state.actions.forEach(
 	function (a, i) {
 	  actions.innerHTML +=
-	    `<li><a href="#" ping="action?room=${room}&action=${i}" class="action">${a}</a></li>`
+	    `<li><a href="javascript:void(0);" ping="action?room=${room}&action=${i}" class="action">${a}</a></li>`
 	})
       updateBoard(state.board)
     })
