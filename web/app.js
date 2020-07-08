@@ -21,12 +21,12 @@ function updateCell(cell, label, state, l, r, t, b, highlight=null) {
     </span>
 </div>`
   cell.className = "slotCell"
-  
+
   if (l) cell.style.borderLeft = '0px'
   if (r) cell.style.borderRight = '0px'
   if (t) cell.style.borderTop = '0px'
   if (b) cell.style.borderBottom = '0px'
-  
+
   if (highlight != null) {
     cell.style.backgroundColor = getColor(highlight)
   }

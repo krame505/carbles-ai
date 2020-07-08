@@ -3,6 +3,7 @@
 #include <server.xh>
 #include <mongoose.xh>
 #include <players.xh>
+#include <map_utils.xh>
 #include <pthread.h>
 #include <assert.h>
 #include <stdbool.h>
@@ -604,4 +605,3 @@ static unsigned getWebAction(WebPlayer *this, State s, Hand h, Hand discard, uns
 static WebPlayer makeWebPlayer(const char *roomId) {
   return (WebPlayer){{"web", (PlayerCallback)getWebAction}, roomId};
 }
-
