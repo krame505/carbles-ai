@@ -8,8 +8,24 @@ var started = false
 var id = null
 var playersInGame = []
 
+const ws = new WebSocket("ws://" + location.host)
+ws.onmessage = function (event) {
+  console.log("Got message: " + event.data)
+  msg = JSON.parse(event.data)
+  if (msg.room == room) {
+    if (msg.content) {
+      addMessage(msg.id, msg.name, msg.chat, msg.content)
+    }
+    reloadState()
+  }
+}
+ws.onclose = function(e) {
+  console.log('Socket is closed. Reconnect will be attempted in 1 second.', e.reason)
+  setTimeout(connect, 1000)
+}
+
 function getColor(player) {
-  return ['black', 'red', 'blue', 'green', 'orange', 'purple', 'brown', 'silver', 'gold', 'maroon', 'turquoise', 'indigo', 'midnightblue'][player]
+  return ['dimgrey', 'red', 'blue', 'green', 'orange', 'purple', 'brown', 'gold', 'maroon', 'turquoise', 'indigo', 'midnightblue', 'salmon'][player]
 }
 
 function updateCell(cell, label, state, l, r, t, b, highlight=null) {
@@ -139,27 +155,18 @@ function reloadState() {
     })
 }
 
-function addMessage(msg) {
-  messages.innerHTML += msg + '<br>'
-  messages.scrollTop = messages.scrollHeight
+function addMessage(id, name, chat, msg) {
+  messagesOut.innerHTML +=`
+<span style="${id != null? `color:${getColor(id)}` : ""}">
+  ${name? name + ": " : ""}
+  <span style="${id == null || chat? "" : "font-style:italic;"}">
+    ${msg}
+  </span>
+</span><br>`
+  messagesOut.scrollTop = messagesOut.scrollHeight
 }
 
 function connect() {
-  const ws = new WebSocket("ws://" + location.host) // Only used to listen
-  ws.onmessage = function (event) {
-    console.log("Got message: " + event.data)
-    msg = JSON.parse(event.data)
-    if (msg.room == room) {
-      if (msg.content) {
-        addMessage(msg.content)
-      }
-      reloadState()
-    }
-  }
-  ws.onclose = function(e) {
-    console.log('Socket is closed. Reconnect will be attempted in 1 second.', e.reason)
-    setTimeout(connect, 1000)
-  }
   $.ajax({url: `register?room=${room}&name=${name}`})
   reloadState()
 }
@@ -191,4 +198,9 @@ function handleStartEndGame() {
   } else {
     $.ajax({url: "start?room=" + room})
   }
+}
+
+function sendChat() {
+  ws.send(room + ":" + chatIn.value)
+  chatIn.value = ""
 }
