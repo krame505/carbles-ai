@@ -121,7 +121,7 @@ string showState(State s) {
 
 string showMoveDirect(Move ?m) {
   return match (m)
-    (?&MoveOut(p) -> str("move Player ") + p + " out";
+      (?&MoveOut(p) -> str("move out");// str("move Player ") + p + " out";
      ?&MoveDirect(p1, p2) -> showPosition(p1) + " → " + showPosition(p2);
      ?&Swap(p1, p2) -> "swap " + showPosition(p1) + " with " + showPosition(p2););
 }
