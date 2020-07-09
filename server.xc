@@ -90,6 +90,7 @@ static void notifyHandler(struct mg_connection *nc, int ev, void *ev_data) {
     if (!mapContains(rooms, roomId)) return;
     Room *room = mapGet(rooms, roomId);
 
+    // TODO
     char connId[100];
     mg_conn_addr_to_str(nc, connId, sizeof(connId), MG_SOCK_STRINGIFY_IP | MG_SOCK_STRINGIFY_REMOTE);
     if (mapContains(room->connections, connId)) {
@@ -132,12 +133,9 @@ static string jsonList(vector<string> v) {
 
 static void handleState(struct mg_connection *nc, struct http_message *hm) {
   // Get form variables
-  char roomId[10] = {0};
+  char roomId[10] = {0}, connId[100] = {0};
   mg_get_http_var(&hm->query_string, "room", roomId, sizeof(roomId));
-
-  // Compute the connection id
-  char connId[100];
-  mg_conn_addr_to_str(nc, connId, sizeof(connId), MG_SOCK_STRINGIFY_IP | MG_SOCK_STRINGIFY_REMOTE);
+  mg_get_http_var(&hm->query_string, "id", connId, sizeof(connId));
 
   bool success = false;
   if (mapContains(rooms, roomId)) {
@@ -204,15 +202,12 @@ static void handleState(struct mg_connection *nc, struct http_message *hm) {
 
 static void handleRegister(struct mg_connection *nc, struct http_message *hm) {
   // Get form variables
-  char roomId[10] = {0}, name[50] = {0};
+  char roomId[10] = {0}, connId[100] = {0}, name[50] = {0};
   mg_get_http_var(&hm->query_string, "room", roomId, sizeof(roomId));
+  mg_get_http_var(&hm->query_string, "id", connId, sizeof(connId));
   mg_get_http_var(&hm->query_string, "name", name, sizeof(name));
 
-  // Compute the connection id
-  char connId[100];
-  mg_conn_addr_to_str(nc, connId, sizeof(connId), MG_SOCK_STRINGIFY_IP | MG_SOCK_STRINGIFY_REMOTE);
-
-  printf("Registering %s to %s\n", connId, roomId);
+  printf("Registering %s to %s\n", name, roomId);
 
   // Create the room if needed
   if (!mapContains(rooms, roomId)) {
@@ -254,14 +249,11 @@ static void handleRegister(struct mg_connection *nc, struct http_message *hm) {
 
 static void handleUnregister(struct mg_connection *nc, struct http_message *hm) {
   // Get form variables
-  char roomId[10] = {0};
+  char roomId[10] = {0}, connId[100] = {0};
   mg_get_http_var(&hm->query_string, "room", roomId, sizeof(roomId));
+  mg_get_http_var(&hm->query_string, "id", connId, sizeof(connId));
 
-  // Compute the connection id
-  char connId[100];
-  mg_conn_addr_to_str(nc, connId, sizeof(connId), MG_SOCK_STRINGIFY_IP | MG_SOCK_STRINGIFY_REMOTE);
-
-  printf("Unregistering %s from %s\n", connId, roomId);
+  printf("Unregistering %s from %s\n", name, roomId);
 
   bool success = false;
   if (mapContains(rooms, roomId)) {
@@ -426,14 +418,11 @@ static void handleEnd(struct mg_connection *nc, struct http_message *hm) {
 
 static void handleAction(struct mg_connection *nc, struct http_message *hm) {
   // Get form variables
-  char roomId[10] = {0}, a_s[10];
+  char roomId[10] = {0}, connId[100] = {0}, a_s[10];
   mg_get_http_var(&hm->query_string, "room", roomId, sizeof(roomId));
+  mg_get_http_var(&hm->query_string, "id", connId, sizeof(connId));
   mg_get_http_var(&hm->query_string, "action", a_s, sizeof(a_s));
   unsigned a = atoi(a_s);
-
-  // Compute the connection id
-  char connId[100];
-  mg_conn_addr_to_str(nc, connId, sizeof(connId), MG_SOCK_STRINGIFY_IP | MG_SOCK_STRINGIFY_REMOTE);
 
   bool success = false;
   if (mapContains(rooms, roomId)) {

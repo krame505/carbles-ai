@@ -106,7 +106,7 @@ function updateBoard(state) {
 }
 
 function reloadState() {
-  $.ajax({url: "state.json?room=" + room}).done(
+  $.ajax({url: `state.json?room=${room}&id=${id}`}).done(
     function (s) {
       console.log("Got state: " + s)
       state = JSON.parse(s)
@@ -133,7 +133,7 @@ function reloadState() {
       state.actions.forEach(
 	function (a, i) {
 	  actions.innerHTML +=
-	    `<li><a href="javascript:void(0);" ping="action?room=${room}&action=${i}" class="action">${a}</a></li>`
+	    `<li><a href="javascript:void(0);" ping="action?room=${room}&id=${id}&action=${i}" class="action">${a}</a></li>`
 	})
       updateBoard(state.board)
     })
@@ -160,16 +160,24 @@ function connect() {
     console.log('Socket is closed. Reconnect will be attempted in 1 second.', e.reason)
     setTimeout(connect, 1000)
   }
-  $.ajax({url: `register?room=${room}&name=${name}`})
+  $.ajax({url: `register?room=${room}&id=${id}&name=${name}`})
   reloadState()
 }
 
 function init() {
+  let idCookie = document.cookie.split('; ').find(row => row.startsWith('id'))
+  if (idCookie) {
+    id = idCookie.split('=')[1]
+  } else {
+    id = Math.random().toString(36).substring(10)
+    document.cookie = `id=${id}; expires=Fri, 31 Dec 9999 23:59:59 GMT`
+  }
+
   let url = new URL(window.location)
-  joinLink.value = `${url.origin}${url.pathname}?room=${room}`
+  joinLink.value = `${url.origin}${url.pathname}?room=${room}&id=${id}`
   connect()
   $(window).bind('beforeunload', function() {
-    $.ajax({url: "unregister?room=" + room})
+    $.ajax({url: `unregister?room=${room}&id=${id}`})
   })
 }
 
