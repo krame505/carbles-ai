@@ -200,7 +200,9 @@ function handleStartEndGame() {
   }
 }
 
-function sendChat() {
-  ws.send(room + ":" + chatIn.value)
-  chatIn.value = ""
+function handleChat() {
+  if (event.key == 'Enter') {
+    ws.send(room + ":" + chatIn.value)
+    chatIn.value = ""
+  }
 }

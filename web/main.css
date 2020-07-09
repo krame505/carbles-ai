@@ -72,10 +72,12 @@ td {
 
 #messages {
   flex-grow: 1;
+  max-width: 50%;
   padding: 10px;
 }
 
 #messagesOut {
+  overflow-x: wrap;
   overflow-y: scroll;
   height: 300px;
   width: 100%;
