@@ -538,7 +538,6 @@ static void *runServerGame(void *arg) {
 
   PlayerId winner = playGame(
       room->numWeb + room->numAI + room->numRandom, room->players,
-      lambda (PlayerId p) -> room->playerNames[p],
       lambda (PlayerId p) -> void {
         pthread_mutex_lock(&room->mutex);
         room->turn = p;
@@ -554,8 +553,14 @@ static void *runServerGame(void *arg) {
         room->state = s;
         pthread_mutex_unlock(&room->mutex);
       },
-      lambda (string msg) -> void {
-        notify(roomId, msg, false);
+      lambda (PlayerId p, unsigned handNum) -> void {
+        notify(roomId, "Hand " + str(handNum) +  " for dealer " + room->playerNames[p], false);
+      },
+      lambda (PlayerId p, Action a) -> void {
+        notify(roomId, room->playerNames[p] + ": " + showAction(a), false);
+      },
+      lambda (PlayerId p) -> void {
+        notify(roomId, room->playerNames[p] + " won!", false);
       });
 
   pthread_mutex_lock(&room->mutex);

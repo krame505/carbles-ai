@@ -5,11 +5,12 @@
 
 PlayerId playGame(
     unsigned numPlayers, Player *players[numPlayers],
-    closure<(PlayerId) -> string> showPlayerId,
     closure<(PlayerId) -> void> updateTurn,
     closure<(PlayerId, Hand) -> void> updateHand,
     closure<(State) -> void> updateState,
-    closure<(string) -> void> log) {
+    closure<(PlayerId, unsigned) -> void> handleDeal,
+    closure<(PlayerId, Action) -> void> handleAction,
+    closure<(PlayerId) -> void> handleWin) {
   if (numPlayers < 1 || numPlayers > MAX_PLAYERS) {
     fprintf(stderr, "Invalid number of players %d\n", numPlayers);
     exit(1);
@@ -32,7 +33,7 @@ PlayerId playGame(
       } else {
         handNum++;
       }
-      log("Hand " + str(handNum) + " for dealer " + showPlayerId(dealer));
+      handleDeal(dealer, handNum);
       handSize = deal(MIN_HAND, MAX_HAND, deck, numPlayers, hands);
       startingPlayer = (dealer + handNum + 1) % numPlayers;
       currentPlayer = startingPlayer;
@@ -47,7 +48,7 @@ PlayerId playGame(
     unsigned actionNum = p->getAction(p, s, hands[currentPlayer], discard, turn, currentPlayer, actions);
     assert(actionNum < actions.size);
     Action a = actions[actionNum];
-    log(showPlayerId(currentPlayer) + ": " + showAction(a));
+    handleAction(currentPlayer, a);
     s = applyAction(a, s, hands[currentPlayer], discard);
     updateHand(currentPlayer, hands[currentPlayer]);
     if (isWon(s)) {
@@ -61,29 +62,37 @@ PlayerId playGame(
   }
   PlayerId winner = getWinner(s);
   updateState(s);
-  log(showPlayerId(winner) + " won!");
+  handleWin(winner);
   return winner;
 }
 
 PlayerId playQuietGame(unsigned numPlayers, Player *players[numPlayers]) {
   return playGame(
       numPlayers, players,
-      lambda (PlayerId p) -> str(""),
       lambda (PlayerId p) -> void {},
       lambda (PlayerId p, Hand h) -> void {},
       lambda (State s) -> void {},
-      lambda (string msg) -> void {});
+      lambda (PlayerId p, unsigned h) -> void {},
+      lambda (PlayerId p, Action a) -> void {},
+      lambda (PlayerId p) -> void {});
 }
 
 PlayerId playConsoleGame(unsigned numPlayers, Player *players[numPlayers], FILE *out) {
   assert(out != NULL);
   return playGame(
       numPlayers, players,
-      lambda (PlayerId p) -> showPlayerId(p),
       lambda (PlayerId p) -> void {
-        fprintf(out, "\n\n%s's (%s) turn\n", showPlayerId(p).text, players[p]->name);
+        fprintf(out, "\n\n%s %s's turn\n", players[p]->name, showPlayerId(p).text);
       },
       lambda (PlayerId p, Hand h) -> void {},
       lambda (State s) -> void { fprintf(out, "%s\n", showState(s).text); },
-      lambda (string msg) -> void { fprintf(out, "%s\n", msg.text); });
+      lambda (PlayerId p, unsigned handNum) -> void {
+        fprintf(out, "Hand %d for dealer %s\n", handNum, showPlayerId(p).text);
+      },
+      lambda (PlayerId p, Action a) -> void {
+        fprintf(out, "%s: %s\n", showPlayerId(p).text, showAction(a).text);
+      },
+      lambda (PlayerId p) -> void {
+        fprintf(out, "%s won!\n", showPlayerId(p).text);
+      });
 }
