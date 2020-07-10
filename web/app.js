@@ -202,7 +202,7 @@ function init() {
   }
 
   let url = new URL(window.location)
-  joinLink.value = `${url.origin}${url.pathname}?room=${room}&id=${id}`
+  joinLink.value = `${url.origin}${url.pathname}?room=${room}`
   connect()
   $(window).bind('beforeunload', function() {
     $.ajax({url: `unregister?room=${room}&id=${id}`})
