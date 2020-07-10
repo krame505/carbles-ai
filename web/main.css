@@ -77,7 +77,6 @@ td {
 }
 
 #messagesOut {
-  overflow-x: wrap;
   overflow-y: scroll;
   height: 300px;
   width: 100%;

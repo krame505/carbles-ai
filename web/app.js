@@ -2,8 +2,29 @@ const SECTOR_SIZE = 18
 const NUM_PIECES = 4
 
 const urlParams = new URLSearchParams(window.location.search)
-const room = urlParams.get('room') != null? urlParams.get('room') : "default"
-const name = urlParams.get('name') != null? urlParams.get('name') : prompt("Please enter your name", "")
+
+function getRoom() {
+  var result = urlParams.get('room')
+  if (!result) {
+    result = Math.random().toString(36).substring(3)
+  }
+  if (result.length >= 30) {
+    result = result.substring(0, 29)
+  }
+  return result
+}
+
+function getName() {
+  var result = urlParams.get('name')
+  while (!result) {
+    result = prompt("Please enter your name", "")
+  }
+  return result
+}
+
+const room = getRoom()
+const name = getName()
+
 var started = false
 var id = null
 var playersInGame = []
