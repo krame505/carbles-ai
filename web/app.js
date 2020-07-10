@@ -180,7 +180,7 @@ function addMessage(id, name, chat, msg) {
   messagesOut.innerHTML +=`
 <span style="${id != null? `color:${getColor(id)}` : ""}">
   <b>${name? name + ": " : ""}</b>
-  <span style="${id == null || chat? "" : "font-style:italic;"}">
+  <span style="${chat? "" : "font-style:italic;"}${id != null? "" : "font-weight:bold;"}">
     ${msg}
   </span>
 </span><br>`
