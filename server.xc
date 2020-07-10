@@ -513,7 +513,7 @@ static void websocketHandler(struct mg_connection *nc, int ev, struct websocket_
 
   // Parse the message
   char roomId[MAX_ROOM_ID], connId[MAX_CONN_ID], msg[wm->size];
-  if (sscanf(data, "%[^:]:%[^:]:%s", roomId, connId, msg) == 3) {
+  if (sscanf(data, "%[^:]:%[^:]:%[^\n]", roomId, connId, msg) == 3) {
     if (mapContains(rooms, roomId)) {
       Room *room = mapGet(rooms, roomId);
 
