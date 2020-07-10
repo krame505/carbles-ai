@@ -496,10 +496,10 @@ static void websocketHandler(struct mg_connection *nc, int ev, struct websocket_
 
   // Parse the message
   char roomId[10] = {0}, msg[500] = {0};
-  for (unsigned i = 0; i < wm->size; i++) {
+  for (size_t i = 0; i < wm->size; i++) {
     if (wm->data[i] == ':') {
       i++;
-      snprintf(msg, sizeof(msg), "%.*s", wm->size - i, wm->data + i);
+      strncpy(msg, wm->data + i, wm->size - i > sizeof(msg)? sizeof(msg) : wm->size - i);
       break;
     }
     roomId[i] = wm->data[i];
