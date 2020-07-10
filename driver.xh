@@ -22,11 +22,12 @@ struct Player {
 
 PlayerId playGame(
     unsigned numPlayers, Player *players[numPlayers],
-    closure<(PlayerId) -> string> showPlayerId,
     closure<(PlayerId) -> void> updateTurn,
     closure<(PlayerId, Hand) -> void> updateHand,
     closure<(State) -> void> updateState,
-    closure<(string) -> void> log);
+    closure<(PlayerId, unsigned) -> void> handleDeal,
+    closure<(PlayerId, Action) -> void> handleAction,
+    closure<(PlayerId) -> void> handleWin);
 PlayerId playQuietGame(unsigned numPlayers, Player *players[numPlayers]);
 PlayerId playConsoleGame(unsigned numPlayers, Player *players[numPlayers], FILE *out);
 
