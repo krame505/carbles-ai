@@ -6,7 +6,10 @@ const urlParams = new URLSearchParams(window.location.search)
 function getRoom() {
   var result = urlParams.get('room')
   if (!result) {
-    result = "default"
+    result = Math.random().toString(36).substring(3)
+  }
+  if (result.length >= 30) {
+    result = result.substring(0, 29)
   }
   return result
 }

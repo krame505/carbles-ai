@@ -8,6 +8,11 @@
 #include <assert.h>
 #include <stdbool.h>
 
+#define MAX_ROOM_ID 30
+#define MAX_CONN_ID 100
+#define MAX_NAME 50
+#define MAX_MSG 500
+
 const static struct mg_serve_http_opts s_http_server_opts = {0,
   .document_root = "web/",
   .enable_directory_listing = "no"
@@ -91,7 +96,7 @@ static void notifyHandler(struct mg_connection *nc, int ev, void *ev_data) {
     Room *room = mapGet(rooms, roomId);
 
     // TODO
-    char connId[100];
+    char connId[MAX_CONN_ID];
     mg_conn_addr_to_str(nc, connId, sizeof(connId), MG_SOCK_STRINGIFY_IP | MG_SOCK_STRINGIFY_REMOTE);
     if (mapContains(room->connections, connId)) {
       mg_send_websocket_frame(nc, WEBSOCKET_OP_TEXT, msg.text, msg.length);
@@ -139,7 +144,7 @@ static string jsonList(vector<string> v) {
 
 static void handleState(struct mg_connection *nc, struct http_message *hm) {
   // Get form variables
-  char roomId[10] = {0}, connId[100] = {0};
+  char roomId[MAX_ROOM_ID] = {0}, connId[MAX_CONN_ID] = {0};
   mg_get_http_var(&hm->query_string, "room", roomId, sizeof(roomId));
   mg_get_http_var(&hm->query_string, "id", connId, sizeof(connId));
 
@@ -208,7 +213,7 @@ static void handleState(struct mg_connection *nc, struct http_message *hm) {
 
 static void handleRegister(struct mg_connection *nc, struct http_message *hm) {
   // Get form variables
-  char roomId[10] = {0}, connId[100] = {0}, name[50] = {0};
+  char roomId[MAX_ROOM_ID] = {0}, connId[MAX_CONN_ID] = {0}, name[MAX_NAME] = {0};
   mg_get_http_var(&hm->query_string, "room", roomId, sizeof(roomId));
   mg_get_http_var(&hm->query_string, "id", connId, sizeof(connId));
   mg_get_http_var(&hm->query_string, "name", name, sizeof(name));
@@ -255,7 +260,7 @@ static void handleRegister(struct mg_connection *nc, struct http_message *hm) {
 
 static void handleUnregister(struct mg_connection *nc, struct http_message *hm) {
   // Get form variables
-  char roomId[10] = {0}, connId[100] = {0};
+  char roomId[MAX_ROOM_ID] = {0}, connId[MAX_CONN_ID] = {0};
   mg_get_http_var(&hm->query_string, "room", roomId, sizeof(roomId));
   mg_get_http_var(&hm->query_string, "id", connId, sizeof(connId));
 
@@ -291,7 +296,7 @@ static void handleUnregister(struct mg_connection *nc, struct http_message *hm) 
 
 static void handleAutoPlayers(struct mg_connection *nc, struct http_message *hm) {
   // Get form variables
-  char roomId[10] = {0}, ai_s[10], random_s[10];
+  char roomId[MAX_ROOM_ID] = {0}, ai_s[10], random_s[10];
   mg_get_http_var(&hm->query_string, "room", roomId, sizeof(roomId));
   mg_get_http_var(&hm->query_string, "ai", ai_s, sizeof(ai_s));
   mg_get_http_var(&hm->query_string, "random", random_s, sizeof(random_s));
@@ -324,7 +329,7 @@ static void handleAutoPlayers(struct mg_connection *nc, struct http_message *hm)
 
 static void handleStart(struct mg_connection *nc, struct http_message *hm) {
   // Get form variables
-  char roomId[10] = {0};
+  char roomId[MAX_ROOM_ID] = {0};
   mg_get_http_var(&hm->query_string, "room", roomId, sizeof(roomId));
 
   bool success = false;
@@ -392,7 +397,7 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
 
 static void handleEnd(struct mg_connection *nc, struct http_message *hm) {
   // Get form variables
-  char roomId[10] = {0};
+  char roomId[MAX_ROOM_ID] = {0};
   mg_get_http_var(&hm->query_string, "room", roomId, sizeof(roomId));
 
   bool success = false;
@@ -424,7 +429,7 @@ static void handleEnd(struct mg_connection *nc, struct http_message *hm) {
 
 static void handleAction(struct mg_connection *nc, struct http_message *hm) {
   // Get form variables
-  char roomId[10] = {0}, connId[100] = {0}, a_s[10];
+  char roomId[MAX_ROOM_ID] = {0}, connId[MAX_CONN_ID] = {0}, a_s[10];
   mg_get_http_var(&hm->query_string, "room", roomId, sizeof(roomId));
   mg_get_http_var(&hm->query_string, "id", connId, sizeof(connId));
   mg_get_http_var(&hm->query_string, "action", a_s, sizeof(a_s));
@@ -480,15 +485,15 @@ static void httpHandler(struct mg_connection *nc, int ev, struct http_message *h
 
 static void websocketHandler(struct mg_connection *nc, int ev, struct websocket_message *wm) {
   // Compute the connection id
-  char connId[100];
+  char connId[MAX_CONN_ID];
   mg_conn_addr_to_str(nc, connId, sizeof(connId), MG_SOCK_STRINGIFY_IP | MG_SOCK_STRINGIFY_REMOTE);
 
   // Parse the message
-  char roomId[10] = {0}, msg[500] = {0};
+  char roomId[MAX_ROOM_ID] = {0}, msg[MAX_MSG] = {0};
   for (size_t i = 0; i < wm->size; i++) {
     if (wm->data[i] == ':') {
       i++;
-      snprintf(msg, sizeof(msg), "%.*s", wm->size - i, wm->data + i);
+      strncpy(msg, wm->data + i, wm->size - i > sizeof(msg)? sizeof(msg) : wm->size - i);
       break;
     }
     roomId[i] = wm->data[i];
