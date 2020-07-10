@@ -10,8 +10,8 @@
 
 #define MAX_ROOM_ID 30
 #define MAX_CONN_ID 100
+#define MAX_IP_ADDR 50
 #define MAX_NAME 50
-#define MAX_MSG 500
 
 const static struct mg_serve_http_opts s_http_server_opts = {0,
   .document_root = "web/",
@@ -27,6 +27,7 @@ typedef struct PlayerConn PlayerConn;
 struct Room {
   map<const char *, PlayerConn *, strcmp> ?connections;
   map<const char *, PlayerConn *, strcmp> ?droppedConnections;
+  map<const char *, unsigned, strcmp> ?ipAddrs;
   unsigned numWeb;
   unsigned numAI;
   unsigned numRandom;
@@ -63,6 +64,7 @@ static void createRoom(const char *roomId) {
   *room = (Room){
     emptyMap<const char *, PlayerConn *, strcmp>(GC_malloc),
     emptyMap<const char *, PlayerConn *, strcmp>(GC_malloc),
+    emptyMap<const char *, unsigned, strcmp>(GC_malloc),
     0, 0, 0, 0,
     {0}, vec<string>[], false, 0, initialState(0), {0}, vec<Action>[], false, 0, false,
     false, 0, PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER
@@ -95,10 +97,9 @@ static void notifyHandler(struct mg_connection *nc, int ev, void *ev_data) {
     if (!mapContains(rooms, roomId)) return;
     Room *room = mapGet(rooms, roomId);
 
-    // TODO
-    char connId[MAX_CONN_ID];
-    mg_conn_addr_to_str(nc, connId, sizeof(connId), MG_SOCK_STRINGIFY_IP | MG_SOCK_STRINGIFY_REMOTE);
-    if (mapContains(room->connections, connId)) {
+    char ipAddr[MAX_IP_ADDR];
+    mg_conn_addr_to_str(nc, ipAddr, sizeof(ipAddr), MG_SOCK_STRINGIFY_IP | MG_SOCK_STRINGIFY_REMOTE);
+    if (mapContains(room->ipAddrs, ipAddr)) {
       mg_send_websocket_frame(nc, WEBSOCKET_OP_TEXT, msg.text, msg.length);
     }
   }
@@ -218,7 +219,7 @@ static void handleRegister(struct mg_connection *nc, struct http_message *hm) {
   mg_get_http_var(&hm->query_string, "id", connId, sizeof(connId));
   mg_get_http_var(&hm->query_string, "name", name, sizeof(name));
 
-  printf("Registering %s to %s\n", name, roomId);
+  printf("Registering %s (%s) to %s\n", connId, name, roomId);
 
   // Create the room if needed
   if (!mapContains(rooms, roomId)) {
@@ -243,6 +244,15 @@ static void handleRegister(struct mg_connection *nc, struct http_message *hm) {
     room->connections = mapInsert(GC_malloc, room->connections, str(connId).text, conn);
     room->numWeb++;
     printf("Room has %d players\n", room->numWeb);
+
+    char ipAddr[MAX_IP_ADDR];
+    mg_conn_addr_to_str(nc, ipAddr, sizeof(connId), MG_SOCK_STRINGIFY_IP | MG_SOCK_STRINGIFY_REMOTE);
+    if (mapContains(room->ipAddrs, ipAddr)) {
+      room->ipAddrs = mapInsert(GC_malloc, room->ipAddrs, str(ipAddr).text, mapGet(room->ipAddrs, ipAddr) + 1);
+    } else {
+      room->ipAddrs = mapInsert(GC_malloc, room->ipAddrs, str(ipAddr).text, 1);
+    }
+
     if (!room->gameInProgress) {
       room->state = initialState(room->numWeb + room->numAI + room->numRandom);
     }
@@ -264,7 +274,7 @@ static void handleUnregister(struct mg_connection *nc, struct http_message *hm) 
   mg_get_http_var(&hm->query_string, "room", roomId, sizeof(roomId));
   mg_get_http_var(&hm->query_string, "id", connId, sizeof(connId));
 
-  printf("Unregistering %s from %s\n", name, roomId);
+  printf("Unregistering %s from %s\n", connId, roomId);
 
   bool success = false;
   if (mapContains(rooms, roomId)) {
@@ -276,6 +286,18 @@ static void handleUnregister(struct mg_connection *nc, struct http_message *hm) 
       room->droppedConnections = mapInsert(GC_malloc, room->droppedConnections, str(connId).text, conn);
       room->numWeb--;
       printf("Room has %d players\n", room->numWeb);
+
+      char ipAddr[MAX_IP_ADDR];
+      mg_conn_addr_to_str(nc, ipAddr, sizeof(connId), MG_SOCK_STRINGIFY_IP | MG_SOCK_STRINGIFY_REMOTE);
+      if (mapContains(room->ipAddrs, ipAddr)) {
+        unsigned numConns = mapGet(room->ipAddrs, ipAddr);
+        if (numConns > 1) {
+          room->ipAddrs = mapInsert(GC_malloc, room->ipAddrs, str(ipAddr).text, numConns - 1);
+        } else {
+          room->ipAddrs = mapDelete(GC_malloc, room->ipAddrs, str(ipAddr).text);
+        }
+      }
+
       if (!room->gameInProgress) {
         room->state = initialState(room->numWeb + room->numAI + room->numRandom);
       }
@@ -484,28 +506,22 @@ static void httpHandler(struct mg_connection *nc, int ev, struct http_message *h
 }
 
 static void websocketHandler(struct mg_connection *nc, int ev, struct websocket_message *wm) {
-  // Compute the connection id
-  char connId[MAX_CONN_ID];
-  mg_conn_addr_to_str(nc, connId, sizeof(connId), MG_SOCK_STRINGIFY_IP | MG_SOCK_STRINGIFY_REMOTE);
+  // Ensure message data is null-terminated
+  char data[wm->size + 1];
+  memcpy(data, wm->data, wm->size);
+  data[wm->size] = 0;
 
   // Parse the message
-  char roomId[MAX_ROOM_ID] = {0}, msg[MAX_MSG] = {0};
-  for (size_t i = 0; i < wm->size; i++) {
-    if (wm->data[i] == ':') {
-      i++;
-      strncpy(msg, wm->data + i, wm->size - i > sizeof(msg)? sizeof(msg) : wm->size - i);
-      break;
-    }
-    roomId[i] = wm->data[i];
-  }
+  char roomId[MAX_ROOM_ID], connId[MAX_CONN_ID], msg[wm->size];
+  if (sscanf(data, "%[^:]:%[^:]:%s", roomId, connId, msg) == 3) {
+    if (mapContains(rooms, roomId)) {
+      Room *room = mapGet(rooms, roomId);
 
-  if (mapContains(rooms, roomId)) {
-    Room *room = mapGet(rooms, roomId);
+      if (mapContains(room->connections, connId)) {
+        PlayerConn *conn = mapGet(room->connections, connId);
 
-    if (mapContains(room->connections, connId)) {
-      PlayerConn *conn = mapGet(room->connections, connId);
-
-      notify(roomId, conn->id, conn->name, true, str(msg), true);
+        notify(roomId, conn->id, conn->name, true, str(msg), true);
+      }
     }
   }
 }

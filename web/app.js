@@ -179,7 +179,7 @@ function reloadState() {
 function addMessage(id, name, chat, msg) {
   messagesOut.innerHTML +=`
 <span style="${id != null? `color:${getColor(id)}` : ""}">
-  ${name? name + ": " : ""}
+  <b>${name? name + ": " : ""}</b>
   <span style="${id == null || chat? "" : "font-style:italic;"}">
     ${msg}
   </span>
@@ -197,7 +197,7 @@ function init() {
   if (idCookie) {
     id = idCookie.split('=')[1]
   } else {
-    id = Math.random().toString(36).substring(10)
+    id = Math.random().toString(36).substring(3)
     document.cookie = `id=${id}; expires=Fri, 31 Dec 9999 23:59:59 GMT`
   }
 
@@ -231,7 +231,7 @@ function handleStartEndGame() {
 
 function handleChat() {
   if (event.key == 'Enter') {
-    ws.send(room + ":" + chatIn.value)
+    ws.send(`${room}:${id}:${chatIn.value}`)
     chatIn.value = ""
   }
 }
