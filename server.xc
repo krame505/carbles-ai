@@ -21,6 +21,7 @@ const static struct mg_serve_http_opts s_http_server_opts = {0,
 
 static struct mg_mgr mgr;
 static bool running = false;
+static sig_atomic_t signal_received = 0;
 
 typedef struct Room Room;
 typedef struct PlayerConn PlayerConn;
@@ -547,6 +548,11 @@ static void evHandler(struct mg_connection *nc, int ev, void *ev_data) {
   }
 }
 
+static void signal_handler(int sig_num) {
+  signal(sig_num, signal_handler);  // Reinstantiate signal handler
+  signal_received = sig_num;
+}
+
 void serve(const char *port) {
   // Initialize global variables
   rooms = emptyMap<const char *, Room *, strcmp>(GC_malloc);
@@ -565,17 +571,20 @@ void serve(const char *port) {
 
   mg_set_protocol_http_websocket(nc);
 
+  // Set up signal handling
+  signal(SIGTERM, signal_handler);
+  signal(SIGINT, signal_handler);
+
   // Start server
   printf("Starting server on port %s\n", port);
   running = true;
-  while (1) {
+  while (signal_received == 0) {
     mg_mgr_poll(&mgr, 1000);
   }
-  // TODO: Handle signals for graceful exit - see https://github.com/cesanta/mongoose/blob/master/examples/websocket_chat/websocket_chat.c
-  /*
+  signal_received = 0;
   printf("Server finishing\n");
   running = false;
-  mg_mgr_free(&mgr);*/
+  mg_mgr_free(&mgr);
 }
 
 static void *runServerGame(void *arg) {
