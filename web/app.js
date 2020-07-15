@@ -34,21 +34,7 @@ if (!idCookie) {
 var started = false
 var playersInGame = []
 
-const ws = new WebSocket("ws://" + location.host)
-ws.onmessage = function (event) {
-  console.log("Got message: " + event.data)
-  msg = JSON.parse(event.data)
-  if (msg.room == room) {
-    if (msg.content) {
-      addMessage(msg.id, msg.name, msg.chat, msg.content)
-    }
-    reloadState()
-  }
-}
-ws.onclose = function(e) {
-  console.log('Socket is closed. Reconnect will be attempted in 1 second.', e.reason)
-  setTimeout(connect, 1000)
-}
+var ws = null
 
 function getColor(player) {
   return ['dimgrey', 'red', 'blue', 'green', 'orange', 'purple', 'brown', 'gold', 'maroon', 'turquoise', 'indigo', 'midnightblue', 'salmon'][player]
@@ -195,6 +181,23 @@ function addMessage(id, name, chat, msg) {
 
 function connect() {
   console.log("Connecting")
+  if (ws == null || ws.readyState != WebSocket.OPEN) {
+    ws = new WebSocket("ws://" + location.host)
+    ws.onmessage = function (event) {
+      console.log("Got message: " + event.data)
+      msg = JSON.parse(event.data)
+      if (msg.room == room) {
+	if (msg.content) {
+	  addMessage(msg.id, msg.name, msg.chat, msg.content)
+	}
+	reloadState()
+      }
+    }
+    ws.onclose = function(e) {
+      console.log('Socket is closed. Reconnect will be attempted in 1 second.', e.reason)
+      setTimeout(connect, 1000)
+    }
+  }
   $.ajax({url: `register?room=${room}&id=${id}&name=${name}`, cache: false}).done(reloadState)
 }
 
