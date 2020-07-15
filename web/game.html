@@ -10,18 +10,16 @@
     <title>Carbles Online</title>
   </head>
 
-  <body onpageshow="init();">
+  <body onload="connect()" onbeforeunload="disconnect()" onunload="disconnect()">
     <h1>Carbles Online</h1>
 
-    <input type="text" size="50" readonly id="joinLink">
+    <input type="text" size="50" readonly id="joinLink"><script>initLink()</script>
     <button onclick="copyLink()">Copy room link</button>
     <button onclick="location.href='index.html'">Create a new room</button>
     
     <br><br>
 
-    <div>
-      Players in room: <span id="playersInRoom"></span>
-    </div>
+    Players in room: <span id="playersInRoom"></span>
     
     <form>
       AI players: <input type="number" min="0" id="aiPlayers" onchange="updateAutoPlayers()" class="numInput"><br>
@@ -49,9 +47,9 @@
     </div>
 
     <br><br><br><br><br>
-    
+
     <footer>
-      <p>Author: Lucas Kramer</p>
+      <p>Designed, built and hosted by Lucas Kramer; Powered by <a href="https://github.com/melt-umn/ableC">ableC</a></p>
       <p>Are you good at CSS web design?  This page desperately needs your help!  Accepting contributions at <a href="https://github.com/krame505/carbles-ai">github.com/krame505/carbles-ai</a>.</p>
     </footer>
   </body>

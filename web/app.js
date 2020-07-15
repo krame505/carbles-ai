@@ -25,8 +25,13 @@ function getName() {
 const room = getRoom()
 const name = getName()
 
+const idCookie = document.cookie.split('; ').find(row => row.startsWith('id'))
+const id = idCookie? idCookie.split('=')[1] : Math.random().toString(36).substring(3)
+if (!idCookie) {
+  document.cookie = `id=${id}; expires=Fri, 31 Dec 9999 23:59:59 GMT`
+}
+
 var started = false
-var id = null
 var playersInGame = []
 
 const ws = new WebSocket("ws://" + location.host)
@@ -143,7 +148,8 @@ function updateBoard(state) {
 }
 
 function reloadState() {
-  $.ajax({url: `state.json?room=${room}&id=${id}`}).done(
+  console.log("Reloading state")
+  $.ajax({url: `state.json?room=${room}&id=${id}`, cache: false}).done(
     function (s) {
       console.log("Got state: " + s)
       state = JSON.parse(s)
@@ -188,25 +194,18 @@ function addMessage(id, name, chat, msg) {
 }
 
 function connect() {
-  $.ajax({url: `register?room=${room}&id=${id}&name=${name}`})
-  reloadState()
+  console.log("Connecting")
+  $.ajax({url: `register?room=${room}&id=${id}&name=${name}`, cache: false}).done(reloadState)
 }
 
-function init() {
-  let idCookie = document.cookie.split('; ').find(row => row.startsWith('id'))
-  if (idCookie) {
-    id = idCookie.split('=')[1]
-  } else {
-    id = Math.random().toString(36).substring(3)
-    document.cookie = `id=${id}; expires=Fri, 31 Dec 9999 23:59:59 GMT`
-  }
+function disconnect() {
+  console.log("Disconnecting")
+  $.ajax({url: `unregister?room=${room}&id=${id}`, cache: false})
+}
 
+function initLink() {
   let url = new URL(window.location)
   joinLink.value = `${url.origin}${url.pathname}?room=${room}`
-  connect()
-  $(window).bind('beforeunload', function() {
-    $.ajax({url: `unregister?room=${room}&id=${id}`})
-  })
 }
 
 function copyLink() {
@@ -216,16 +215,16 @@ function copyLink() {
 }
 
 function updateAutoPlayers() {
-  $.ajax({url: `autoplayers?room=${room}&ai=${aiPlayers.value}&random=${randomPlayers.value}`})
+  $.ajax({url: `autoplayers?room=${room}&ai=${aiPlayers.value}&random=${randomPlayers.value}`, cache: false})
 }
 
 function handleStartEndGame() {
   if (started) {
-    if (confirm("Really end the game?")) {
-      $.ajax({url: "end?room=" + room})
+    if (confirm("Really end the game?  This will end the game for all players.")) {
+      $.ajax({url: "end?room=" + room, cache: false})
     }
   } else {
-    $.ajax({url: "start?room=" + room})
+    $.ajax({url: "start?room=" + room, cache: false})
   }
 }
 
