@@ -61,6 +61,8 @@ static pthread_mutex_t roomsMutex = PTHREAD_MUTEX_INITIALIZER;
 static map<const char *, Room *, strcmp> ?rooms;
 
 static void createRoom(const char *roomId) {
+  printf("Creating room %s\n", roomId);
+
   pthread_mutex_lock(&roomsMutex);
   Room *room = GC_malloc(sizeof(Room));
   *room = (Room){
@@ -209,7 +211,7 @@ static void handleState(struct mg_connection *nc, struct http_message *hm) {
   }
 
   if (!success) {
-    printf("Error sending state\n");
+    printf("Error sending state for %s in room %s\n", connId, roomId);
     sendError(nc);
   }
 }
@@ -366,6 +368,8 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
       if (numPlayers > MAX_PLAYERS) {
         notify(roomId, -1, str(""), false, "Too many players! Limit is " + str(MAX_PLAYERS), true);
       } else {
+        printf("Starting game in room %s\n", roomId);
+
         room->numPlayersInGame = numPlayers;
         resize_vector(room->playerNames, numPlayers);
         // Assign all players currently in the room
@@ -430,6 +434,8 @@ static void handleEnd(struct mg_connection *nc, struct http_message *hm) {
     pthread_mutex_lock(&room->mutex);
 
     if (room->gameInProgress) {
+      printf("Ending game in room %s\n", roomId);
+
       // Reset state
       room->gameInProgress = false;
       room->actionsReady = false;
@@ -625,6 +631,8 @@ static void *runServerGame(void *arg) {
   pthread_mutex_lock(&room->mutex);
   room->gameInProgress = false;
   pthread_mutex_unlock(&room->mutex);
+
+  printf("Finished game in room %s\n", roomId);
 
   //GC_unregister_my_thread(); // TODO: Causes segfault.  Is this actually needed?
   return NULL;
