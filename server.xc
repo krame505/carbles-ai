@@ -12,6 +12,7 @@
 #define MAX_CONN_ID 100
 #define MAX_IP_ADDR 50
 #define MAX_NAME 50
+#define MAX_MSG 10000
 
 const static struct mg_serve_http_opts s_http_server_opts = {0,
   .document_root = "web/",
@@ -506,13 +507,15 @@ static void httpHandler(struct mg_connection *nc, int ev, struct http_message *h
 }
 
 static void websocketHandler(struct mg_connection *nc, int ev, struct websocket_message *wm) {
+  size_t size = wm->size < MAX_MSG? wm->size : MAX_MSG;
+
   // Ensure message data is null-terminated
-  char data[wm->size + 1];
-  memcpy(data, wm->data, wm->size);
-  data[wm->size] = 0;
+  char data[size + 1];
+  memcpy(data, wm->data, size);
+  data[size] = 0;
 
   // Parse the message
-  char roomId[MAX_ROOM_ID], connId[MAX_CONN_ID], msg[wm->size];
+  char roomId[MAX_ROOM_ID], connId[MAX_CONN_ID], msg[size];
   if (sscanf(data, "%[^:]:%[^:]:%[^\n]", roomId, connId, msg) == 3) {
     if (mapContains(rooms, roomId)) {
       Room *room = mapGet(rooms, roomId);
