@@ -211,7 +211,7 @@ static void handleState(struct mg_connection *nc, struct http_message *hm) {
   }
 
   if (!success) {
-    printf("Error sending state for %s in room %s\n", connId, roomId);
+    fprintf(stderr, "Error sending state for %s in room %s\n", connId, roomId);
     sendError(nc);
   }
 }
@@ -223,7 +223,7 @@ static void handleRegister(struct mg_connection *nc, struct http_message *hm) {
   mg_get_http_var(&hm->query_string, "id", connId, sizeof(connId));
   mg_get_http_var(&hm->query_string, "name", name, sizeof(name));
 
-  printf("Registering %s (%s) to %s\n", connId, name, roomId);
+  fprintf(stderr, "Registering %s (%s) to %s\n", connId, name, roomId);
 
   // Create the room if needed
   if (!mapContains(rooms, roomId)) {
@@ -247,7 +247,7 @@ static void handleRegister(struct mg_connection *nc, struct http_message *hm) {
     }
     room->connections = mapInsert(GC_malloc, room->connections, str(connId).text, conn);
     room->numWeb++;
-    printf("Room has %d players\n", room->numWeb);
+    fprintf(stderr, "Room has %d players\n", room->numWeb);
 
     char ipAddr[MAX_IP_ADDR];
     mg_conn_addr_to_str(nc, ipAddr, sizeof(connId), MG_SOCK_STRINGIFY_IP | MG_SOCK_STRINGIFY_REMOTE);
@@ -278,7 +278,7 @@ static void handleUnregister(struct mg_connection *nc, struct http_message *hm) 
   mg_get_http_var(&hm->query_string, "room", roomId, sizeof(roomId));
   mg_get_http_var(&hm->query_string, "id", connId, sizeof(connId));
 
-  printf("Unregistering %s from %s\n", connId, roomId);
+  fprintf(stderr, "Unregistering %s from %s\n", connId, roomId);
 
   bool success = false;
   if (mapContains(rooms, roomId)) {
@@ -289,7 +289,7 @@ static void handleUnregister(struct mg_connection *nc, struct http_message *hm) 
       room->connections = mapDelete(GC_malloc, room->connections, connId);
       room->droppedConnections = mapInsert(GC_malloc, room->droppedConnections, str(connId).text, conn);
       room->numWeb--;
-      printf("Room has %d players\n", room->numWeb);
+      fprintf(stderr, "Room has %d players\n", room->numWeb);
 
       char ipAddr[MAX_IP_ADDR];
       mg_conn_addr_to_str(nc, ipAddr, sizeof(connId), MG_SOCK_STRINGIFY_IP | MG_SOCK_STRINGIFY_REMOTE);
@@ -368,7 +368,7 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
       if (numPlayers > MAX_PLAYERS) {
         notify(roomId, -1, str(""), false, "Too many players! Limit is " + str(MAX_PLAYERS), true);
       } else {
-        printf("Starting game in room %s\n", roomId);
+        fprintf(stderr, "Starting game in room %s\n", roomId);
 
         room->numPlayersInGame = numPlayers;
         resize_vector(room->playerNames, numPlayers);
@@ -434,7 +434,7 @@ static void handleEnd(struct mg_connection *nc, struct http_message *hm) {
     pthread_mutex_lock(&room->mutex);
 
     if (room->gameInProgress) {
-      printf("Ending game in room %s\n", roomId);
+      fprintf(stderr, "Ending game in room %s\n", roomId);
 
       // Reset state
       room->gameInProgress = false;
@@ -582,13 +582,13 @@ void serve(const char *port) {
   signal(SIGINT, signal_handler);
 
   // Start server
-  printf("Starting server on port %s\n", port);
+  fprintf(stderr, "Starting server on port %s\n", port);
   running = true;
   while (signal_received == 0) {
     mg_mgr_poll(&mgr, 1000);
   }
   signal_received = 0;
-  printf("Server finishing\n");
+  fprintf(stderr, "Server finishing\n");
   running = false;
   mg_mgr_free(&mgr);
 }
@@ -632,7 +632,7 @@ static void *runServerGame(void *arg) {
   room->gameInProgress = false;
   pthread_mutex_unlock(&room->mutex);
 
-  printf("Finished game in room %s\n", roomId);
+  fprintf(stderr, "Finished game in room %s\n", roomId);
 
   //GC_unregister_my_thread(); // TODO: Causes segfault.  Is this actually needed?
   return NULL;
