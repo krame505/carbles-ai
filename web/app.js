@@ -195,18 +195,20 @@ function connect() {
 	}
       }
     }
+    ws.onopen = function(e) {
+      ws.send(`join:${room}:${id}:${name}`)
+    }
     ws.onclose = function(e) {
-      console.log('Socket is closed. Reconnect will be attempted in 1 second.', e.reason)
-      addMessage(null, null, false, "Connection lost!  Reconnecting in 1 second.")
-      setTimeout(connect, 1000)
+      console.log('Socket is closed. Reconnect will be attempted in 5 seconds.', e.reason)
+      addMessage(null, null, false, "Connection lost!  Reconnecting in 5 seconds.")
+      setTimeout(connect, 5000)
     }
   }
-  $.ajax({url: `register?room=${room}&id=${id}&name=${name}`, cache: false}).done(reloadState)
 }
 
 function disconnect() {
   console.log("Disconnecting")
-  $.ajax({url: `unregister?room=${room}&id=${id}`, cache: false})
+  ws.close()
 }
 
 function initLink() {
@@ -236,7 +238,7 @@ function handleStartEndGame() {
 
 function handleChat() {
   if (event.key == 'Enter') {
-    ws.send(`${room}:${id}:${chatIn.value}`)
+    ws.send(`chat:${room}:${id}:${chatIn.value}`)
     chatIn.value = ""
   }
 }
