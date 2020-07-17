@@ -41,8 +41,8 @@ PlayerId playGame(
         updateHand(p, hands[p]);
       }
     }
-    updateTurn(currentPlayer);
     updateState(s);
+    updateTurn(currentPlayer);
     vector<Action> actions = getActions(s, currentPlayer, hands[currentPlayer]);
     Player *p = players[currentPlayer];
     unsigned actionNum = p->getAction(p, s, hands[currentPlayer], discard, turn, currentPlayer, actions);
@@ -82,10 +82,10 @@ PlayerId playConsoleGame(unsigned numPlayers, Player *players[numPlayers], FILE 
   return playGame(
       numPlayers, players,
       lambda (PlayerId p) -> void {
-        fprintf(out, "\n\n%s %s's turn\n", players[p]->name, showPlayerId(p).text);
+        fprintf(out, "%s %s's turn\n", players[p]->name, showPlayerId(p).text);
       },
       lambda (PlayerId p, Hand h) -> void {},
-      lambda (State s) -> void { fprintf(out, "%s\n", showState(s).text); },
+      lambda (State s) -> void { fprintf(out, "\n\n%s\n", showState(s).text); },
       lambda (PlayerId p, unsigned handNum) -> void {
         fprintf(out, "Hand %d for dealer %s\n", handNum, showPlayerId(p).text);
       },

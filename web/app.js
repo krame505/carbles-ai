@@ -190,11 +190,14 @@ function connect() {
 	if (msg.content) {
 	  addMessage(msg.id, msg.name, msg.chat, msg.content)
 	}
-	reloadState()
+	if (msg.reload) {
+	  reloadState()
+	}
       }
     }
     ws.onclose = function(e) {
       console.log('Socket is closed. Reconnect will be attempted in 1 second.', e.reason)
+      addMessage(null, null, false, "Connection lost!  Reconnecting in 1 second.")
       setTimeout(connect, 1000)
     }
   }

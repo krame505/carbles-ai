@@ -124,12 +124,15 @@ static void notifyHandler(struct mg_connection *nc, int ev, void *ev_data) {
   }
 }
 
-static void notify(const char *roomId, PlayerId p, string name, bool chat, string msg, bool mainThread) {
+static void notify(
+    const char *roomId, PlayerId p, string name, bool chat, bool reload,
+    string msg, bool mainThread) {
   string encoded =
       "{\"room\": " + show(roomId) +
       (p < MAX_PLAYERS? ", \"id\": " + show(p) : str("")) +
       ", \"name\": " + show(name) +
       ", \"chat\": " + (chat? "true" : "false") +
+      ", \"reload\": " + (reload? "true" : "false") +
       ", \"content\": " + show(msg) +
       "}";
   struct notification n = {str(roomId).text, encoded};
@@ -283,7 +286,7 @@ static void handleRegister(struct mg_connection *nc, struct http_message *hm) {
   sendEmpty(nc);
 
   if (conn != NULL) {
-    notify(roomId, -1, str(""), false, conn->name + " joined", true);
+    notify(roomId, -1, str(""), false, true, conn->name + " joined", true);
   }
 }
 
@@ -324,7 +327,7 @@ static void handleUnregister(struct mg_connection *nc, struct http_message *hm) 
       // Send empty response
       sendEmpty(nc);
 
-      notify(roomId, -1, str(""), false, conn->name + " left", true);
+      notify(roomId, -1, str(""), false, true, conn->name + " left", true);
       success = true;
     }
     pthread_mutex_unlock(&room->mutex);
@@ -358,7 +361,7 @@ static void handleAutoPlayers(struct mg_connection *nc, struct http_message *hm)
     // Send empty response
     sendEmpty(nc);
 
-    notify(roomId, -1, str(""), false, str(""), true);
+    notify(roomId, -1, str(""), false, true, str(""), true);
     success = true;
     pthread_mutex_unlock(&room->mutex);
   }
@@ -381,7 +384,7 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
     unsigned numPlayers = room->numWeb + room->numAI + room->numRandom;
     if (!room->gameInProgress && numPlayers) {
       if (numPlayers > MAX_PLAYERS) {
-        notify(roomId, -1, str(""), false, "Too many players! Limit is " + str(MAX_PLAYERS), true);
+        notify(roomId, -1, str(""), false, false, "Too many players! Limit is " + str(MAX_PLAYERS), true);
       } else {
         logmsg("Starting game in room %s", roomId);
 
@@ -426,7 +429,7 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
         // Send empty response
         sendEmpty(nc);
 
-        notify(roomId, -1, str(""), false, str("Game started!"), true);
+        notify(roomId, -1, str(""), false, true, str("Game started!"), true);
         success = true;
       }
     }
@@ -461,7 +464,7 @@ static void handleEnd(struct mg_connection *nc, struct http_message *hm) {
       // Send empty response
       sendEmpty(nc);
 
-      notify(roomId, -1, str(""), false, str("Game ended."), true);
+      notify(roomId, -1, str(""), false, true, str("Game ended."), true);
       success = true;
     }
     pthread_mutex_unlock(&room->mutex);
@@ -545,7 +548,7 @@ static void websocketHandler(struct mg_connection *nc, int ev, struct websocket_
       if (mapContains(room->connections, connId)) {
         PlayerConn *conn = mapGet(room->connections, connId);
 
-        notify(roomId, conn->id, conn->name, true, str(msg), true);
+        notify(roomId, conn->id, conn->name, true, false, str(msg), true);
       }
     }
   }
@@ -622,6 +625,11 @@ static void *runServerGame(void *arg) {
         pthread_mutex_lock(&room->mutex);
         room->turn = p;
         pthread_mutex_unlock(&room->mutex);
+
+        // If this is not a web player, notify clients
+        if (strcmp(room->players[p]->name, "web")) {
+          notify(roomId, -1, str(""), false, true, str(""), false);
+        }
       },
       lambda (PlayerId p, Hand h) -> void {
         pthread_mutex_lock(&room->mutex);
@@ -634,13 +642,13 @@ static void *runServerGame(void *arg) {
         pthread_mutex_unlock(&room->mutex);
       },
       lambda (PlayerId p, unsigned handNum) -> void {
-        notify(roomId, -1, str(""), false, "Hand " + str(handNum) +  " for dealer " + room->playerNames[p], false);
+        notify(roomId, -1, str(""), false, false, "Hand " + str(handNum) +  " for dealer " + room->playerNames[p], false);
       },
       lambda (PlayerId p, Action a) -> void {
-        notify(roomId, p, room->playerNames[p], false, showAction(a), false);
+        notify(roomId, p, room->playerNames[p], false, false, showAction(a), false);
       },
       lambda (PlayerId p) -> void {
-        notify(roomId, -1, str(""), false, room->playerNames[p] + " won!", false);
+        notify(roomId, -1, str(""), false, true, room->playerNames[p] + " won!", false);
       });
 
   pthread_mutex_lock(&room->mutex);
@@ -671,7 +679,7 @@ static unsigned getWebAction(WebPlayer *this, State s, Hand h, Hand discard, uns
   room->actionReady = false;
 
   // Notify clients
-  notify(this->roomId, -1, str(""), false, str(""), false);
+  notify(this->roomId, -1, str(""), false, true, str(""), false);
 
   // Wait for response
   unsigned result;
