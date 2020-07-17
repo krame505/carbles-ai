@@ -14,8 +14,7 @@
 #define FINISH_BACKTRACK_DIST 2
 #define MIN_HAND 4
 #define MAX_HAND 5
-
-#define MAX_PLAYERS 52 / MIN_HAND
+#define MAX_PLAYERS 12
 
 typedef unsigned PlayerId;
 
