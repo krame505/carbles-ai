@@ -16,10 +16,16 @@
     <h2>Create or Join a Room</h2>
     <form action="/game.html" method="get">
       <label for="room">Room code:</label>
-      <input type="text" maxlength="30" required id="room" name="room"><br><br>
+      <input type="text" maxlength="30" pattern="[a-zA-Z0-9]+" required id="room" name="room"><br><br>
       <label for="name">Your name:</label>
       <input type="text" maxlength="50" required id="name" name="name"><br><br>
       <input type="submit" value="Join!">
+
+      <script>
+        room.oninvalid = function (e) {
+            event.target.setCustomValidity('Room code may only contain numbers and letters');
+        }
+      </script>
     </form>
 
     <br><br><br><br><br>
