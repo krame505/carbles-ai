@@ -18,25 +18,25 @@ unsigned getPlayerHeuristicValue(State s, PlayerId p) {
       unsigned homeIndex = p * SECTOR_SIZE;
       unsigned boardSize = numPlayers * SECTOR_SIZE;
       query B is board, P is p, MAX_PIECE is ((unsigned)(NUM_PIECES - 1)),
-        betweenU(0, MAX_PIECE, N), mapContains(B, Finish(P, N), P) {
+            betweenU(0, MAX_PIECE, N), mapContains(B, Finish(P, N), P) {
         *result += FINISH_WEIGHT;
         return false;
       };
-      query B is board, P is p, mapKeys(B, XS, P), member(Out(I), XS) {
+      query B is board, P is p, mapContainsValue(B, Out(I), P) {
         unsigned index = value(I);
         if ((index + boardSize - 2) % boardSize <= homeIndex && (index + 2) % boardSize >= homeIndex) {
           *result += AHEAD_CLOSE_WEIGHT;
         }
         return false;
       };
-      query B is board, P is p, mapKeys(B, XS, P), member(Out(I), XS) {
+      query B is board, P is p, mapContainsValue(B, Out(I), P) {
         unsigned index = value(I);
         if ((index + 2) % boardSize < homeIndex && (index + 10) % boardSize >= homeIndex) {
           *result += BEHIND_CLOSE_WEIGHT;
         }
         return false;
       };
-      query B is board, P is p, mapKeys(B, XS, P), member(Out(_), XS) {
+      query B is board, P is p, mapContainsValue(B, Out(I), P) {
         *result += OUT_WEIGHT;
         return false;
       };

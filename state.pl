@@ -77,23 +77,23 @@ moveOutCard(K).
 
 cardMoves(S, P, C, [MoveDirect(X, Y)]) :-
     directCard(C), N is ((unsigned)C), S = St(_, B, _),
-    mapKeys(B, XS, P), member(X, XS), advance(S, P, X, N, Y).
+    mapContainsValue(B, X, P), advance(S, P, X, N, Y).
 cardMoves(S, P, C, [MoveOut(P)]) :-
     moveOutCard(C), S = St(_, _, L),
     mapContains(L, P, N), N > 0 .
 cardMoves(S, P, Joker, []).
 cardMoves(S, P, 4, [MoveDirect(X, Y)]) :-
     S = St(_, B, _),
-    mapKeys(B, XS, P), member(X, XS), retreat(S, P, X, 4, Y).
+    mapContainsValue(B, X, P), retreat(S, P, X, 4, Y).
 cardMoves(S, P, 7, MS) :-
     S = St(_, B, _),
     mapKeys(B, XS1, P), subset(XS2, XS1),
     splitAdvance(S, P, XS2, 7, MS).
 cardMoves(S, P1, J, [Swap(X, Y)]) :-
     S = St(NUM_PLAYERS, B, _), MAX_PLAYER is (NUM_PLAYERS - 1),
-    mapKeys(B, XS, P1), member(X, XS), X = Out(_),
+    mapContainsValue(B, X, P1), X = Out(_),
     between(0, MAX_PLAYER, P2), P1 =\= P2,
-    mapKeys(B, YS, P2), member(Y, YS), Y = Out(I),
+    mapContainsValue(B, Y, P2), Y = Out(I),
     I =\= (P2 * SECTOR_SIZE).
 
 isWon(St(NUM_PLAYERS, B, _), P) :-

@@ -251,6 +251,8 @@ void expand(SearchPlayer *this, GameTree *t, Hand deck, Hand hands[]) {
 
 unsigned getSearchAction(SearchPlayer *this, State s, Hand h, Hand discard, unsigned turn, PlayerId p, vector<Action> actions) {
   //printf("%s\n", showHand(h).text);
+
+  // If there is only one possible action, choose it immediately
   if (actions.size <= 1) {
     return 0;
   }
@@ -259,7 +261,14 @@ unsigned getSearchAction(SearchPlayer *this, State s, Hand h, Hand discard, unsi
   clock_gettime(CLOCK_MONOTONIC, &start);
 
   match (s) {
-    St(?&numPlayers, _, _) -> {
+    St(?&numPlayers, board, _) -> {
+      // If actions are burns and no marbles are out, choose a random action immediately
+      match (actions[0]) {
+        Burn(_) @when (query B is board, P is p, \+ mapContainsValue(B, Out(_), P) { return true; }) -> {
+          return rand() % actions.size;
+        }
+      }
+
       // Construct the deck of remaining cards that may be held by another player
       Hand remaining;
       initializeDeck(remaining);
