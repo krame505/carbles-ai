@@ -208,7 +208,7 @@ static void handleState(struct mg_connection *nc, struct http_message *hm) {
             St(?&numPlayers, _, _) -> {
               playersInGame = new vector<string>(numPlayers);
               for (PlayerId p = 0; p < numPlayers; p++) {
-                playersInGame[p] = "Player " + str(p);
+                playersInGame[p] = "Player " + str(p + 1);
               }
             }
           }
@@ -319,13 +319,13 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
           PlayerId p;
           do { p = rand() % numPlayers; } while (room->players[p] != NULL);
           room->players[p] = (Player*)&heuristicSearchPlayer;
-          room->playerNames[p] = "Player " + str(p) + " (AI)";
+          room->playerNames[p] = "Player " + str(p + 1) + " (AI)";
         }
         for (unsigned i = 0; i < room->numRandom; i++) {
           PlayerId p;
           do { p = rand() % numPlayers; } while (room->players[p] != NULL);
           room->players[p] = &randomPlayer;
-          room->playerNames[p] = "Player " + str(p) + " (random)";
+          room->playerNames[p] = "Player " + str(p + 1) + " (random)";
         }
         room->gameInProgress = true;
         if (room->threadRunning) {
@@ -655,7 +655,7 @@ static void *runServerGame(void *arg) {
         pthread_mutex_unlock(&room->mutex);
       },
       lambda (PlayerId p, unsigned handNum) -> void {
-        notify(roomId, -1, str(""), false, false, "Hand " + str(handNum) +  " for dealer " + room->playerNames[p], false);
+        notify(roomId, -1, str(""), false, false, "Hand " + str(handNum + 1) +  " for dealer " + room->playerNames[p], false);
       },
       lambda (PlayerId p, Action a) -> void {
         notify(roomId, p, room->playerNames[p], false, false, showAction(a), false);
