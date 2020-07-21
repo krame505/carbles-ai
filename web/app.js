@@ -37,7 +37,7 @@ var playersInGame = []
 var ws = null
 
 function getColor(player) {
-  return ['dimgrey', 'red', 'blue', 'green', 'orange', 'purple', 'brown', 'gold', 'maroon', 'turquoise', 'indigo', 'midnightblue', 'salmon'][player]
+  return ['dimgrey', 'red', 'blue', 'green', 'orange', 'purple', 'gold', 'maroon', 'turquoise', 'indigo', 'midnightblue', 'salmon'][player]
 }
 
 function updateCell(cell, label, state, l, r, t, b, highlight=null) {
@@ -75,16 +75,16 @@ function updateBoard(state) {
 
   // Fill in board
   let rows = board.rows
+  for (i = 1; i < 8; i++) {
+    rows[i].insertCell(0)
+  }
+  rows[1].cells[0].innerHTML = '<b>⋮</b>'
+
   for (p = 0; p < state.numPlayers; p++) {
     let prevP = (p + state.numPlayers - 1) % state.numPlayers
 
-    let home = rows[7].insertCell(0);
-    updateCell(home, prevP * SECTOR_SIZE, state, false, true, true, false, prevP)
-    for (i = 1; i < 8; i++) {
-      updateCell(rows[7 - i].insertCell(0), i + prevP * SECTOR_SIZE, state, false, false, i < 7, true)
-    }
-    for (i = 0; i < 7; i++) {
-      updateCell(rows[i + 1].insertCell(0), i + 8 + prevP * SECTOR_SIZE, state, i == 6, false, true, i < 6)
+    for (i = 0; i < 8; i++) {
+      updateCell(rows[i].insertCell(0), i + 7 + prevP * SECTOR_SIZE, state, i == 7, false, i > 0, i < 7)
     }
     rows[0].cells[0].colSpan = 2
     for (i = 0; i < 7; i++) {
@@ -117,19 +117,24 @@ function updateBoard(state) {
       rows[i].insertCell(0)
     }
     updateCell(rows[7].insertCell(0), 17 + prevP * SECTOR_SIZE, state, true, true, false, false)
+    updateCell(rows[7].insertCell(0), p * SECTOR_SIZE, state, false, true, true, false, p)
+    for (i = 1; i < 7; i++) {
+      updateCell(rows[7 - i].insertCell(0), i + p * SECTOR_SIZE, state, false, false, i < 7, true)
+    }
   }
+  rows[0].insertCell(0)
+  rows[0].cells[0].innerHTML = '<b>⋮</b>'
 
   // Fill in header
   board.deleteTHead()
   let head = board.createTHead()
   for (p = state.numPlayers - 1; p >= 0; p--) {
+    head.append(document.createElement('th'))
     let headCell = document.createElement('th')
     headCell.innerHTML = playersInGame[p]
     headCell.colSpan = 3
     head.append(headCell)
-    let spaceCell = document.createElement('th')
-    spaceCell.colSpan = 2
-    head.append(spaceCell)
+    head.append(document.createElement('th'))
   }
 }
 
