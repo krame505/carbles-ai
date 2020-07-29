@@ -2178,7 +2178,7 @@ struct _string_s showState(State  s);
 struct _string_s showMoveDirect(struct _template__var_d__datatype_Move_147___s  * m);
 
 struct _string_s showMoves(struct _template__var_d__list__var__datatype_Move_147_______s  * m);
-struct _string_s showHand(Hand  );
+struct _string_s showHand(const Hand  h);
 struct _string_s showAction(Action  a);
 typedef __attribute__(()) struct _template__vector_s__datatype_Action_158__ _template__vector_s__datatype_Action_158__;
 struct _template__vector_s__datatype_Action_158__ {
@@ -2193,7 +2193,7 @@ struct _template__vector_s__datatype_Action_158__ {
 struct _string_s showActions(struct _template__vector_s__datatype_Action_158__  * a);
 struct _string_s jsonPosition(struct _template__var_d__datatype_Position_110___s  * p);
 struct _string_s jsonState(State  s);
-struct _string_s jsonHand(Hand  );
+struct _string_s jsonHand(const Hand  h);
 struct _string_s jsonActions(struct _template__vector_s__datatype_Action_158__  * a);
 struct _template__var_d__builtin_unsigned_int___s  *copyPlayerId(struct _template__var_d__builtin_unsigned_int___s  * );
 
@@ -2206,14 +2206,14 @@ struct _template__var_d__datatype_Move_147___s  *copyMoveDirect(struct _template
 struct _template__var_d__list__var__datatype_Move_147_______s  *copyMoves(struct _template__var_d__list__var__datatype_Move_147_______s  * );
 
 void initializeDeck(Hand  );
-unsigned int getDeckSize(Hand  );
+unsigned int getDeckSize(const Hand  );
 unsigned int deal(unsigned int  min, unsigned int  max, Hand  deck, unsigned int  numPlayers, Hand  hands[(numPlayers)]);
 State initialState(unsigned int  numPlayers);
 State applyMoveDirect(Move  , State  );
 
 State applyMoves(struct _template__var_d__list__var__datatype_Move_147_______s  * , State  );
-State applyAction(Action  , State  , Hand  , Hand  );
-struct _template__vector_s__datatype_Action_158__  *getActions(State  s, PlayerId  p, Hand  h);
+State applyAction(Action  , State  , Hand  , Hand  discard);
+struct _template__vector_s__datatype_Action_158__  *getActions(State  s, PlayerId  p, const Hand  h);
 _Bool isWon(State  s);
 PlayerId getWinner(State  s);
 
@@ -11977,7 +11977,7 @@ static _Bool _template__predicate_cardMoves_(struct _template__var_d__datatype_S
     return 0;
   }
 }
-struct _template__vector_s__datatype_Action_158__  *getActions(State  s, PlayerId  p, Hand  h)
+struct _template__vector_s__datatype_Action_158__  *getActions(State  s, PlayerId  p, const Hand  h)
 {
 
   ;

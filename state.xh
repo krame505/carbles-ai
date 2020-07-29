@@ -77,13 +77,13 @@ string showPosition(Position ?p);
 string showState(State s);
 string showMoveDirect(Move ?m);
 string showMoves(list<Move ?> ?m);
-string showHand(Hand);
+string showHand(const Hand h);
 string showAction(Action a);
 string showActions(vector<Action> a);
 
 string jsonPosition(Position ?p);
 string jsonState(State s);
-string jsonHand(Hand);
+string jsonHand(const Hand h);
 string jsonActions(vector<Action> a);
 
 PlayerId ?copyPlayerId(PlayerId ?);
@@ -92,15 +92,15 @@ Move ?copyMoveDirect(Move ?);
 list<Move ?> ?copyMoves(list<Move ?> ?);
 
 void initializeDeck(Hand);
-unsigned getDeckSize(Hand);
+unsigned getDeckSize(const Hand);
 unsigned deal(unsigned min, unsigned max, Hand deck, unsigned numPlayers, Hand hands[numPlayers]);
 
 State initialState(unsigned numPlayers);
 State applyMoveDirect(Move, State);
 State applyMoves(list<Move ?> ?, State);
-State applyAction(Action, State, Hand, Hand);
+State applyAction(Action, State, Hand, Hand discard);
 
-vector<Action> getActions(State s, PlayerId p, Hand h);
+vector<Action> getActions(State s, PlayerId p, const Hand h);
 _Bool isWon(State s);
 PlayerId getWinner(State s);
 

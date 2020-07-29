@@ -27,7 +27,7 @@ prolog {
 #undef between
 }
 
-vector<Action> getActions(State s, PlayerId p, Hand h) {
+vector<Action> getActions(State s, PlayerId p, const Hand h) {
   vector<Action> result = new vector<Action>();
   for (Card c = 0; c < CARD_MAX; c++) {
     if (h[c]) {

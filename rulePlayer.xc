@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-unsigned getRuleAction(Player *this, State s, Hand h, Hand discard, unsigned turn, PlayerId p, vector<Action> actions) {
+unsigned getRuleAction(Player *this, State s, const Hand h, const Hand discard, unsigned turn, PlayerId p, vector<Action> actions) {
   // Finish if possible
   for (unsigned i = 0; i < actions.size; i++) {
     match (actions[i]) {

@@ -133,7 +133,7 @@ string showMoves(list<Move ?> ?ms) {
      ?&[] -> str(""););
 }
 
-string showHand(Hand h) {
+string showHand(const Hand h) {
   string result = str("");
   for (Card c = 0; c < CARD_MAX; c++) {
     for (unsigned i = 0; i < h[c]; i++) {
@@ -201,7 +201,7 @@ string jsonState(State s) {
   }
 }
 
-string jsonHand(Hand h) {
+string jsonHand(const Hand h) {
   return show(showHand(h));
 }
 
@@ -222,7 +222,7 @@ void initializeDeck(Hand h) {
   }
 }
 
-unsigned getDeckSize(Hand deck) {
+unsigned getDeckSize(const Hand deck) {
   unsigned result = 0;
   for (Card c = Joker; c < CARD_MAX; c++) {
     result += deck[c];

@@ -249,7 +249,7 @@ void expand(SearchPlayer *this, GameTree *t, Hand deck, Hand hands[]) {
   }
 }
 
-unsigned getSearchAction(SearchPlayer *this, State s, Hand h, Hand discard, unsigned turn, PlayerId p, vector<Action> actions) {
+unsigned getSearchAction(SearchPlayer *this, State s, const Hand h, const Hand discard, unsigned turn, PlayerId p, vector<Action> actions) {
   //printf("%s\n", showHand(h).text);
 
   // If there is only one possible action, choose it immediately

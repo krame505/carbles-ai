@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-unsigned getHumanAction(Player *this, State s, Hand h, Hand discard, unsigned turn, PlayerId p, vector<Action> actions) {
+unsigned getHumanAction(Player *this, State s, const Hand h, const Hand discard, unsigned turn, PlayerId p, vector<Action> actions) {
   printf("%s\n%s", showHand(h).text, showActions(actions).text);
   if (actions.size > 1) {
     unsigned result;

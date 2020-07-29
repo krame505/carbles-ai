@@ -678,7 +678,7 @@ static void cleanup(void *mutex) {
   pthread_mutex_unlock((pthread_mutex_t *)mutex);
 }
 
-static unsigned getWebAction(WebPlayer *this, State s, Hand h, Hand discard, unsigned turn, PlayerId p, vector<Action> a) {
+static unsigned getWebAction(WebPlayer *this, State s, const Hand h, const Hand discard, unsigned turn, PlayerId p, vector<Action> a) {
   if (!running) {
     fprintf(stderr, "Web server isn't running!\n");
     exit(1);
