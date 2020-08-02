@@ -3,7 +3,6 @@
 #include <server.xh>
 #include <mongoose.xh>
 #include <players.xh>
-#include <map_utils.xh>
 #include <pthread.h>
 #include <assert.h>
 #include <stdbool.h>
@@ -96,7 +95,7 @@ static void createRoom(string roomId) {
     emptyMap<string, PlayerConn *, compareString>(GC_malloc),
     emptyMap<string, PlayerConn *, compareString>(GC_malloc),
     emptyMap<ConnId, string, compareConn>(GC_malloc),
-    0, 0, 0, 0,
+    0, 1, 0, 0,
     {0}, vec<string>[], false, 0, initialState(0), {0}, vec<Action>[], false, 0, false,
     false, 0, PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER
   };
@@ -125,12 +124,10 @@ static void notifyHandler(struct mg_connection *nc, int ev, void *ev_data) {
     string roomId = ((struct notification *)ev_data)->roomId;
     string msg = ((struct notification *)ev_data)->msg;
 
-    if (!mapContains(rooms, roomId)) return;
-    Room *room = mapGet(rooms, roomId);
-
-    if (mapContains(room->socketPlayers, (ConnId)nc)) {
+    query RID is roomId, RS is rooms, mapContains(RS, RID, R),
+          SP is (R->socketPlayers), NC is ((ConnId)nc), mapContains(SP, NC, _) {
       mg_send_websocket_frame(nc, WEBSOCKET_OP_TEXT, msg.text, msg.length);
-    }
+    };
   }
 }
 
@@ -182,16 +179,15 @@ static void handleState(struct mg_connection *nc, struct http_message *hm) {
   mg_get_http_var(&hm->query_string, "id", connId_s, sizeof(connId_s));
   string roomId = str(roomId_s), connId = str(connId_s);
 
-  bool success = false;
-  if (mapContains(rooms, roomId)) {
-    Room *room = mapGet(rooms, roomId);
-    pthread_mutex_lock(&room->mutex);
-
-    if (mapContains(room->connections, connId)) {
-      PlayerConn *conn = mapGet(room->connections, connId);
+  bool success = query
+    RID is roomId, RS is rooms, mapContains(RS, RID, R),
+    initially { pthread_mutex_lock(&R->mutex); },
+    finally   { pthread_mutex_unlock(&R->mutex); },
+    CID is connId, CS is (R->connections), mapContains(CS, CID, C) {
+      Room *room = value(R);
+      PlayerConn *conn = value(C);
 
       if (!room->gameInProgress || conn->id < room->numPlayersInGame) {
-
         // Send headers
         mg_printf(nc, "%s", "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n");
 
@@ -233,11 +229,10 @@ static void handleState(struct mg_connection *nc, struct http_message *hm) {
           ", \"actions\": " + jsonActions(actions) + "}";
         mg_printf_http_chunk(nc, "%s", result.text);
         mg_send_http_chunk(nc, "", 0); // Send empty chunk, the end of response
-        success = true;
+        return true;
       }
-    }
-    pthread_mutex_unlock(&room->mutex);
-  }
+      return false;
+    };
 
   if (!success) {
     logmsg("Error sending state for %s in room %s", connId_s, roomId_s);
@@ -254,24 +249,24 @@ static void handleAutoPlayers(struct mg_connection *nc, struct http_message *hm)
   string roomId = str(roomId_s);
   unsigned ai = atoi(ai_s), random = atoi(random_s);
 
-  bool success = false;
-  if (mapContains(rooms, roomId)) {
-    Room *room = mapGet(rooms, roomId);
-    pthread_mutex_lock(&room->mutex);
+  bool success = query
+    RID is roomId, RS is rooms, mapContains(RS, RID, R),
+    initially { pthread_mutex_lock(&R->mutex); },
+    finally   { pthread_mutex_unlock(&R->mutex); } {
+      Room *room = value(R);
 
-    room->numAI = ai;
-    room->numRandom = random;
-    if (!room->gameInProgress) {
-      room->state = initialState(room->numWeb + room->numAI + room->numRandom);
-    }
+      room->numAI = ai;
+      room->numRandom = random;
+      if (!room->gameInProgress) {
+        room->state = initialState(room->numWeb + room->numAI + room->numRandom);
+      }
 
-    // Send empty response
-    sendEmpty(nc);
+      // Send empty response
+      sendEmpty(nc);
 
-    notify(roomId, -1, str(""), false, true, str(""), true);
-    success = true;
-    pthread_mutex_unlock(&room->mutex);
-  }
+      notify(roomId, -1, str(""), false, true, str(""), true);
+      return true;
+    };
 
   if (!success) {
     sendError(nc);
@@ -284,65 +279,66 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
   mg_get_http_var(&hm->query_string, "room", roomId_s, sizeof(roomId_s));
   string roomId = str(roomId_s);
 
-  bool success = false;
-  if (mapContains(rooms, roomId)) {
-    Room *room = mapGet(rooms, roomId);
-    pthread_mutex_lock(&room->mutex);
+  bool success = query
+    RID is roomId, RS is rooms, mapContains(RS, RID, R),
+    initially { pthread_mutex_lock(&R->mutex); },
+    finally   { pthread_mutex_unlock(&R->mutex); } {
+      Room *room = value(R);
 
-    unsigned numPlayers = room->numWeb + room->numAI + room->numRandom;
-    if (!room->gameInProgress && numPlayers) {
-      if (numPlayers > MAX_PLAYERS) {
-        notify(roomId, -1, str(""), false, false, "Too many players! Limit is " + str(MAX_PLAYERS), true);
-      } else {
-        logmsg("Starting game in room %s", roomId_s);
+      unsigned numPlayers = room->numWeb + room->numAI + room->numRandom;
+      if (!room->gameInProgress && numPlayers) {
+        if (numPlayers > MAX_PLAYERS) {
+          notify(roomId, -1, str(""), false, false, "Too many players! Limit is " + str(MAX_PLAYERS), true);
+        } else {
+          logmsg("Starting game in room %s", roomId_s);
 
-        room->numPlayersInGame = numPlayers;
-        resize_vector(room->playerNames, numPlayers);
-        // Assign all players currently in the room
-        for (unsigned i = 0; i < numPlayers; i++) {
-          room->players[i] = NULL;
-        }
-        mapForeach(room->connections, lambda (string connId, PlayerConn *conn) -> void {
+          room->numPlayersInGame = numPlayers;
+          resize_vector(room->playerNames, numPlayers);
+          // Assign all players currently in the room
+          for (unsigned i = 0; i < numPlayers; i++) {
+            room->players[i] = NULL;
+          }
+          mapForeach(room->connections, lambda (string connId, PlayerConn *conn) -> void {
+              PlayerId p;
+              do { p = rand() % numPlayers; } while (room->players[p] != NULL);
+              WebPlayer *webPlayer = GC_malloc(sizeof(WebPlayer));
+              *webPlayer = makeWebPlayer(roomId);
+              room->players[p] = (Player*)webPlayer;
+              room->playerNames[p] = conn->name;
+              conn->inGame = true;
+              conn->id = p;
+            });
+          mapForeach(room->droppedConnections, lambda (string connId, PlayerConn *conn) -> void {
+              conn->inGame = false;
+            });
+          for (unsigned i = 0; i < room->numAI; i++) {
             PlayerId p;
             do { p = rand() % numPlayers; } while (room->players[p] != NULL);
-            WebPlayer *webPlayer = GC_malloc(sizeof(WebPlayer));
-            *webPlayer = makeWebPlayer(roomId);
-            room->players[p] = (Player*)webPlayer;
-            room->playerNames[p] = conn->name;
-            conn->inGame = true;
-            conn->id = p;
-          });
-        mapForeach(room->droppedConnections, lambda (string connId, PlayerConn *conn) -> void {
-            conn->inGame = false;
-          });
-        for (unsigned i = 0; i < room->numAI; i++) {
-          PlayerId p;
-          do { p = rand() % numPlayers; } while (room->players[p] != NULL);
-          room->players[p] = (Player*)&heuristicSearchPlayer;
-          room->playerNames[p] = "Player " + str(p + 1) + " (AI)";
-        }
-        for (unsigned i = 0; i < room->numRandom; i++) {
-          PlayerId p;
-          do { p = rand() % numPlayers; } while (room->players[p] != NULL);
-          room->players[p] = &randomPlayer;
-          room->playerNames[p] = "Player " + str(p + 1) + " (random)";
-        }
-        room->gameInProgress = true;
-        if (room->threadRunning) {
-          pthread_join(room->thread, NULL);
-        }
-        pthread_create(&room->thread, NULL, &runServerGame, (void *)roomId.text);
-        room->threadRunning = true;
+            room->players[p] = (Player*)&heuristicSearchPlayer;
+            room->playerNames[p] = "Player " + str(p + 1) + " (AI)";
+          }
+          for (unsigned i = 0; i < room->numRandom; i++) {
+            PlayerId p;
+            do { p = rand() % numPlayers; } while (room->players[p] != NULL);
+            room->players[p] = &randomPlayer;
+            room->playerNames[p] = "Player " + str(p + 1) + " (random)";
+          }
+          room->gameInProgress = true;
+          if (room->threadRunning) {
+            pthread_join(room->thread, NULL);
+          }
+          pthread_create(&room->thread, NULL, &runServerGame, (void *)roomId.text);
+          room->threadRunning = true;
 
-        // Send empty response
-        sendEmpty(nc);
+          // Send empty response
+          sendEmpty(nc);
 
-        notify(roomId, -1, str(""), false, true, str("Game started!"), true);
-        success = true;
+          notify(roomId, -1, str(""), false, true, str("Game started!"), true);
+          return true;
+        }
+        return false;
       }
-    }
-    pthread_mutex_unlock(&room->mutex);
-  }
+    };
 
   if (!success) {
     sendError(nc);
@@ -355,29 +351,30 @@ static void handleEnd(struct mg_connection *nc, struct http_message *hm) {
   mg_get_http_var(&hm->query_string, "room", roomId_s, sizeof(roomId_s));
   string roomId = str(roomId_s);
 
-  bool success = false;
-  if (mapContains(rooms, roomId)) {
-    Room *room = mapGet(rooms, roomId);
-    pthread_mutex_lock(&room->mutex);
+  bool success = query
+    RID is roomId, RS is rooms, mapContains(RS, RID, R),
+    initially { pthread_mutex_lock(&R->mutex); },
+    finally   { pthread_mutex_unlock(&R->mutex); } {
+      Room *room = value(R);
 
-    if (room->gameInProgress) {
-      logmsg("Ending game in room %s", roomId_s);
+      if (room->gameInProgress) {
+        logmsg("Ending game in room %s", roomId_s);
 
-      // Reset state
-      room->gameInProgress = false;
-      room->actionsReady = false;
+        // Reset state
+        room->gameInProgress = false;
+        room->actionsReady = false;
 
-      // Cancel the thread
-      pthread_cancel(room->thread);
+        // Cancel the thread
+        pthread_cancel(room->thread);
 
-      // Send empty response
-      sendEmpty(nc);
+        // Send empty response
+        sendEmpty(nc);
 
-      notify(roomId, -1, str(""), false, true, str("Game ended."), true);
-      success = true;
-    }
-    pthread_mutex_unlock(&room->mutex);
-  }
+        notify(roomId, -1, str(""), false, true, str("Game ended."), true);
+        return true;
+      }
+      return false;
+    };
 
   if (!success) {
     sendError(nc);
@@ -393,16 +390,15 @@ static void handleAction(struct mg_connection *nc, struct http_message *hm) {
   string roomId = str(roomId_s), connId = str(connId_s);
   unsigned a = atoi(a_s);
 
-  bool success = false;
-  if (mapContains(rooms, roomId)) {
-    Room *room = mapGet(rooms, roomId);
-    pthread_mutex_lock(&room->mutex);
+  bool success = query
+    RID is roomId, RS is rooms, mapContains(RS, RID, R),
+    initially { pthread_mutex_lock(&R->mutex); },
+    finally   { pthread_mutex_unlock(&R->mutex); },
+    CID is connId, CS is (R->connections), mapContains(CS, CID, C) {
+      Room *room = value(R);
+      PlayerConn *conn = value(C);
 
-    if (mapContains(room->connections, connId)) {
-      PlayerConn *conn = mapGet(room->connections, connId);
-      PlayerId p = conn->id;
-
-      if (room->gameInProgress && p == room->turn) {
+      if (room->gameInProgress && conn->id == room->turn) {
         // Update the current state
         room->action = a;
         room->actionReady = true;
@@ -410,11 +406,10 @@ static void handleAction(struct mg_connection *nc, struct http_message *hm) {
 
         // Send empty response
         sendEmpty(nc);
-        success = true;
+        return true;
       }
-    }
-    pthread_mutex_unlock(&room->mutex);
-  }
+      return false;
+    };
 
   if (!success) {
     sendError(nc);
@@ -490,15 +485,12 @@ static void handleChat(struct mg_connection *nc, const char *data, size_t size) 
   char roomId_s[MAX_ROOM_ID], connId_s[MAX_CONN_ID], msg_s[size];
   if (sscanf(data, "chat:%[^:]:%[^:]:%[^\n]", roomId_s, connId_s, msg_s) == 3) {
     string roomId = str(roomId_s), connId = str(connId_s), msg = str(msg_s);
-    if (mapContains(rooms, roomId)) {
-      Room *room = mapGet(rooms, roomId);
 
-      if (mapContains(room->connections, connId)) {
-        PlayerConn *conn = mapGet(room->connections, connId);
-
-        notify(roomId, conn->id, conn->name, true, false, msg, true);
-      }
-    }
+    query RID is roomId, RS is rooms, mapContains(RS, RID, R),
+          CID is connId, CS is (R->connections), mapContains(CS, CID, C) {
+      PlayerConn *conn = value(C);
+      notify(roomId, conn->id, conn->name, true, false, msg, true);
+    };
   }
 }
 
