@@ -1,47 +1,21 @@
-move(St(NUM_PLAYERS, B1, L1), MoveOut(P1), St(NUM_PLAYERS, B2, L3)) :-
-    I is (P1 * SECTOR_SIZE), mapContains(B1, Out(I), P2), !,
-    mapInsert(B1, Out(I), P1, B2),
-    mapContains(L1, P1, N1), N2 is (N1 - 1), mapInsert(L1, P1, N2, L2),
-    mapContains(L2, P2, N3), N4 is (N3 + 1), mapInsert(L2, P2, N4, L3).
-move(St(NUM_PLAYERS, B1, L1), MoveOut(P), St(NUM_PLAYERS, B2, L2)) :-
-    I is (P * SECTOR_SIZE), !,
-    mapInsert(B1, Out(I), P, B2),
-    mapContains(L1, P, N1), N2 is (N1 - 1), mapInsert(L1, P, N2, L2).
-move(St(NUM_PLAYERS, B1, L1), MoveDirect(X, Y), S2) :-
-    mapContains(B1, Y, P), !,
-    mapContains(L1, P, N1), N2 is (N1 + 1), mapInsert(L1, P, N2, L2),
-    mapDelete(B1, Y, B2),
-    move(St(NUM_PLAYERS, B2, L2), MoveDirect(X, Y), S2).
-move(St(NUM_PLAYERS, B1, L), MoveDirect(X, Y), St(NUM_PLAYERS, B3, L)) :-
-    mapContains(B1, X, P),
-    mapDelete(B1, X, B2),
-    mapInsert(B2, Y, P, B3).
-move(St(NUM_PLAYERS, B1, L), Swap(X, Y), St(NUM_PLAYERS, B3, L)) :-
-    mapContains(B1, X, P1), mapContains(B1, Y, P2),
-    mapInsert(B1, X, P2, B2),
-    mapInsert(B2, Y, P1, B3).
-
-moves(S, [], S).
-moves(S1, [M | MS], S3) :- move(S1, M, S2), moves(S2, MS, S3).
-
-advanceStep(St(NUM_PLAYERS, _, _), _, Out(I1), Out(I2)) :-
-    I2 is (mod(I1 + 1, SECTOR_SIZE * NUM_PLAYERS)),
+advanceStep(St(NP, _, _, _), _, Out(I1), Out(I2)) :-
+    I2 is (mod(I1 + 1, SECTOR_SIZE * NP)),
     (mod(I2, SECTOR_SIZE)) =\= 0 .
-advanceStep(St(NUM_PLAYERS, B, _), _, Out(I1), Out(I2)) :-
-    I2 is (mod(I1 + 1, SECTOR_SIZE * NUM_PLAYERS)),
+advanceStep(St(NP, _, B, _), _, Out(I1), Out(I2)) :-
+    I2 is (mod(I1 + 1, SECTOR_SIZE * NP)),
     (mod(I2, SECTOR_SIZE)) =:= 0, P2 is (I2 / SECTOR_SIZE), \+ mapContains(B, Out(I2), P2).
-advanceStep(St(NUM_PLAYERS, B, _), P, Out(I), Finish(P, 0)) :-
+advanceStep(St(NP, _, B, _), P, Out(I), Finish(P, 0)) :-
     \+ mapContains(B, Finish(P, 0), _),
-    P =:= (mod(I / SECTOR_SIZE + 1, NUM_PLAYERS)),
+    P =:= (mod(I / SECTOR_SIZE + 1, NP)),
     (mod(I, SECTOR_SIZE)) =:= (SECTOR_SIZE - FINISH_BACKTRACK_DIST).
-advanceStep(St(_, B, _), P, Finish(P, I1), Finish(P, I2)) :-
+advanceStep(St(_, _, B, _), P, Finish(P, I1), Finish(P, I2)) :-
     I2 is (I1 + 1), (I2) < NUM_PIECES, \+ mapContains(B, Finish(P, I2), _).
 
-retreatStep(St(NUM_PLAYERS, _, _), _, Out(I1), Out(I2)) :-
-    I2 is (mod(I1 + SECTOR_SIZE * NUM_PLAYERS - 1, SECTOR_SIZE * NUM_PLAYERS)),
+retreatStep(St(NP, _, _, _), _, Out(I1), Out(I2)) :-
+    I2 is (mod(I1 + SECTOR_SIZE * NP - 1, SECTOR_SIZE * NP)),
     (mod(I2, SECTOR_SIZE)) =\= 0 .
-retreatStep(St(NUM_PLAYERS, B, _), _, Out(I1), Out(I2)) :-
-    I2 is (mod(I1 + SECTOR_SIZE * NUM_PLAYERS - 1, SECTOR_SIZE * NUM_PLAYERS)),
+retreatStep(St(NP, _, B, _), _, Out(I1), Out(I2)) :-
+    I2 is (mod(I1 + SECTOR_SIZE * NP - 1, SECTOR_SIZE * NP)),
     (mod(I2, SECTOR_SIZE)) =:= 0, P2 is (I2 / SECTOR_SIZE), \+ mapContains(B, Out(I2), P2).
 
 advance(S, P, X, N, Z) :-
@@ -75,30 +49,46 @@ moveOutCard(Joker).
 moveOutCard(A).
 moveOutCard(K).
 
+partnerMoveOutCard(K).
+
+cardMoves(St(NP, true, B, L), P1, C, MS) :-
+    isFinished(B, P1), !,
+    P2 is mod(P1 + NP / 2, NP), cardMoves(St(NP, false, B, L), P2, C, MS).
 cardMoves(S, P, C, [MoveDirect(X, Y)]) :-
-    directCard(C), N is ((unsigned)C), S = St(_, B, _),
+    directCard(C), N is ((unsigned)C), S = St(_, _, B, _),
     mapContainsValue(B, X, P), advance(S, P, X, N, Y).
-cardMoves(S, P, C, [MoveOut(P)]) :-
-    moveOutCard(C), S = St(_, _, L),
+cardMoves(St(_, _, _, L), P, C, [MoveOut(P)]) :-
+    moveOutCard(C),
     mapContains(L, P, N), N > 0 .
+cardMoves(St(NP, true, _, L), P1, C, [MoveOut(P2)]) :-
+    partnerMoveOutCard(C),
+    P2 is mod(P1 + NP / 2, NP),
+    mapContains(L, P2, N), N > 0 .
 cardMoves(S, P, Joker, []).
 cardMoves(S, P, 4, [MoveDirect(X, Y)]) :-
-    S = St(_, B, _),
+    S = St(_, _, B, _),
     mapContainsValue(B, X, P), retreat(S, P, X, 4, Y).
 cardMoves(S, P, 7, MS) :-
-    S = St(_, B, _),
+    S = St(_, _, B, _),
     mapKeys(B, XS1, P), subset(XS2, XS1),
     splitAdvance(S, P, XS2, 7, MS).
-cardMoves(S, P1, J, [Swap(X, Y)]) :-
-    S = St(NUM_PLAYERS, B, _), MAX_PLAYER is (NUM_PLAYERS - 1),
+cardMoves(St(NP, _, B, _), P1, J, [Swap(X, Y)]) :-
+    MAX_PLAYER is (NP - 1),
     mapContainsValue(B, X, P1), X = Out(_),
     between(0, MAX_PLAYER, P2), P1 =\= P2,
     mapContainsValue(B, Y, P2), Y = Out(I),
     I =\= (P2 * SECTOR_SIZE).
 
-isWon(St(NUM_PLAYERS, B, _), P) :-
-    MAX_PLAYER is (NUM_PLAYERS - 1), between(0, MAX_PLAYER, P),
+isFinished(B, P) :-
     mapContains(B, Finish(P, 0), P),
     mapContains(B, Finish(P, 1), P),
     mapContains(B, Finish(P, 2), P),
     mapContains(B, Finish(P, 3), P).
+
+isWon(St(NP, false, B, _), P) :-
+    MAX_PLAYER is (NP - 1), between(0, MAX_PLAYER, P),
+    isFinished(B, P).
+isWon(St(NP, true, B, _), P1) :-
+    MAX_PLAYER is (NP / 2 - 1), between(0, MAX_PLAYER, P1),
+    P2 is mod(P1 + NP / 2, NP),
+    isFinished(B, P1), isFinished(B, P2).

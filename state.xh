@@ -18,6 +18,10 @@
 
 typedef unsigned PlayerId;
 
+#define PLAYER_ID_NONE ((PlayerId)-1)
+
+PlayerId partner(unsigned numPlayers, PlayerId p);
+
 datatype Position {
   Out(unsigned ?);
   Finish(PlayerId ?, unsigned ?);
@@ -39,12 +43,17 @@ static inline int compareUnsigned(unsigned x, unsigned y) {
   return x - y;
 }
 
+typedef map<Position, PlayerId, comparePosition> Board;
+typedef map<PlayerId, unsigned, compareUnsigned> Lot;
+
 datatype State {
-  St(unsigned ?numPlayers,
-     map<Position, PlayerId, comparePosition> ?board,
-     map<PlayerId, unsigned, compareUnsigned> ?lot);
+  St(unsigned ?numPlayers, _Bool ?partners,
+     Board ?board, Lot ?lot);
 };
 typedef datatype State State;
+
+unsigned numPlayers(State);
+_Bool partners(State);
 
 enum Card {
   Joker, A,
@@ -71,20 +80,21 @@ datatype Action {
 typedef datatype Action Action;
 
 Card getActionCard(Action);
+list<Move ?> ?getActionMoves(Action);
 
 string showPlayerId(PlayerId p);
 string showPosition(Position ?p);
 string showState(State s);
-string showMoveDirect(Move ?m);
-string showMoves(list<Move ?> ?m);
+string showMove(Move m, PlayerId p1, PlayerId p2);
+string showMoves(list<Move ?> ?m, PlayerId p1, PlayerId p2);
+string showAction(Action a, PlayerId p1, PlayerId p2);
+string showActions(vector<Action> a, PlayerId p1, PlayerId p2);
 string showHand(const Hand h);
-string showAction(Action a);
-string showActions(vector<Action> a);
 
 string jsonPosition(Position ?p);
 string jsonState(State s);
 string jsonHand(const Hand h);
-string jsonActions(vector<Action> a);
+string jsonActions(vector<Action> a, PlayerId p1, PlayerId p2);
 
 PlayerId ?copyPlayerId(PlayerId ?);
 Position ?copyPosition(Position ?);
@@ -95,13 +105,20 @@ void initializeDeck(Hand);
 unsigned getDeckSize(const Hand);
 unsigned deal(unsigned min, unsigned max, Hand deck, unsigned numPlayers, Hand hands[numPlayers]);
 
-State initialState(unsigned numPlayers);
-State applyMoveDirect(Move, State);
+State initialState(unsigned numPlayers, _Bool partners);
+State applyMove(Move, State);
 State applyMoves(list<Move ?> ?, State);
 State applyAction(Action, State, Hand, Hand discard);
 
 vector<Action> getActions(State s, PlayerId p, const Hand h);
 _Bool isWon(State s);
 PlayerId getWinner(State s);
+
+prolog {
+  move(State ?, Move ?, State ?);
+  moves(State ?, list<Move ?> ?, State ?);
+
+#include "state_utils.pl"
+}
 
 #endif

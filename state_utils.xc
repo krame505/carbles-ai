@@ -3,8 +3,24 @@
 #include <stdbool.h>
 #include <assert.h>
 
+PlayerId partner(unsigned numPlayers, PlayerId p) {
+  return (p + numPlayers / 2) % numPlayers;
+}
+
+unsigned numPlayers(State s) {
+  return match (s) (St(?&n, _, _, _) -> n;);
+}
+
+bool partners(State s) {
+  return match (s) (St(_, ?&p, _, _) -> p;);
+}
+
 Card getActionCard(Action a) {
   return match (a) (Play(c, _) -> c; Burn(c) -> c;);
+}
+
+list<Move ?> ?getActionMoves(Action a) {
+  return match (a) (Play(_, m) -> m; Burn(_) -> newlist<Move ?>(GC_malloc)[];);
 }
 
 string center(unsigned pad, string s) {
@@ -48,7 +64,7 @@ string showPosition(Position ?p) {
 string showStatePosition(State s, Position pos) {
   string res = showPosition(boundvar(alloca, pos));
   match (s) {
-    St(?&numPlayers, board, lot) -> {
+    St(?&numPlayers, _, board, _) -> {
       if (mapContains(board, pos)) {
         PlayerId p = mapGet(board, pos);
         return center(3 - res.length, EFFECT(UNDERLINE) + wrapPlayerEffectForeground(p, res) + EFFECT(UNDERLINE_OFF));
@@ -65,7 +81,7 @@ string showState(State s) {
     rows[i] = str("");
   }
   match (s) {
-    St(?&numPlayers, board, lot) -> {
+    St(?&numPlayers, ?&partners, board, lot) -> {
       for (PlayerId p = 0; p < numPlayers; p++) {
         rows[0] = "  " + rows[0];
         rows[7] =
@@ -119,18 +135,35 @@ string showState(State s) {
   return result;
 }
 
-string showMoveDirect(Move ?m) {
+string showMove(Move m, PlayerId p1, PlayerId p2) {
   return match (m)
-      (?&MoveOut(p) -> str("move out");// str("move Player ") + p + " out";
-     ?&MoveDirect(p1, p2) -> showPosition(p1) + " → " + showPosition(p2);
-     ?&Swap(p1, p2) -> "swap " + showPosition(p1) + " with " + showPosition(p2););
+      (MoveOut(?&p) @when (p == p1) -> str("move out");
+       MoveOut(?&p) @when (p == p2) -> str("move partner out");
+       MoveOut(?&p) -> str("move Player ") + p + " out";
+       MoveDirect(f, t) -> showPosition(f) + " → " + showPosition(t);
+       Swap(a, b) -> "swap " + showPosition(a) + " with " + showPosition(b););
 }
 
-string showMoves(list<Move ?> ?ms) {
+string showMoves(list<Move ?> ?ms, PlayerId p1, PlayerId p2) {
   return match (ms)
-    (?&[h | t@?&[_ | _]] -> showMoveDirect(h) + ", " + showMoves(t);
-     ?&[h] -> showMoveDirect(h);
-     ?&[] -> str(""););
+      (?&[?&h | t@?&[_ | _]] -> showMove(h, p1, p2) + ", " + showMoves(t, p1, p2);
+       ?&[?&h] -> showMove(h, p1, p2);
+       ?&[] -> str(""););
+}
+
+string showAction(Action a, PlayerId p1, PlayerId p2) {
+  return match (a)
+    (Play(c, ?&[]) -> str("play ") + c;
+     Play(c, ms) -> str("play ") + c + ", " + showMoves(ms, p1, p2);
+     Burn(c) -> str("burn ") + c;);
+}
+
+string showActions(vector<Action> a, PlayerId p1, PlayerId p2) {
+  string result = str("");
+  for (unsigned i = 0; i < a.size; i++) {
+    result += str(i) + ": " + showAction(a[i], p1, p2) + "\n";
+  }
+  return result;
 }
 
 string showHand(const Hand h) {
@@ -143,28 +176,13 @@ string showHand(const Hand h) {
   return result;
 }
 
-string showAction(Action a) {
-  return match (a)
-    (Play(c, ?&[]) -> str("play ") + c;
-     Play(c, ms) -> str("play ") + c + ", " + showMoves(ms);
-     Burn(c) -> str("burn ") + c;);
-}
-
-string showActions(vector<Action> a) {
-  string result = str("");
-  for (unsigned i = 0; i < a.size; i++) {
-    result += str(i) + ": " + showAction(a[i]) + "\n";
-  }
-  return result;
-}
-
 string jsonPosition(Position ?p) {
   return show(showPosition(p));
 }
 
 string jsonStatePosition(State s, Position pos) {
   match (s) {
-    St(?&numPlayers, board, lot) -> {
+    St(?&numPlayers, _, board, _) -> {
       if (mapContains(board, pos)) {
         return jsonPosition(boundvar(alloca, pos)) + ": " + str(mapGet(board, pos));
       } else {
@@ -176,9 +194,10 @@ string jsonStatePosition(State s, Position pos) {
 
 string jsonState(State s) {
   match (s) {
-    St(?&numPlayers, board, lot) -> {
+    St(?&numPlayers, ?&partners, board, lot) -> {
       string result =
           "{\"numPlayers\": " + str(numPlayers) +
+          ", \"partners\": " + str(partners) +
           ", \"board\": {";
       for (PlayerId p = 0; p < numPlayers; p++) {
         for (unsigned i = 0; i < SECTOR_SIZE; i++) {
@@ -205,11 +224,11 @@ string jsonHand(const Hand h) {
   return show(showHand(h));
 }
 
-string jsonActions(vector<Action> a) {
+string jsonActions(vector<Action> a, PlayerId p1, PlayerId p2) {
   string result = str("[");
   for (unsigned i = 0; i < a.size; i++) {
     if (i) result += ", ";
-    result += show(showAction(a[i]));
+    result += show(showAction(a[i], p1, p2));
   }
   result += "]";
   return result;
@@ -278,58 +297,58 @@ list<Move ?> ?copyMoves(list<Move ?> ?ms) {
      ?&[] -> nil<Move ?>(GC_malloc););
 }
 
-State initialState(unsigned numPlayers) {
-  map<PlayerId, unsigned, compareUnsigned> ?lot = emptyMap<PlayerId, unsigned, compareUnsigned>(GC_malloc);
+State initialState(unsigned numPlayers, bool partners) {
+  Lot ?lot = emptyMap<PlayerId, unsigned, compareUnsigned>(GC_malloc);
   for (PlayerId p = 0; p < numPlayers; p++) {
     lot = mapInsert(GC_malloc, lot, p, NUM_PIECES);
   }
   return St(boundvar(GC_malloc, numPlayers),
-               emptyMap<Position, PlayerId, comparePosition>(GC_malloc),
-               lot);
+            boundvar(GC_malloc, partners),
+            emptyMap<Position, PlayerId, comparePosition>(GC_malloc),
+            lot);
 }
 
-State applyMoveDirect(Move m, State s) {
+State applyMove(Move m, State s) {
   match (s, m) {
-    St(n, board, lot), MoveOut(?&p) -> {
+    St(n, ps, board, lot), MoveOut(?&p) -> {
       assert(mapContains(lot, p));
       assert(mapGet(lot, p) > 0);
       Position dest = Out(boundvar(GC_malloc, p * SECTOR_SIZE));
-      map<Position, PlayerId, comparePosition> ?newBoard = mapInsert(GC_malloc, board, dest, p);
-      map<PlayerId, unsigned, compareUnsigned> ?newLot = mapInsert(GC_malloc, lot, p, mapGet(lot, p) - 1);
+      Board ?newBoard = mapInsert(GC_malloc, board, dest, p);
+      Lot ?newLot = mapInsert(GC_malloc, lot, p, mapGet(lot, p) - 1);
       if (mapContains(board, dest)) {
         PlayerId destPlayer = mapGet(board, dest);
-        return St(n, newBoard, mapInsert(GC_malloc, newLot, destPlayer, mapGet(newLot, destPlayer) + 1));
+        return St(n, ps, newBoard, mapInsert(GC_malloc, newLot, destPlayer, mapGet(newLot, destPlayer) + 1));
       } else {
-        return St(n, newBoard, newLot);
+        return St(n, ps, newBoard, newLot);
       }
     }
-    St(n, board, lot), MoveDirect(?&f, ?&t) -> {
+    St(n, ps, board, lot), MoveDirect(?&f, ?&t) -> {
       assert(comparePosition(f, t) != 0);
       assert(mapContains(board, f));
       PlayerId p = mapGet(board, f);
-      map<Position, PlayerId, comparePosition> ?newBoard =
-        mapInsert(GC_malloc, mapDelete(GC_malloc, board, f), t, p);
+      Board ?newBoard = mapInsert(GC_malloc, mapDelete(GC_malloc, board, f), t, p);
       if (mapContains(board, t)) {
         PlayerId destPlayer = mapGet(board, t);
-        return St(n, newBoard, mapInsert(GC_malloc, lot, destPlayer, mapGet(lot, destPlayer) + 1));
+        return St(n, ps, newBoard, mapInsert(GC_malloc, lot, destPlayer, mapGet(lot, destPlayer) + 1));
       } else {
-        return St(n, newBoard, lot);
+        return St(n, ps, newBoard, lot);
       }
     }
-    St(n, board, lot), Swap(?&a, ?&b) -> {
+    St(n, ps, board, lot), Swap(?&a, ?&b) -> {
       assert(comparePosition(a, b) != 0);
       assert(mapContains(board, a));
       assert(mapContains(board, b));
       PlayerId p1 = mapGet(board, a);
       PlayerId p2 = mapGet(board, b);
-      return St(n, mapInsert(GC_malloc, mapInsert(GC_malloc, board, a, p2), b, p1), lot);
+      return St(n, ps, mapInsert(GC_malloc, mapInsert(GC_malloc, board, a, p2), b, p1), lot);
     }
   }
 }
 
 State applyMoves(list<Move ?> ?ms, State s) {
   return match (ms)
-    (?&[?&h | t] -> applyMoves(t, applyMoveDirect(h, s));
+    (?&[?&h | t] -> applyMoves(t, applyMove(h, s));
      ?&[] -> s;);
 }
 

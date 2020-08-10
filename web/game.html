@@ -19,12 +19,10 @@
     
     <br><br>
 
-    Players in room: <span id="playersInRoom"></span>
-    
-    <form>
-      AI players: <input type="number" min="0" id="aiPlayers" onchange="updateAutoPlayers()" class="numInput"><br>
-      Random players: <input type="number" min="0" id="randomPlayers" onchange="updateAutoPlayers()" class="numInput"><br>
-    </form>
+    <label>Players in room: </label><span id="playersInRoom"></span><br>
+    <label>AI players: </label><input type="number" min="0" id="aiPlayers" onchange="updateConfig()" class="numInput"><br>
+    <label>Random players: </label><input type="number" min="0" id="randomPlayers" onchange="updateConfig()" class="numInput"><br>
+    <label>Partners </label><input type="checkbox" id="partners" onchange="updateConfig()"><br>
 
     <button id="startEndGame" onclick="handleStartEndGame()">Start Game</button>
 

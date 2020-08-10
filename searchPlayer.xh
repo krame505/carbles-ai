@@ -20,15 +20,11 @@ struct GameTree {
   datatype NodeStatus status;
 };
 
-typedef struct SearchPlayer SearchPlayer;
-struct SearchPlayer {
-  Player super;
-  unsigned timeout;
-  vector<float> (*playoutHand)(SearchPlayer *this, State s, PlayerId p, Hand hands[]);
-};
+typedef vector<float> (*PlayoutFn)(State s, PlayerId p, Hand hands[], unsigned depth);
 
-SearchPlayer makeSearchPlayer(unsigned timeout, vector<float> (*playoutHand)(SearchPlayer *this, State s, PlayerId p, Hand hands[]));
-extern SearchPlayer heuristicSearchPlayer;
-extern SearchPlayer searchPlayer;
+Player makeSearchPlayer(unsigned timeout, PlayoutFn playoutHand, unsigned depth);
+Player makeHeuristicSearchPlayer();
+Player makeDeepSearchPlayer();
+Player makeRuleSearchPlayer();
 
 #endif

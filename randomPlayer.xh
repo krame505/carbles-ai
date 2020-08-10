@@ -3,6 +3,6 @@
 #ifndef _RANDOM_PLAYER_XH
 #define _RANDOM_PLAYER_XH
 
-extern Player randomPlayer;
+Player makeRandomPlayer();
 
 #endif

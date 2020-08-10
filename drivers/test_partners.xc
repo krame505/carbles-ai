@@ -61,12 +61,13 @@ int main(unsigned argc, char *argv[]) {
       ps[a] = ps[b];
       ps[b] = temp;
     }
-    Player trialPlayers[numPlayers];
+    Player trialPlayers[numPlayers * 2];
     for (unsigned i = 0; i < numPlayers; i++) {
       trialPlayers[i] = players[ps[i]];
+      trialPlayers[i + numPlayers] = players[ps[i]];
     }
 
-    PlayerId winner = ps[playQuietGame(numPlayers, false, trialPlayers)];
+    PlayerId winner = ps[playQuietGame(numPlayers * 2, true, trialPlayers)];
 # if NUM_THREADS > 1
 #  pragma omp critical
 # endif

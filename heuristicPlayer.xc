@@ -14,7 +14,7 @@
 unsigned getPlayerHeuristicValue(State s, PlayerId p) {
   unsigned result[1] = {0};
   match (s) {
-    St(?&numPlayers, board, lot) -> {
+    St(?&numPlayers, ?&partners, board, lot) -> {
       unsigned homeIndex = p * SECTOR_SIZE;
       unsigned boardSize = numPlayers * SECTOR_SIZE;
       query B is board, P is p, MAX_PIECE is ((unsigned)(NUM_PIECES - 1)),
@@ -46,32 +46,37 @@ unsigned getPlayerHeuristicValue(State s, PlayerId p) {
 }
 
 int getHeuristicValue(State s, PlayerId p) {
-  int result = getPlayerHeuristicValue(s, p);
   match (s) {
-    St(?&numPlayers, board, lot) -> {
+    St(?&numPlayers, ?&partners, board, lot) -> {
+      int result = getPlayerHeuristicValue(s, p);
+      if (partners) {
+        result += getPlayerHeuristicValue(s, partner(numPlayers, p));
+        result /= 2;
+      }
       unsigned sum = 0;
       for (PlayerId p1 = 0; p1 < numPlayers; p1++) {
-        if (p1 != p) {
+        if (p1 != p && !(partners && p1 == partner(numPlayers, p))) {
           sum += getPlayerHeuristicValue(s, p1);
         }
       }
-      result -= sum / (numPlayers - 1);
+      result -= sum / (numPlayers - partners? 2 : 1);
+      return result;
     }
   }
-  return result;
 }
 
-unsigned getHeuristicAction(Player *this, State s, const Hand h, const Hand discard, unsigned turn, PlayerId p, vector<Action> actions) {
-  unsigned maxAction;
-  int maxScore = INT_MIN;
-  for (unsigned i = 0; i < actions.size; i++) {
-    int score = getHeuristicValue(applyAction(actions[i], s, NULL, NULL), p);
-    if (score > maxScore) {
-      maxAction = i;
-      maxScore = score;
+Player makeHeuristicPlayer() {
+  return (Player){"heuristic", lambda (State s, const Hand h, const Hand partnerHand, const Hand discard, unsigned turn, PlayerId p, vector<Action> actions) -> unsigned {
+      unsigned maxAction;
+      int maxScore = INT_MIN;
+      for (unsigned i = 0; i < actions.size; i++) {
+        int score = getHeuristicValue(applyAction(actions[i], s, NULL, NULL), p);
+        if (score > maxScore) {
+          maxAction = i;
+          maxScore = score;
+        }
+      }
+      return maxAction;
     }
-  }
-  return maxAction;
+  };
 }
-
-Player heuristicPlayer = {"heuristic", getHeuristicAction};

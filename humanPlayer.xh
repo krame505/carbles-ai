@@ -3,6 +3,6 @@
 #ifndef _HUMAN_PLAYER_XH
 #define _HUMAN_PLAYER_XH
 
-extern Player humanPlayer;
+Player makeHumanPlayer();
 
 #endif

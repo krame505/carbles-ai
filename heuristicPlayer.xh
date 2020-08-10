@@ -6,6 +6,6 @@
 unsigned getPlayerHeuristicValue(State s, PlayerId p);
 int getHeuristicValue(State s, PlayerId p);
 
-extern Player heuristicPlayer;
+Player makeHeuristicPlayer();
 
 #endif

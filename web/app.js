@@ -36,6 +36,10 @@ var playersInGame = []
 
 var ws = null
 
+function partner(numPlayers, p) {
+  return (p + Math.floor(numPlayers / 2)) % numPlayers
+}
+
 function getColor(player) {
   return ['dimgrey', 'red', 'blue', 'green', 'orange', 'purple', 'gold', 'maroon', 'turquoise', 'indigo', 'midnightblue', 'salmon'][player]
 }
@@ -132,6 +136,9 @@ function updateBoard(state) {
     head.append(document.createElement('th'))
     let headCell = document.createElement('th')
     headCell.innerHTML = playersInGame[p]
+    if (state.partners) {
+      headCell.innerHTML += `<br>(${playersInGame[partner(state.numPlayers, p)]})`
+    }
     headCell.colSpan = 3
     head.append(headCell)
     head.append(document.createElement('th'))
@@ -148,7 +155,13 @@ function reloadState() {
       started = state.turn != null
       if (started) {
         turn.innerHTML = `${playersInGame[state.turn]}'s turn`
-        hand.innerHTML = "Current hand: " + state.hand
+	if ('hand' in state) {
+          hand.innerHTML = "Current hand: " + state.hand
+	}
+	if ('partnerHand' in state) {
+	  partnerName = playersInGame[partner(state.board.numPlayers, state.id)]
+          hand.innerHTML += `<br>${partnerName}'s hand: ` + state.partnerHand
+	}
         turn.style.color = getColor(state.turn)
         startEndGame.innerHTML = "End Game"
       } else {
@@ -163,6 +176,7 @@ function reloadState() {
         })
       aiPlayers.value = state.aiPlayers
       randomPlayers.value = state.randomPlayers
+      partners.checked = state.partners
       actions.innerHTML = ""
       state.actions.forEach(
 	function (a, i) {
@@ -227,8 +241,8 @@ function copyLink() {
   document.execCommand("copy");
 }
 
-function updateAutoPlayers() {
-  $.ajax({url: `autoplayers?room=${room}&ai=${aiPlayers.value}&random=${randomPlayers.value}`, cache: false})
+function updateConfig() {
+  $.ajax({url: `config?room=${room}&ai=${aiPlayers.value}&random=${randomPlayers.value}&partners=${partners.checked}`, cache: false})
 }
 
 function handleStartEndGame() {

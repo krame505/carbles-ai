@@ -11,24 +11,23 @@
 #ifndef _DRIVER_XH
 #define _DRIVER_XH
 
-typedef struct Player Player;
-
-typedef unsigned (*PlayerCallback)(Player *this, State s, const Hand h, const Hand discard, unsigned turn, PlayerId p, vector<Action> actions);
+typedef closure<(State s, const Hand h, const Hand partnerHand, const Hand discard, unsigned turn, PlayerId p, vector<Action> actions) -> unsigned> PlayerCallback;
 
 struct Player {
   const char *name;
   PlayerCallback getAction;
 };
+typedef struct Player Player;
 
 PlayerId playGame(
-    unsigned numPlayers, Player *players[numPlayers],
+    unsigned numPlayers, _Bool partners, Player players[numPlayers],
     closure<(PlayerId) -> void> updateTurn,
     closure<(PlayerId, Hand) -> void> updateHand,
     closure<(State) -> void> updateState,
     closure<(PlayerId, unsigned) -> void> handleDeal,
     closure<(PlayerId, Action) -> void> handleAction,
     closure<(PlayerId) -> void> handleWin);
-PlayerId playQuietGame(unsigned numPlayers, Player *players[numPlayers]);
-PlayerId playConsoleGame(unsigned numPlayers, Player *players[numPlayers], FILE *out);
+PlayerId playQuietGame(unsigned numPlayers, _Bool partners, Player players[numPlayers]);
+PlayerId playConsoleGame(unsigned numPlayers, _Bool partners, Player players[numPlayers], FILE *out);
 
 #endif

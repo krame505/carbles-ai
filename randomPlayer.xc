@@ -3,8 +3,8 @@
 #include <players.xh>
 #include <stdlib.h>
 
-unsigned getRandomAction(Player *this, State s, const Hand h, const Hand discard, unsigned turn, PlayerId p, vector<Action> actions) {
-  return rand() % actions.size;
+Player makeRandomPlayer() {
+  return (Player){"random", lambda (State s, const Hand h, const Hand partnerHand, const Hand discard, unsigned turn, PlayerId p, vector<Action> actions) ->
+        (unsigned)(rand() % actions.size)
+  };
 }
-
-Player randomPlayer = {"random", getRandomAction};
