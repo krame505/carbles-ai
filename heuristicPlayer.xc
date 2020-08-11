@@ -7,6 +7,7 @@
 #include <limits.h>
 
 #define FINISH_WEIGHT 100
+#define FINISH_GAP_WEIGHT 25
 #define AHEAD_CLOSE_WEIGHT 10
 #define BEHIND_CLOSE_WEIGHT 10
 #define OUT_WEIGHT 1
@@ -20,6 +21,12 @@ unsigned getPlayerHeuristicValue(State s, PlayerId p) {
       query B is board, P is p, MAX_PIECE is ((unsigned)(NUM_PIECES - 1)),
             betweenU(0, MAX_PIECE, N), mapContains(B, Finish(P, N), P) {
         *result += FINISH_WEIGHT;
+        return false;
+      };
+      query B is board, P is p, MAX_PIECE is ((unsigned)(NUM_PIECES - 1)),
+            betweenU(0, MAX_PIECE, N), mapContains(B, Finish(P, N), P),
+            betweenU(N, MAX_PIECE, M), \+ mapContains(B, Finish(P, M), P) {
+        *result -= FINISH_GAP_WEIGHT;
         return false;
       };
       query B is board, P is p, mapContainsValue(B, Out(I), P) {
