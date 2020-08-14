@@ -10,7 +10,7 @@
 #define FINISH_GAP_WEIGHT 25
 #define AHEAD_CLOSE_WEIGHT 10
 #define BEHIND_CLOSE_WEIGHT 10
-#define OUT_WEIGHT 1
+#define OUT_WEIGHT 2
 
 unsigned getPlayerHeuristicValue(State s, PlayerId p) {
   unsigned result[1] = {0};

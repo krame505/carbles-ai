@@ -365,7 +365,7 @@ Player makeHeuristicSearchPlayer() {
 }
 
 Player makeDeepSearchPlayer() {
-  Player result = makeSearchPlayer(TIMEOUT, playoutHand, 20);
+  Player result = makeSearchPlayer(TIMEOUT, playoutHand, 15);
   result.name = "deep_search";
   return result;
 }
