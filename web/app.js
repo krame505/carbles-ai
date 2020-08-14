@@ -145,46 +145,58 @@ function updateBoard(state) {
   }
 }
 
+var reloadPending = false
 function reloadState() {
-  console.log("Reloading state")
-  $.ajax({url: `state.json?room=${room}&id=${id}`, cache: false}).done(
-    function (s) {
-      console.log("Got state: " + s)
-      state = JSON.parse(s)
-      playersInGame = state.playersInGame
-      started = state.turn != null
-      if (started) {
-        turn.innerHTML = `${playersInGame[state.turn]}'s turn`
-	if ('hand' in state) {
-          hand.innerHTML = "Current hand: " + state.hand
-	}
-	if ('partnerHand' in state) {
-	  partnerName = playersInGame[partner(state.board.numPlayers, state.id)]
-          hand.innerHTML += `<br>${partnerName}'s hand: ` + state.partnerHand
-	}
-        turn.style.color = getColor(state.turn)
-        startEndGame.innerHTML = "End Game"
-      } else {
-        turn.innerHTML = ""
-        hand.innerHTML = ""
-        startEndGame.innerHTML = "Start Game"
-      }
-      playersInRoom.innerHTML = ""
-      state.playersInRoom.forEach(
-        function (p, i) {
-          playersInRoom.innerHTML += (i? ",  " : "") + p
-        })
-      aiPlayers.value = state.aiPlayers
-      randomPlayers.value = state.randomPlayers
-      partners.checked = state.partners
-      actions.innerHTML = ""
-      state.actions.forEach(
-	function (a, i) {
-	  actions.innerHTML +=
-	    `<li><a href="javascript:void(0);" ping="action?room=${room}&id=${id}&action=${i}" class="action">${a}</a></li>`
+  // Synchronization is done on the server side, so if a second event occurs
+  // the original state request will still return the most recent state.
+  if (reloadPending) {
+    console.log("Reload is pending")
+  } else {
+    reloadPending = true
+    console.log("Reloading state")
+    $.ajax({url: `state.json?room=${room}&id=${id}`, cache: false, timeout: 3000}).done(
+	function (s) {
+	  reloadPending = false
+	  console.log("Got state: " + s)
+	  state = JSON.parse(s)
+	  playersInGame = state.playersInGame
+	  started = state.turn != null
+	  if (started) {
+            turn.innerHTML = `${playersInGame[state.turn]}'s turn`
+	    if ('hand' in state) {
+              hand.innerHTML = "Current hand: " + state.hand
+	    }
+	    if ('partnerHand' in state) {
+	      partnerName = playersInGame[partner(state.board.numPlayers, state.id)]
+              hand.innerHTML += `<br>${partnerName}'s hand: ` + state.partnerHand
+	    }
+            turn.style.color = getColor(state.turn)
+            startEndGame.innerHTML = "End Game"
+	  } else {
+            turn.innerHTML = ""
+            hand.innerHTML = ""
+            startEndGame.innerHTML = "Start Game"
+	  }
+	  playersInRoom.innerHTML = ""
+	  state.playersInRoom.forEach(
+              function (p, i) {
+		playersInRoom.innerHTML += (i? ",  " : "") + p
+              })
+	  aiPlayers.value = state.aiPlayers
+	  randomPlayers.value = state.randomPlayers
+	  partners.checked = state.partners
+	  actions.innerHTML = ""
+	  state.actions.forEach(
+	      function (a, i) {
+		actions.innerHTML +=
+		    `<li><a href="javascript:void(0);" ping="action?room=${room}&id=${id}&action=${i}" class="action">${a}</a></li>`
+	      })
+	  updateBoard(state.board)
+	}).fail(function () {
+	  reloadPending = false
+	  console.log("Failed to reload state")
 	})
-      updateBoard(state.board)
-    })
+  }
 }
 
 function addMessage(id, name, chat, msg) {
@@ -215,12 +227,16 @@ function connect() {
       }
     }
     ws.onopen = function(e) {
+      console.log("Joining room")
       ws.send(`join:${room}:${id}:${name}`)
     }
     ws.onclose = function(e) {
       console.log('Socket is closed. Reconnect will be attempted in 5 seconds.', e.reason)
       addMessage(null, null, false, "Connection lost!  Reconnecting in 5 seconds.")
       setTimeout(connect, 5000)
+    }
+    ws.onerror = function(e) {
+      console.log('Websocket error: ', e)
     }
   }
 }
