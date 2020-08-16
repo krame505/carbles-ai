@@ -15,7 +15,7 @@
 
     <input type="text" size="50" readonly id="joinLink"><script>initLink()</script>
     <button onclick="copyLink()">Copy room link</button>
-    <button onclick="location.href='index.html'">Create a new room</button>
+    <button onclick="location.href='index.shtml'">Create a new room</button>
     
     <br><br>
 
@@ -44,11 +44,6 @@
       </div>
     </div>
 
-    <br><br><br><br><br>
-
-    <footer>
-      <p>Designed, built and hosted by Lucas Kramer; Powered by <a href="https://github.com/melt-umn/ableC">ableC</a></p>
-      <p>Are you good at CSS web design?  This page desperately needs your help!  Accepting contributions at <a href="https://github.com/krame505/carbles-ai">github.com/krame505/carbles-ai</a>.</p>
-    </footer>
+    <!--#include "footer.html" -->
   </body>
 </html>

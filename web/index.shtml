@@ -14,7 +14,7 @@
     <a href="https://docs.google.com/document/d/11XPaxsGMd6E0vgMu8t2H6DM8CsLRVE7UlhnF3A_VxmU/edit?usp=sharing" target="_blank">Rules</a>
     
     <h2>Create or Join a Room</h2>
-    <form action="/game.html" method="get">
+    <form action="/game.shtml" method="get">
       <label for="room">Room code:</label>
       <input type="text" maxlength="30" pattern="[a-zA-Z0-9]+" required id="room" name="room"><br><br>
       <label for="name">Your name:</label>
@@ -30,9 +30,6 @@
 
     <br><br><br><br><br>
     
-    <footer>
-      <p>Designed, built and hosted by Lucas Kramer; Powered by <a href="https://github.com/melt-umn/ableC">ableC</a></p>
-      <p>Are you good at CSS web design?  This page desperately needs your help!  Accepting contributions at <a href="https://github.com/krame505/carbles-ai">github.com/krame505/carbles-ai</a>.</p>
-    </footer>
+    <!--#include "footer.html" -->
   </body>
 </html>

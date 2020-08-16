@@ -1,6 +1,9 @@
 footer {
   text-align: center;
   font-size: 75%;
+  color: gray;
+  padding-top: 50px;
+  width: 100%;
 }
 
 table {
