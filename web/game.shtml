@@ -28,7 +28,7 @@
 
     <br><br>
     
-    <table id="board">
+    <table class="board" id="board">
     </table>
 
     <div id="status">
@@ -36,7 +36,7 @@
         <h2 id="turn"></h2>
         <h3 id="hand"></h3>
         <ul id="actions"></ul>
-        <a href="https://docs.google.com/document/d/11XPaxsGMd6E0vgMu8t2H6DM8CsLRVE7UlhnF3A_VxmU/edit?usp=sharing" target="_blank">Rules</a>
+        <a href="rules.shtml"><b>Rules</b></a>
       </div>
       <div id="messages">
         <div id="messagesOut"></div><br>

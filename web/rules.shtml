@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang='en'>
+  <head>
+    <meta charset='utf-8'>
+    <meta content='width=device-width, initial-scale=1' name='viewport'>
+    <link rel="stylesheet" media="all" href="main.css">
+
+    <title>Carbles Online</title>
+  </head>
+
+  <body>
+    <h1>Carbles Rules</h1>
+    <a href="/"><b>Play</b></a>
+    
+    <p>
+      Carbles is a board game for 1-12 players that involves cards and marbles, combining elements of strategy and chance.  The goal of the game is to be the first player to move all of your marbles out of your “lot”, around the board, and into your “goal”.  However your available moves are determined by the cards in your hand - so use them wisely!
+    </p>
+
+    <h2>Board</h2>
+    <p>
+      Carbles is typically played on a hexagonal or octagonal board like this one:
+    </p>
+    <img src="board.png" alt="Carbles board" width="250" height="250">
+    <p>
+      However in the web version the board is “unrolled” to better fit the screen and accommodate a variable number of players:
+    </p>
+
+    <table class="board">
+    <thead><th></th><th colspan="3">Player 6</th><th></th><th></th><th colspan="3">Player 5</th><th></th><th></th><th colspan="3">Player 4</th><th></th><th></th><th colspan="3">Player 3</th><th></th><th></th><th colspan="3">Player 2</th><th></th><th></th><th colspan="3">Player 1</th><th></th></thead><tbody><tr><td><b>⋮</b></td><td></td><td></td><td></td><td class="slotCell" colspan="2" style="border-bottom: 0px;">
+<div class="slot" <span="">79
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td></td><td></td><td class="slotCell" colspan="2" style="border-bottom: 0px;">
+<div class="slot" <span="">61
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td></td><td></td><td class="slotCell" colspan="2" style="border-bottom: 0px;">
+<div class="slot" <span="">43
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td></td><td></td><td class="slotCell" colspan="2" style="border-bottom: 0px;">
+<div class="slot" <span="">25
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td></td><td></td><td class="slotCell" colspan="2" style="border-bottom: 0px;">
+<div class="slot" <span="">7
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="labelCell" colspan="2">Lot⮷</td><td></td><td class="slotCell" colspan="2" style="border-bottom: 0px;">
+<div class="slot" <span="">97
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td></tr><tr><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">96
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="lotCell" style="background-color: purple;">⬤⬤<br>◯◯</td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">80
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">78
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="lotCell" style="background-color: orange;">⬤⬤<br>◯◯</td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">62
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">60
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="lotCell" style="background-color: green;">◯◯<br>◯◯</td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">44
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">42
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="lotCell" style="background-color: blue;">⬤◯<br>◯◯</td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">26
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">24
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="lotCell" style="background-color: red;">⬤◯<br>◯◯</td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">8
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">6
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="lotCell" style="background-color: dimgrey;">⬤⬤<br>◯◯</td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">98
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td><b>⋮</b></td></tr><tr><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">95
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">81
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">77
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">63
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">59
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">45
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">41
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">27
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">23
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">9
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">5
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="labelCell" colspan="2">Goal⮷</td></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">99
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td></tr><tr><td class="slotCell" style="border-top: 0px; border-bottom: 0px; color: purple;">
+<div class="slot" <span="">94
+    <span class="marble" style="color: purple">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-bottom: 0px; background-color: purple;">
+<div class="slot" <span="">F53
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">82
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">76
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-bottom: 0px; background-color: orange;">
+<div class="slot" <span="">F43
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">64
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px; color: dimgrey;">
+<div class="slot" <span="">58
+    <span class="marble" style="color: dimgrey">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-bottom: 0px; background-color: green;">
+<div class="slot" <span="">F33
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">46
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">40
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-bottom: 0px; background-color: blue;">
+<div class="slot" <span="">F23
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">28
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">22
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-bottom: 0px; background-color: red;">
+<div class="slot" <span="">F13
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">10
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">4
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-bottom: 0px; background-color: dimgrey;">
+<div class="slot" <span="">F03
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">100
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td></tr><tr><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">93
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px; background-color: purple;">
+<div class="slot" <span="">F52
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">83
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">75
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px; background-color: orange;">
+<div class="slot" <span="">F42
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">65
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">57
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px; background-color: green;">
+<div class="slot" <span="">F32
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">47
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">39
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px; background-color: blue;">
+<div class="slot" <span="">F22
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">29
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">21
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px; background-color: red;">
+<div class="slot" <span="">F12
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">11
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">3
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px; background-color: dimgrey;">
+<div class="slot" <span="">F02
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">101
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td></tr><tr><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">92
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px; background-color: purple;">
+<div class="slot" <span="">F51
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">84
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">74
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px; background-color: orange;">
+<div class="slot" <span="">F41
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">66
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">56
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px; background-color: green;">
+<div class="slot" <span="">F31
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">48
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">38
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px; background-color: blue;">
+<div class="slot" <span="">F21
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">30
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">20
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px; background-color: red;">
+<div class="slot" <span="">F11
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">12
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">2
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px; background-color: dimgrey;">
+<div class="slot" <span="">F01
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">102
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td></tr><tr><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">91
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px; background-color: purple;">
+<div class="slot" <span="">F50
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">85
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">73
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px; background-color: orange;">
+<div class="slot" <span="">F40
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">67
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">55
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px; background-color: green;">
+<div class="slot" <span="">F30
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">49
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">37
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px; background-color: blue;">
+<div class="slot" <span="">F20
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">31
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">19
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px; background-color: red;">
+<div class="slot" <span="">F10
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">13
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">1
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px; background-color: dimgrey;">
+<div class="slot" <span="">F00
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td><td class="slotCell" style="border-top: 0px; border-bottom: 0px;">
+<div class="slot" <span="">103
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td></tr><tr><td class="slotCell" style="border-right: 0px; border-top: 0px; background-color: purple; color: dimgrey;">
+<div class="slot" <span="">90
+    <span class="marble" style="color: dimgrey">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-left: 0px; border-right: 0px;">
+<div class="slot" <span="">89
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-left: 0px; border-right: 0px; border-top: 0px;">
+<div class="slot" <span="">88
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-left: 0px; border-right: 0px;">
+<div class="slot" <span="">87
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-left: 0px; border-top: 0px;">
+<div class="slot" <span="">86
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-right: 0px; border-top: 0px; background-color: orange; color: orange;">
+<div class="slot" <span="">72
+    <span class="marble" style="color: white">
+      ◯
+    </span>
+</div></td><td class="slotCell" style="border-left: 0px; border-right: 0px;">
+<div class="slot" <span="">71
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-left: 0px; border-right: 0px; border-top: 0px;">
+<div class="slot" <span="">70
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-left: 0px; border-right: 0px;">
+<div class="slot" <span="">69
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-left: 0px; border-top: 0px;">
+<div class="slot" <span="">68
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-right: 0px; border-top: 0px; background-color: green;">
+<div class="slot" <span="">54
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-left: 0px; border-right: 0px;">
+<div class="slot" <span="">53
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-left: 0px; border-right: 0px; border-top: 0px;">
+<div class="slot" <span="">52
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-left: 0px; border-right: 0px;">
+<div class="slot" <span="">51
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-left: 0px; border-top: 0px;">
+<div class="slot" <span="">50
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-right: 0px; border-top: 0px; background-color: blue; color: blue;">
+<div class="slot" <span="">36
+    <span class="marble" style="color: white">
+      ◯
+    </span>
+</div></td><td class="slotCell" style="border-left: 0px; border-right: 0px;">
+<div class="slot" <span="">35
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-left: 0px; border-right: 0px; border-top: 0px; color: purple;">
+<div class="slot" <span="">34
+    <span class="marble" style="color: purple">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-left: 0px; border-right: 0px;">
+<div class="slot" <span="">33
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-left: 0px; border-top: 0px;">
+<div class="slot" <span="">32
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-right: 0px; border-top: 0px; background-color: red; color: red;">
+<div class="slot" <span="">18
+    <span class="marble" style="color: white">
+      ◯
+    </span>
+</div></td><td class="slotCell" style="border-left: 0px; border-right: 0px; color: orange;">
+<div class="slot" <span="">17
+    <span class="marble" style="color: orange">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-left: 0px; border-right: 0px; border-top: 0px;">
+<div class="slot" <span="">16
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-left: 0px; border-right: 0px;">
+<div class="slot" <span="">15
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-left: 0px; border-top: 0px;">
+<div class="slot" <span="">14
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-right: 0px; border-top: 0px; background-color: dimgrey;">
+<div class="slot" <span="">0
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-left: 0px; border-right: 0px;">
+<div class="slot" <span="">107
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-left: 0px; border-right: 0px; border-top: 0px;">
+<div class="slot" <span="">106
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-left: 0px; border-right: 0px;">
+<div class="slot" <span="">105
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td class="slotCell" style="border-left: 0px; border-top: 0px;">
+<div class="slot" <span="">104
+    <span class="marble" style="color: white">
+      ⬤
+    </span>
+</div></td><td></td></tr><tr>
+  <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+  <td class="labelCell" colspan="3">Home⮵</td>
+</tr></tbody></table>
+
+    <p>
+      Each player has a <i>lot</i> that initially contains 4 marbles, a <i>home</i> space, and 4 <i>goal</i> spaces adjacent the main track. 
+    </p>
+
+    <h2>Basic Rules</h2>
+    <p>
+      In each round, all players are initially dealt a hand of 4 or 5 cards, after which play moves to the left with each player playing a card and performing a corresponding action.  The rules for who goes first in a hand are somewhat complicated, however this is handled automatically by the web app.<sup><a href="#note1">1</a></sup>
+    </p>
+    <p>
+      Most actions consist of moving a marble out of the lot to the home space, or advancing a marble to the left a certain number of spaces.  Marbles can move past (jump) other marbles, however when a marble is moved to a space containing another marble (including one of the player’s own!) that marble is killed and moved back to the lot.  A marble in its own home cannot be jumped, killed or otherwise affected by another player.  
+    </p>
+    <p>
+      Most cards simply advance a single marble forward (to the left) by its face value, with a few special cases:
+    </p>
+
+    <table style="border: 1px solid black;">
+      <tbody>
+        <tr>
+          <td class="textCell">
+            <p>
+              <span>
+                Joker</span>
+            </p>
+          </td>
+          <td class="textCell">
+            <p>
+              <span>
+                Moves out or does nothing</span>
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td class="textCell">
+            <p>
+              <span>
+                Ace</span>
+            </p>
+          </td>
+          <td class="textCell">
+            <p>
+              <span>
+                Moves out or advances 1 space</span>
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td class="textCell">
+            <p>
+              <span>
+                4</span>
+            </p>
+          </td>
+          <td class="textCell">
+            <p>
+              <span>
+                Moves 4 spaces in reverse (to the right)</span>
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td class="textCell">
+            <p>
+              <span>
+                7</span>
+            </p>
+          </td>
+          <td class="textCell">
+            <p>
+              <span>
+                Makes 7 individual moves of length 1 (i.e. can split moves between marbles, kills anything jumped over)</span>
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td class="textCell">
+            <p>
+                Jack
+            </p>
+          </td>
+          <td class="textCell">
+            <p>
+                Advances 11 spaces or swaps positions with another marble not in its player&rsquo;s home
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td class="textCell">
+            <p>
+              <span>
+                Queen</span>
+            </p>
+          </td>
+          <td class="textCell">
+            <p>
+              <span>
+                Advances 12 spaces</span>
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td class="textCell">
+            <p>
+              <span>
+                King</span>
+            </p>
+          </td>
+          <td class="textCell">
+            <p>
+              <span>
+                Moves out or advances 13 spaces</span>
+            </p>
+            <p>
+              <span>
+                Moves partner out when playing with partners (see below)</span>
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>
+      When a player has no legal actions with the cards in their hand, they must instead burn a card on their turn by discarding it and taking no action.  If a move is possible it must be made, even if it is to their detriment!
+    </p>
+    <p>
+      When a marble reaches the space directly beneath its own goal, it may be advanced into the goal rather than continuing around the track.  Only a player’s own marbles can be moved into their goal, and they cannot kill or jump over their own marbles in the goal.  Marbles must be advanced into the goal, i.e. a 4 cannot be used to “back in”.  The first player to move all their marbles into the goal is the winner.
+    </p>
+
+    <h2>Partner Rules</h2>
+    <p>
+      Carbles may also be played in teams of two, with a team winning when both players have moved all of their marbles into their goals.  The rules are the same as in the basic version, except that a King may be played to move out one’s partner, and once a player has finished moving all marbles into their goal they may use their cards to move their partner’s marbles as if they were their own.
+    </p>
+    <p>
+      A partner game requires an even number of players; an AI player may be added if an even number of players are not available.
+    </p>
+
+    <a href="/"><b>Play</b></a>
+    
+    <br><br>
+    <hr align="left" width="75px">
+    <p id="note1">
+      <sup>1</sup>One player is designated as the dealer.  The person to the left of the dealer goes first, after which play moves to the left.  When the hand is depleted a new one is dealt, and play starts to the left of the person who started the last hand.  When the deck is depleted it is shuffled and the person to the left becomes the new dealer.  
+    </p>
+    
+    <!--#include "footer.html" -->
+  </body>
+</html>

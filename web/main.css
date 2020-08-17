@@ -12,20 +12,31 @@ table {
   margin-bottom: 20px;
 }
 
-td {
-  width: 30px;
-  text-align: center;
-  overflow: hidden;
+.textCell {
+  border: 1px solid black;
 }
 
 .lotCell {
+  width: 30px;
+  text-align: center;
+  overflow: hidden;
   color: white;
   border-radius: 0.7em;
 }
 
 .slotCell {
+  width: 30px;
+  text-align: center;
+  overflow: hidden;
   background: tan;
   border: 2px solid black;
+}
+
+.labelCell {
+  background-color: #fdff96;
+  color: brown;
+  font-weight: bolder;
+  font-size: 150%;
 }
 
 .slot {
