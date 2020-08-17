@@ -22,7 +22,7 @@
     </p>
     <img src="board.png" alt="Carbles board" width="250" height="250">
     <p>
-      However in the web version the board is “unrolled” to better fit the screen and accommodate a variable number of players:
+      However in this web version the board is “unrolled” to better fit the screen and accommodate a variable number of players:
     </p>
 
     <table class="board">
@@ -697,7 +697,7 @@
 
     <h2>Basic Rules</h2>
     <p>
-      In each round, all players are initially dealt a hand of 4 or 5 cards, after which play moves to the left with each player playing a card and performing a corresponding action.  The rules for who goes first in a hand are somewhat complicated, however this is handled automatically by the web app.<sup><a href="#note1">1</a></sup>
+      In each round, all players are initially dealt a hand of 4 or 5 cards, after which play moves to the left with each player playing a card and performing a corresponding action.  The rules for who goes first in a hand are somewhat complicated, however these are handled automatically in this version.<sup><a href="#note1">1</a></sup>
     </p>
     <p>
       Most actions consist of moving a marble out of the lot to the home space, or advancing a marble to the left a certain number of spaces.  Marbles can move past (jump) other marbles, however when a marble is moved to a space containing another marble (including one of the player’s own!) that marble is killed and moved back to the lot.  A marble in its own home cannot be jumped, killed or otherwise affected by another player.  
