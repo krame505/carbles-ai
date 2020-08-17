@@ -440,7 +440,9 @@ static void handleRegister(struct mg_connection *nc, const char *data, size_t si
   char roomId_s[MAX_ROOM_ID], connId_s[MAX_CONN_ID], name_s[MAX_NAME];
   if (sscanf(data, "join:%[^:]:%[^:]:%[^\n]", roomId_s, connId_s, name_s) == 3) {
     string roomId = str(roomId_s), connId = str(connId_s), name = str(name_s);
-    logmsg("Registering %s (%s) to %s", connId_s, name_s, roomId_s);
+    char addr[32];
+    mg_sock_addr_to_str(&nc->sa, addr, sizeof(addr), MG_SOCK_STRINGIFY_IP);
+    logmsg("Registering %s (%s@%s) to %s", connId_s, name_s, addr, roomId_s);
 
     // Create the room if needed
     if (!mapContains(rooms, roomId)) {
