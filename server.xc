@@ -441,7 +441,7 @@ static void handleRegister(struct mg_connection *nc, const char *data, size_t si
   if (sscanf(data, "join:%[^:]:%[^:]:%[^\n]", roomId_s, connId_s, name_s) == 3) {
     string roomId = str(roomId_s), connId = str(connId_s), name = str(name_s);
     char addr[32];
-    mg_sock_addr_to_str(&nc->sa, addr, sizeof(addr), MG_SOCK_STRINGIFY_IP);
+    mg_sock_addr_to_str(&nc->sa, addr, sizeof(addr), MG_SOCK_STRINGIFY_IP | MG_SOCK_STRINGIFY_PORT | MG_SOCK_STRINGIFY_REMOTE);
     logmsg("Registering %s (%s@%s) to %s", connId_s, name_s, addr, roomId_s);
 
     // Create the room if needed
