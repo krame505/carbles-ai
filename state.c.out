@@ -2384,8 +2384,13 @@ State applyMove(Move  , State  );
 State applyMoves(struct _template__var_d__list__var__datatype_Move_165_______s  * , State  );
 State applyAction(Action  , State  , Hand  , Hand  discard);
 struct _template__vector_s__datatype_Action_176__  *getActions(State  s, PlayerId  p, const Hand  h);
+_Bool actionPossible(State  s, PlayerId  p, const Hand  h, const Hand  partnerHand);
 _Bool isWon(State  s);
 PlayerId getWinner(State  s);
+
+
+
+
 
 
 
@@ -13025,6 +13030,664 @@ static _Bool _lambda_fn_36788(void  * _env_ptr)
     return 1;
   }
 }
+static _Bool _template__predicate_cardMovePossible_(struct _template__var_d__datatype_State_161___s  * _p0, struct _template__var_d__builtin_unsigned_int___s  * _p1, struct _template__var_d__enum_Card___s  * _p2, unification_trail  _trail, struct _closure___builtin_bool__s  _continuation);
+
+
+
+
+
+
+struct _lambda_env_36800_s {
+  struct _template__var_d__builtin_unsigned_int___s  *P1;
+  struct _template__var_d__builtin_unsigned_int___s  *NP;
+  struct _template__var_d__builtin_unsigned_int___s  *P2;
+  struct _template__vector_s__datatype__trail_action_58__  *_trail;
+  _Bool  (*_template__predicate_cardMovePossible_)(struct _template__var_d__datatype_State_161___s  * , struct _template__var_d__builtin_unsigned_int___s  * , struct _template__var_d__enum_Card___s  * , struct _template__vector_s__datatype__trail_action_58__  * , struct _closure___builtin_bool__s  );
+  struct _template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition____s  *B;
+  struct _template__var_d__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned____s  *L;
+  struct _template__var_d__enum_Card___s  *C;
+  struct _closure___builtin_bool__s _continuation;
+  struct __jmp_buf_tag  *_cut_buffer;
+  
+};
+static _Bool _lambda_fn_36800(void  * _env_ptr)
+{
+
+  ;
+  {
+    struct _lambda_env_36800_s _env = (*((struct _lambda_env_36800_s *)(_env_ptr)));
+    struct _template__var_d__builtin_unsigned_int___s  *const P1 = ((_env).P1);
+    struct _template__var_d__builtin_unsigned_int___s  *const NP = ((_env).NP);
+    struct _template__var_d__builtin_unsigned_int___s  *const P2 = ((_env).P2);
+    struct _template__vector_s__datatype__trail_action_58__  *const _trail = ((_env)._trail);
+    _Bool ( *const _template__predicate_cardMovePossible_)(struct _template__var_d__datatype_State_161___s  * , struct _template__var_d__builtin_unsigned_int___s  * , struct _template__var_d__enum_Card___s  * , struct _template__vector_s__datatype__trail_action_58__  * , struct _closure___builtin_bool__s  ) = ((_env)._template__predicate_cardMovePossible_);
+    struct _template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition____s  *const B = ((_env).B);
+    struct _template__var_d__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned____s  *const L = ((_env).L);
+    struct _template__var_d__enum_Card___s  *const C = ((_env).C);
+    const struct _closure___builtin_bool__s _continuation = ((_env)._continuation);
+    struct __jmp_buf_tag  *const _cut_buffer = ((_env)._cut_buffer);
+    ;
+    return ((_Bool)((({
+      unsigned int _tmp36799 = ({
+        struct _template__var_d__builtin_unsigned_int___s  *_P1 = (P1);
+        PlayerId P1 = ((_template_value__builtin_unsigned_int__)((_P1)));
+        struct _template__var_d__builtin_unsigned_int___s  *_NP = (NP);
+        unsigned int NP = ((_template_value__builtin_unsigned_int__)((_NP)));
+        (((((P1) + ((NP) / 2))) % ((NP)))); })
+      ;
+      ((_template__unify_var_val__builtin_unsigned_int__)((P2), (_tmp36799), (_trail))); })
+     && ((_template__predicate_cardMovePossible_)(({
+      _template__var_d__datatype_State_161__  *_result = ((alloca)((sizeof(_template__var_d__datatype_State_161__))));
+      ((*(_result)) = ((_template__Bound__datatype_State_161__)(((St)((NP), ({
+        _template__var_d__builtin_bool__  *_result = ((alloca)((sizeof(_template__var_d__builtin_bool__))));
+        ((*(_result)) = ((_template__Bound__builtin_bool__)(((_Bool)0))));
+        ((struct _template__var_d__builtin_bool___s *)(_result)); })
+      , (B), (L))))));
+      ((struct _template__var_d__datatype_State_161___s *)(_result)); })
+    , (P2), (C), (_trail), (_continuation)))) || ((((longjmp)((_cut_buffer), 1)) , 1))));
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+struct _lambda_env_36820_s {
+  struct _template__vector_s__datatype__trail_action_58__  *_trail;
+  struct _template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition____s  *B;
+  struct _template__var_d__builtin_unsigned_int___s  *P;
+  struct _closure___builtin_bool__s _continuation;
+  
+};
+struct _lambda_env_36815_s {
+  
+};
+static _Bool _lambda_fn_36815(void  * _env_ptr)
+{
+
+  ;
+  {
+    struct _lambda_env_36815_s _env = (*((struct _lambda_env_36815_s *)(_env_ptr)));
+    ;
+    return ((_Bool)1);
+  }
+}
+static _Bool _lambda_fn_36820(void  * _env_ptr)
+{
+
+  ;
+  {
+    struct _lambda_env_36820_s _env = (*((struct _lambda_env_36820_s *)(_env_ptr)));
+    struct _template__vector_s__datatype__trail_action_58__  *const _trail = ((_env)._trail);
+    struct _template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition____s  *const B = ((_env).B);
+    struct _template__var_d__builtin_unsigned_int___s  *const P = ((_env).P);
+    const struct _closure___builtin_bool__s _continuation = ((_env)._continuation);
+    ;
+    return ((_Bool)(({
+      size_t _not_trail_index = ((((_template__vector_s__datatype__trail_action_58__ *const )(_trail)))->size);
+      (((_template__predicate_isFinished_)((B), (P), (_trail), ({
+        struct _lambda_env_36815_s _env = {};
+        ;
+        ;
+        struct _lambda_env_36815_s  *_env_ptr = ((alloca)((sizeof(struct _lambda_env_36815_s))));
+        ((memcpy)((_env_ptr), (&(_env)), (sizeof(struct _lambda_env_36815_s))));
+        struct _closure___builtin_bool__s _result;
+        (((_result).fn_name) = "_lambda_fn_36815");
+        (((_result).env) = ((void *)(_env_ptr)));
+        (((_result).fn) = (_lambda_fn_36815));
+        ;
+        ;
+        ((struct _closure___builtin_bool__s)(_result)); })
+      )) ? 0 : ((((undo_trail)((_trail), (_not_trail_index))) , 1))); })
+     && ({
+      
+      struct _closure___builtin_bool__s _tmp_closure_36817 = ((struct _closure___builtin_bool__s)(_continuation));
+      
+      (((_tmp_closure_36817).fn)(((_tmp_closure_36817).env))); })
+    ));
+  }
+}
+static _Bool _template__predicate_cardMovePossible_(struct _template__var_d__datatype_State_161___s  * _p0, struct _template__var_d__builtin_unsigned_int___s  * _p1, struct _template__var_d__enum_Card___s  * _p2, unification_trail  _trail, struct _closure___builtin_bool__s  _continuation)
+{
+
+  ;
+  {
+    size_t _trail_index = ((((_template__vector_s__datatype__trail_action_58__ *const )(_trail)))->size);
+    jmp_buf _cut_buffer;
+    if (((setjmp)((_cut_buffer))))
+    {
+      {
+        return 0;
+      }
+    } else {
+      ;
+    }
+    {
+      struct _template__var_d__builtin_unsigned_int___s  *NP = ({
+        _template__var_d__builtin_unsigned_int__  *_result = ((alloca)((sizeof(_template__var_d__builtin_unsigned_int__))));
+        ((*(_result)) = ((_template__Free__builtin_unsigned_int__)()));
+        ((struct _template__var_d__builtin_unsigned_int___s *)(_result)); })
+      ;
+      struct _template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition____s  *B = ({
+        _template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition___  *_result = ((alloca)((sizeof(_template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition___))));
+        ((*(_result)) = ((_template__Free__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition___)()));
+        ((struct _template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition____s *)(_result)); })
+      ;
+      struct _template__var_d__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned____s  *L = ({
+        _template__var_d__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned___  *_result = ((alloca)((sizeof(_template__var_d__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned___))));
+        ((*(_result)) = ((_template__Free__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned___)()));
+        ((struct _template__var_d__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned____s *)(_result)); })
+      ;
+      struct _template__var_d__builtin_unsigned_int___s  *P1 = ({
+        _template__var_d__builtin_unsigned_int__  *_result = ((alloca)((sizeof(_template__var_d__builtin_unsigned_int__))));
+        ((*(_result)) = ((_template__Free__builtin_unsigned_int__)()));
+        ((struct _template__var_d__builtin_unsigned_int___s *)(_result)); })
+      ;
+      struct _template__var_d__enum_Card___s  *C = ({
+        _template__var_d__enum_Card__  *_result = ((alloca)((sizeof(_template__var_d__enum_Card__))));
+        ((*(_result)) = ((_template__Free__enum_Card__)()));
+        ((struct _template__var_d__enum_Card___s *)(_result)); })
+      ;
+      struct _template__var_d__builtin_unsigned_int___s  *P2 = ({
+        _template__var_d__builtin_unsigned_int__  *_result = ((alloca)((sizeof(_template__var_d__builtin_unsigned_int__))));
+        ((*(_result)) = ((_template__Free__builtin_unsigned_int__)()));
+        ((struct _template__var_d__builtin_unsigned_int___s *)(_result)); })
+      ;
+      if (((({
+        struct State_s _tmp36795 = ((St)((NP), ({
+          _template__var_d__builtin_bool__  *_result = ((alloca)((sizeof(_template__var_d__builtin_bool__))));
+          ((*(_result)) = ((_template__Bound__builtin_bool__)(((_Bool)1))));
+          ((struct _template__var_d__builtin_bool___s *)(_result)); })
+        , (B), (L)));
+        ((_template__unify_var_val__datatype_State_161__)((_p0), (_tmp36795), (_trail))); })
+       && (((_template__unify_var_var__builtin_unsigned_int__)((_p1), (P1), (_trail))) && (((_template__unify_var_var__enum_Card__)((_p2), (C), (_trail))) && ((_Bool)1)))) && ((_template__predicate_isFinished_)((B), (P1), (_trail), ({
+        struct _lambda_env_36800_s _env = {(P1), (NP), (P2), (_trail), (_template__predicate_cardMovePossible_), (B), (L), (C), (_continuation), (_cut_buffer)};
+        ;
+        ;
+        struct _lambda_env_36800_s  *_env_ptr = ((alloca)((sizeof(struct _lambda_env_36800_s))));
+        ((memcpy)((_env_ptr), (&(_env)), (sizeof(struct _lambda_env_36800_s))));
+        struct _closure___builtin_bool__s _result;
+        (((_result).fn_name) = "_lambda_fn_36800");
+        (((_result).env) = ((void *)(_env_ptr)));
+        (((_result).fn) = (_lambda_fn_36800));
+        ;
+        ;
+        ((struct _closure___builtin_bool__s)(_result)); })
+      ))))
+      {
+        {
+          return 1;
+        }
+      } else {
+        ;
+      }
+    }
+    ((undo_trail)((_trail), (_trail_index)));
+    {
+      struct _template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition____s  *B = ({
+        _template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition___  *_result = ((alloca)((sizeof(_template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition___))));
+        ((*(_result)) = ((_template__Free__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition___)()));
+        ((struct _template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition____s *)(_result)); })
+      ;
+      struct _template__var_d__builtin_unsigned_int___s  *P = ({
+        _template__var_d__builtin_unsigned_int__  *_result = ((alloca)((sizeof(_template__var_d__builtin_unsigned_int__))));
+        ((*(_result)) = ((_template__Free__builtin_unsigned_int__)()));
+        ((struct _template__var_d__builtin_unsigned_int___s *)(_result)); })
+      ;
+      if (((({
+        struct State_s _tmp36807 = ((St)(({
+          _template__var_d__builtin_unsigned_int__  *_result = ((alloca)((sizeof(_template__var_d__builtin_unsigned_int__))));
+          ((*(_result)) = ((_template__Free__builtin_unsigned_int__)()));
+          ((struct _template__var_d__builtin_unsigned_int___s *)(_result)); })
+        , ({
+          _template__var_d__builtin_bool__  *_result = ((alloca)((sizeof(_template__var_d__builtin_bool__))));
+          ((*(_result)) = ((_template__Free__builtin_bool__)()));
+          ((struct _template__var_d__builtin_bool___s *)(_result)); })
+        , (B), ({
+          _template__var_d__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned___  *_result = ((alloca)((sizeof(_template__var_d__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned___))));
+          ((*(_result)) = ((_template__Free__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned___)()));
+          ((struct _template__var_d__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned____s *)(_result)); })
+        ));
+        ((_template__unify_var_val__datatype_State_161__)((_p0), (_tmp36807), (_trail))); })
+       && (((_template__unify_var_var__builtin_unsigned_int__)((_p1), (P), (_trail))) && (({
+        struct _template__var_d__enum_Card___s  *_tmp36810 = ({
+          _template__var_d__enum_Card__  *_result = ((alloca)((sizeof(_template__var_d__enum_Card__))));
+          ((*(_result)) = ((_template__Free__enum_Card__)()));
+          ((struct _template__var_d__enum_Card___s *)(_result)); })
+        ;
+        ((_template__unify_var_var__enum_Card__)((_p2), (_tmp36810), (_trail))); })
+       && ((_Bool)1)))) && ((_template__predicate_mapContainsValue__datatype_Position_122___builtin_unsigned_int__comparePosition_)((B), ({
+        _template__var_d__datatype_Position_122__  *_result = ((alloca)((sizeof(_template__var_d__datatype_Position_122__))));
+        ((*(_result)) = ((_template__Bound__datatype_Position_122__)(((Out)(({
+          _template__var_d__builtin_unsigned_int__  *_result = ((alloca)((sizeof(_template__var_d__builtin_unsigned_int__))));
+          ((*(_result)) = ((_template__Free__builtin_unsigned_int__)()));
+          ((struct _template__var_d__builtin_unsigned_int___s *)(_result)); })
+        )))));
+        ((struct _template__var_d__datatype_Position_122___s *)(_result)); })
+      , (P), (_trail), (_continuation)))))
+      {
+        {
+          return 1;
+        }
+      } else {
+        ;
+      }
+    }
+    ((undo_trail)((_trail), (_trail_index)));
+    {
+      struct _template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition____s  *B = ({
+        _template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition___  *_result = ((alloca)((sizeof(_template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition___))));
+        ((*(_result)) = ((_template__Free__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition___)()));
+        ((struct _template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition____s *)(_result)); })
+      ;
+      struct _template__var_d__builtin_unsigned_int___s  *P = ({
+        _template__var_d__builtin_unsigned_int__  *_result = ((alloca)((sizeof(_template__var_d__builtin_unsigned_int__))));
+        ((*(_result)) = ((_template__Free__builtin_unsigned_int__)()));
+        ((struct _template__var_d__builtin_unsigned_int___s *)(_result)); })
+      ;
+      struct _template__var_d__enum_Card___s  *C = ({
+        _template__var_d__enum_Card__  *_result = ((alloca)((sizeof(_template__var_d__enum_Card__))));
+        ((*(_result)) = ((_template__Free__enum_Card__)()));
+        ((struct _template__var_d__enum_Card___s *)(_result)); })
+      ;
+      if (((({
+        struct State_s _tmp36812 = ((St)(({
+          _template__var_d__builtin_unsigned_int__  *_result = ((alloca)((sizeof(_template__var_d__builtin_unsigned_int__))));
+          ((*(_result)) = ((_template__Free__builtin_unsigned_int__)()));
+          ((struct _template__var_d__builtin_unsigned_int___s *)(_result)); })
+        , ({
+          _template__var_d__builtin_bool__  *_result = ((alloca)((sizeof(_template__var_d__builtin_bool__))));
+          ((*(_result)) = ((_template__Free__builtin_bool__)()));
+          ((struct _template__var_d__builtin_bool___s *)(_result)); })
+        , (B), ({
+          _template__var_d__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned___  *_result = ((alloca)((sizeof(_template__var_d__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned___))));
+          ((*(_result)) = ((_template__Free__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned___)()));
+          ((struct _template__var_d__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned____s *)(_result)); })
+        ));
+        ((_template__unify_var_val__datatype_State_161__)((_p0), (_tmp36812), (_trail))); })
+       && (((_template__unify_var_var__builtin_unsigned_int__)((_p1), (P), (_trail))) && (((_template__unify_var_var__enum_Card__)((_p2), (C), (_trail))) && ((_Bool)1)))) && ((_template__predicate_moveOutCard_)((C), (_trail), ({
+        struct _lambda_env_36820_s _env = {(_trail), (B), (P), (_continuation)};
+        ;
+        ;
+        struct _lambda_env_36820_s  *_env_ptr = ((alloca)((sizeof(struct _lambda_env_36820_s))));
+        ((memcpy)((_env_ptr), (&(_env)), (sizeof(struct _lambda_env_36820_s))));
+        struct _closure___builtin_bool__s _result;
+        (((_result).fn_name) = "_lambda_fn_36820");
+        (((_result).env) = ((void *)(_env_ptr)));
+        (((_result).fn) = (_lambda_fn_36820));
+        ;
+        ;
+        ((struct _closure___builtin_bool__s)(_result)); })
+      ))))
+      {
+        {
+          return 1;
+        }
+      } else {
+        ;
+      }
+    }
+    return 0;
+  }
+}
+struct _lambda_env_36831_s {
+  
+};
+static _Bool _lambda_fn_36831(void  * _env_ptr)
+{
+
+  ;
+  {
+    struct _lambda_env_36831_s _env = (*((struct _lambda_env_36831_s *)(_env_ptr)));
+    ;
+    return 1;
+  }
+}
+static _Bool _template__predicate_partnerCardMovePossible_(struct _template__var_d__datatype_State_161___s  * _p0, struct _template__var_d__builtin_unsigned_int___s  * _p1, struct _template__var_d__enum_Card___s  * _p2, unification_trail  _trail, struct _closure___builtin_bool__s  _continuation);
+
+
+
+
+
+
+
+
+
+
+
+
+struct _lambda_env_36847_s {
+  struct _template__var_d__builtin_unsigned_int___s  *NP;
+  struct _template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition____s  *B;
+  struct _template__var_d__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned____s  *L;
+  struct _template__var_d__builtin_unsigned_int___s  *P1;
+  struct _template__var_d__enum_Card___s  *C;
+  struct _template__vector_s__datatype__trail_action_58__  *_trail;
+  struct _closure___builtin_bool__s _continuation;
+  
+};
+static _Bool _lambda_fn_36847(void  * _env_ptr)
+{
+
+  ;
+  {
+    struct _lambda_env_36847_s _env = (*((struct _lambda_env_36847_s *)(_env_ptr)));
+    struct _template__var_d__builtin_unsigned_int___s  *const NP = ((_env).NP);
+    struct _template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition____s  *const B = ((_env).B);
+    struct _template__var_d__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned____s  *const L = ((_env).L);
+    struct _template__var_d__builtin_unsigned_int___s  *const P1 = ((_env).P1);
+    struct _template__var_d__enum_Card___s  *const C = ((_env).C);
+    struct _template__vector_s__datatype__trail_action_58__  *const _trail = ((_env)._trail);
+    const struct _closure___builtin_bool__s _continuation = ((_env)._continuation);
+    ;
+    return ((_Bool)((_template__predicate_cardMovePossible_)(({
+      _template__var_d__datatype_State_161__  *_result = ((alloca)((sizeof(_template__var_d__datatype_State_161__))));
+      ((*(_result)) = ((_template__Bound__datatype_State_161__)(((St)((NP), ({
+        _template__var_d__builtin_bool__  *_result = ((alloca)((sizeof(_template__var_d__builtin_bool__))));
+        ((*(_result)) = ((_template__Bound__builtin_bool__)(((_Bool)0))));
+        ((struct _template__var_d__builtin_bool___s *)(_result)); })
+      , (B), (L))))));
+      ((struct _template__var_d__datatype_State_161___s *)(_result)); })
+    , (P1), (C), (_trail), (_continuation))));
+  }
+}
+static _Bool _template__predicate_partnerCardMovePossible_(struct _template__var_d__datatype_State_161___s  * _p0, struct _template__var_d__builtin_unsigned_int___s  * _p1, struct _template__var_d__enum_Card___s  * _p2, unification_trail  _trail, struct _closure___builtin_bool__s  _continuation)
+{
+
+  ;
+  {
+    size_t _trail_index = ((((_template__vector_s__datatype__trail_action_58__ *const )(_trail)))->size);
+    jmp_buf _cut_buffer;
+    if (((setjmp)((_cut_buffer))))
+    {
+      {
+        return 0;
+      }
+    } else {
+      ;
+    }
+    {
+      struct _template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition____s  *B = ({
+        _template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition___  *_result = ((alloca)((sizeof(_template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition___))));
+        ((*(_result)) = ((_template__Free__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition___)()));
+        ((struct _template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition____s *)(_result)); })
+      ;
+      struct _template__var_d__builtin_unsigned_int___s  *P = ({
+        _template__var_d__builtin_unsigned_int__  *_result = ((alloca)((sizeof(_template__var_d__builtin_unsigned_int__))));
+        ((*(_result)) = ((_template__Free__builtin_unsigned_int__)()));
+        ((struct _template__var_d__builtin_unsigned_int___s *)(_result)); })
+      ;
+      struct _template__var_d__enum_Card___s  *C = ({
+        _template__var_d__enum_Card__  *_result = ((alloca)((sizeof(_template__var_d__enum_Card__))));
+        ((*(_result)) = ((_template__Free__enum_Card__)()));
+        ((struct _template__var_d__enum_Card___s *)(_result)); })
+      ;
+      if (((({
+        struct State_s _tmp36838 = ((St)(({
+          _template__var_d__builtin_unsigned_int__  *_result = ((alloca)((sizeof(_template__var_d__builtin_unsigned_int__))));
+          ((*(_result)) = ((_template__Free__builtin_unsigned_int__)()));
+          ((struct _template__var_d__builtin_unsigned_int___s *)(_result)); })
+        , ({
+          _template__var_d__builtin_bool__  *_result = ((alloca)((sizeof(_template__var_d__builtin_bool__))));
+          ((*(_result)) = ((_template__Bound__builtin_bool__)(((_Bool)1))));
+          ((struct _template__var_d__builtin_bool___s *)(_result)); })
+        , (B), ({
+          _template__var_d__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned___  *_result = ((alloca)((sizeof(_template__var_d__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned___))));
+          ((*(_result)) = ((_template__Free__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned___)()));
+          ((struct _template__var_d__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned____s *)(_result)); })
+        ));
+        ((_template__unify_var_val__datatype_State_161__)((_p0), (_tmp36838), (_trail))); })
+       && (((_template__unify_var_var__builtin_unsigned_int__)((_p1), (P), (_trail))) && (((_template__unify_var_var__enum_Card__)((_p2), (C), (_trail))) && ((_Bool)1)))) && ((_template__predicate_partnerMoveOutCard_)((C), (_trail), (_continuation)))))
+      {
+        {
+          return 1;
+        }
+      } else {
+        ;
+      }
+    }
+    ((undo_trail)((_trail), (_trail_index)));
+    {
+      struct _template__var_d__builtin_unsigned_int___s  *NP = ({
+        _template__var_d__builtin_unsigned_int__  *_result = ((alloca)((sizeof(_template__var_d__builtin_unsigned_int__))));
+        ((*(_result)) = ((_template__Free__builtin_unsigned_int__)()));
+        ((struct _template__var_d__builtin_unsigned_int___s *)(_result)); })
+      ;
+      struct _template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition____s  *B = ({
+        _template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition___  *_result = ((alloca)((sizeof(_template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition___))));
+        ((*(_result)) = ((_template__Free__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition___)()));
+        ((struct _template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition____s *)(_result)); })
+      ;
+      struct _template__var_d__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned____s  *L = ({
+        _template__var_d__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned___  *_result = ((alloca)((sizeof(_template__var_d__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned___))));
+        ((*(_result)) = ((_template__Free__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned___)()));
+        ((struct _template__var_d__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned____s *)(_result)); })
+      ;
+      struct _template__var_d__builtin_unsigned_int___s  *P1 = ({
+        _template__var_d__builtin_unsigned_int__  *_result = ((alloca)((sizeof(_template__var_d__builtin_unsigned_int__))));
+        ((*(_result)) = ((_template__Free__builtin_unsigned_int__)()));
+        ((struct _template__var_d__builtin_unsigned_int___s *)(_result)); })
+      ;
+      struct _template__var_d__enum_Card___s  *C = ({
+        _template__var_d__enum_Card__  *_result = ((alloca)((sizeof(_template__var_d__enum_Card__))));
+        ((*(_result)) = ((_template__Free__enum_Card__)()));
+        ((struct _template__var_d__enum_Card___s *)(_result)); })
+      ;
+      struct _template__var_d__builtin_unsigned_int___s  *P2 = ({
+        _template__var_d__builtin_unsigned_int__  *_result = ((alloca)((sizeof(_template__var_d__builtin_unsigned_int__))));
+        ((*(_result)) = ((_template__Free__builtin_unsigned_int__)()));
+        ((struct _template__var_d__builtin_unsigned_int___s *)(_result)); })
+      ;
+      if (((({
+        struct State_s _tmp36842 = ((St)((NP), ({
+          _template__var_d__builtin_bool__  *_result = ((alloca)((sizeof(_template__var_d__builtin_bool__))));
+          ((*(_result)) = ((_template__Bound__builtin_bool__)(((_Bool)1))));
+          ((struct _template__var_d__builtin_bool___s *)(_result)); })
+        , (B), (L)));
+        ((_template__unify_var_val__datatype_State_161__)((_p0), (_tmp36842), (_trail))); })
+       && (((_template__unify_var_var__builtin_unsigned_int__)((_p1), (P1), (_trail))) && (((_template__unify_var_var__enum_Card__)((_p2), (C), (_trail))) && ((_Bool)1)))) && (({
+        unsigned int _tmp36846 = ({
+          struct _template__var_d__builtin_unsigned_int___s  *_P1 = (P1);
+          PlayerId P1 = ((_template_value__builtin_unsigned_int__)((_P1)));
+          struct _template__var_d__builtin_unsigned_int___s  *_NP = (NP);
+          unsigned int NP = ((_template_value__builtin_unsigned_int__)((_NP)));
+          (((((P1) + ((NP) / 2))) % ((NP)))); })
+        ;
+        ((_template__unify_var_val__builtin_unsigned_int__)((P2), (_tmp36846), (_trail))); })
+       && ((_template__predicate_isFinished_)((B), (P2), (_trail), ({
+        struct _lambda_env_36847_s _env = {(NP), (B), (L), (P1), (C), (_trail), (_continuation)};
+        ;
+        ;
+        struct _lambda_env_36847_s  *_env_ptr = ((alloca)((sizeof(struct _lambda_env_36847_s))));
+        ((memcpy)((_env_ptr), (&(_env)), (sizeof(struct _lambda_env_36847_s))));
+        struct _closure___builtin_bool__s _result;
+        (((_result).fn_name) = "_lambda_fn_36847");
+        (((_result).env) = ((void *)(_env_ptr)));
+        (((_result).fn) = (_lambda_fn_36847));
+        ;
+        ;
+        ((struct _closure___builtin_bool__s)(_result)); })
+      )))))
+      {
+        {
+          return 1;
+        }
+      } else {
+        ;
+      }
+    }
+    return 0;
+  }
+}
+_Bool actionPossible(State  s, PlayerId  p, const Hand  h, const Hand  partnerHand)
+{
+
+  ;
+  {
+    for (Card c = 0; ((c) < (CARD_MAX)); ((c)++))
+    {
+      {
+        if ((((h)[(c)]) && ({
+          unification_trail _trail = ((new_trail)());
+          struct _template__var_d__datatype_State_161___s  *S = ({
+            _template__var_d__datatype_State_161__  *_result = ((alloca)((sizeof(_template__var_d__datatype_State_161__))));
+            ((*(_result)) = ((_template__Free__datatype_State_161__)()));
+            ((struct _template__var_d__datatype_State_161___s *)(_result)); })
+          ;
+          struct _template__var_d__builtin_unsigned_int___s  *P = ({
+            _template__var_d__builtin_unsigned_int__  *_result = ((alloca)((sizeof(_template__var_d__builtin_unsigned_int__))));
+            ((*(_result)) = ((_template__Free__builtin_unsigned_int__)()));
+            ((struct _template__var_d__builtin_unsigned_int___s *)(_result)); })
+          ;
+          struct _template__var_d__enum_Card___s  *C = ({
+            _template__var_d__enum_Card__  *_result = ((alloca)((sizeof(_template__var_d__enum_Card__))));
+            ((*(_result)) = ((_template__Free__enum_Card__)()));
+            ((struct _template__var_d__enum_Card___s *)(_result)); })
+          ;
+          struct _closure___builtin_bool__s _success_continuation = ({
+            struct _lambda_env_36788_s _env = {};
+            ;
+            ;
+            struct _lambda_env_36788_s  *_env_ptr = ((alloca)((sizeof(struct _lambda_env_36788_s))));
+            ((memcpy)((_env_ptr), (&(_env)), (sizeof(struct _lambda_env_36788_s))));
+            struct _closure___builtin_bool__s _result;
+            (((_result).fn_name) = "_lambda_fn_36788");
+            (((_result).env) = ((void *)(_env_ptr)));
+            (((_result).fn) = (_lambda_fn_36788));
+            ;
+            ;
+            ((struct _closure___builtin_bool__s)(_result)); })
+          ;
+          jmp_buf _cut_buffer;
+          (((setjmp)((_cut_buffer))) ? ({
+            ((undo_trail)((_trail), 0));
+            ((_template_delete_vector__datatype__trail_action_58__)((_trail)));
+            0; })
+           : ({
+            _Bool _result = (({
+              State _tmp36791 = ({
+                ;
+                (s); })
+              ;
+              ((_template__unify_var_val__datatype_State_161__)((S), (_tmp36791), (_trail))); })
+             && (({
+              PlayerId _tmp36792 = ({
+                ;
+                (p); })
+              ;
+              ((_template__unify_var_val__builtin_unsigned_int__)((P), (_tmp36792), (_trail))); })
+             && (({
+              Card _tmp36793 = ({
+                ;
+                (c); })
+              ;
+              ((_template__unify_var_val__enum_Card__)((C), (_tmp36793), (_trail))); })
+             && ((_template__predicate_cardMovePossible_)((S), (P), (C), (_trail), (_success_continuation))))));
+            ((undo_trail)((_trail), 0));
+            ((_template_delete_vector__datatype__trail_action_58__)((_trail)));
+            (_result); })
+          ); })
+        ))
+        {
+          {
+            return 1;
+          }
+        } else {
+          ;
+        }
+        if ((((partnerHand) && ((partnerHand)[(c)])) && ({
+          unification_trail _trail = ((new_trail)());
+          struct _template__var_d__datatype_State_161___s  *S = ({
+            _template__var_d__datatype_State_161__  *_result = ((alloca)((sizeof(_template__var_d__datatype_State_161__))));
+            ((*(_result)) = ((_template__Free__datatype_State_161__)()));
+            ((struct _template__var_d__datatype_State_161___s *)(_result)); })
+          ;
+          struct _template__var_d__builtin_unsigned_int___s  *P = ({
+            _template__var_d__builtin_unsigned_int__  *_result = ((alloca)((sizeof(_template__var_d__builtin_unsigned_int__))));
+            ((*(_result)) = ((_template__Free__builtin_unsigned_int__)()));
+            ((struct _template__var_d__builtin_unsigned_int___s *)(_result)); })
+          ;
+          struct _template__var_d__enum_Card___s  *C = ({
+            _template__var_d__enum_Card__  *_result = ((alloca)((sizeof(_template__var_d__enum_Card__))));
+            ((*(_result)) = ((_template__Free__enum_Card__)()));
+            ((struct _template__var_d__enum_Card___s *)(_result)); })
+          ;
+          struct _closure___builtin_bool__s _success_continuation = ({
+            struct _lambda_env_36831_s _env = {};
+            ;
+            ;
+            struct _lambda_env_36831_s  *_env_ptr = ((alloca)((sizeof(struct _lambda_env_36831_s))));
+            ((memcpy)((_env_ptr), (&(_env)), (sizeof(struct _lambda_env_36831_s))));
+            struct _closure___builtin_bool__s _result;
+            (((_result).fn_name) = "_lambda_fn_36831");
+            (((_result).env) = ((void *)(_env_ptr)));
+            (((_result).fn) = (_lambda_fn_36831));
+            ;
+            ;
+            ((struct _closure___builtin_bool__s)(_result)); })
+          ;
+          jmp_buf _cut_buffer;
+          (((setjmp)((_cut_buffer))) ? ({
+            ((undo_trail)((_trail), 0));
+            ((_template_delete_vector__datatype__trail_action_58__)((_trail)));
+            0; })
+           : ({
+            _Bool _result = (({
+              State _tmp36834 = ({
+                ;
+                (s); })
+              ;
+              ((_template__unify_var_val__datatype_State_161__)((S), (_tmp36834), (_trail))); })
+             && (({
+              PlayerId _tmp36835 = ({
+                ;
+                (p); })
+              ;
+              ((_template__unify_var_val__builtin_unsigned_int__)((P), (_tmp36835), (_trail))); })
+             && (({
+              Card _tmp36836 = ({
+                ;
+                (c); })
+              ;
+              ((_template__unify_var_val__enum_Card__)((C), (_tmp36836), (_trail))); })
+             && ((_template__predicate_partnerCardMovePossible_)((S), (P), (C), (_trail), (_success_continuation))))));
+            ((undo_trail)((_trail), 0));
+            ((_template_delete_vector__datatype__trail_action_58__)((_trail)));
+            (_result); })
+          ); })
+        ))
+        {
+          {
+            return 1;
+          }
+        } else {
+          ;
+        }
+      }
+    }
+    return 0;
+  }
+}
+struct _lambda_env_36853_s {
+  
+};
+static _Bool _lambda_fn_36853(void  * _env_ptr)
+{
+
+  ;
+  {
+    struct _lambda_env_36853_s _env = (*((struct _lambda_env_36853_s *)(_env_ptr)));
+    ;
+    return 1;
+  }
+}
 static _Bool _template__predicate_isWon_(struct _template__var_d__datatype_State_161___s  * _p0, struct _template__var_d__builtin_unsigned_int___s  * _p1, unification_trail  _trail, struct _closure___builtin_bool__s  _continuation);
 
 
@@ -13032,19 +13695,19 @@ static _Bool _template__predicate_isWon_(struct _template__var_d__datatype_State
 
 
 
-struct _lambda_env_36797_s {
+struct _lambda_env_36862_s {
   struct _template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition____s  *B;
   struct _template__var_d__builtin_unsigned_int___s  *P;
   struct _template__vector_s__datatype__trail_action_58__  *_trail;
   struct _closure___builtin_bool__s _continuation;
   
 };
-static _Bool _lambda_fn_36797(void  * _env_ptr)
+static _Bool _lambda_fn_36862(void  * _env_ptr)
 {
 
   ;
   {
-    struct _lambda_env_36797_s _env = (*((struct _lambda_env_36797_s *)(_env_ptr)));
+    struct _lambda_env_36862_s _env = (*((struct _lambda_env_36862_s *)(_env_ptr)));
     struct _template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition____s  *const B = ((_env).B);
     struct _template__var_d__builtin_unsigned_int___s  *const P = ((_env).P);
     struct _template__vector_s__datatype__trail_action_58__  *const _trail = ((_env)._trail);
@@ -13059,7 +13722,7 @@ static _Bool _lambda_fn_36797(void  * _env_ptr)
 
 
 
-struct _lambda_env_36812_s {
+struct _lambda_env_36877_s {
   struct _template__var_d__builtin_unsigned_int___s  *P1;
   struct _template__var_d__builtin_unsigned_int___s  *NP;
   struct _template__var_d__builtin_unsigned_int___s  *P2;
@@ -13068,19 +13731,19 @@ struct _lambda_env_36812_s {
   struct _closure___builtin_bool__s _continuation;
   
 };
-struct _lambda_env_36808_s {
+struct _lambda_env_36873_s {
   struct _template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition____s  *const B;
   struct _template__var_d__builtin_unsigned_int___s  *const P2;
   struct _template__vector_s__datatype__trail_action_58__  *const _trail;
   const struct _closure___builtin_bool__s _continuation;
   
 };
-static _Bool _lambda_fn_36808(void  * _env_ptr)
+static _Bool _lambda_fn_36873(void  * _env_ptr)
 {
 
   ;
   {
-    struct _lambda_env_36808_s _env = (*((struct _lambda_env_36808_s *)(_env_ptr)));
+    struct _lambda_env_36873_s _env = (*((struct _lambda_env_36873_s *)(_env_ptr)));
     struct _template__var_d__datatype__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition__edu_umn_cs_melt_exts_ableC_templating__template_map__datatype_Position_122___builtin_unsigned_int__comparePosition____s  *const B = ((_env).B);
     struct _template__var_d__builtin_unsigned_int___s  *const P2 = ((_env).P2);
     struct _template__vector_s__datatype__trail_action_58__  *const _trail = ((_env)._trail);
@@ -13089,12 +13752,12 @@ static _Bool _lambda_fn_36808(void  * _env_ptr)
     return ((_Bool)((_template__predicate_isFinished_)((B), (P2), (_trail), (_continuation))));
   }
 }
-static _Bool _lambda_fn_36812(void  * _env_ptr)
+static _Bool _lambda_fn_36877(void  * _env_ptr)
 {
 
   ;
   {
-    struct _lambda_env_36812_s _env = (*((struct _lambda_env_36812_s *)(_env_ptr)));
+    struct _lambda_env_36877_s _env = (*((struct _lambda_env_36877_s *)(_env_ptr)));
     struct _template__var_d__builtin_unsigned_int___s  *const P1 = ((_env).P1);
     struct _template__var_d__builtin_unsigned_int___s  *const NP = ((_env).NP);
     struct _template__var_d__builtin_unsigned_int___s  *const P2 = ((_env).P2);
@@ -13103,24 +13766,24 @@ static _Bool _lambda_fn_36812(void  * _env_ptr)
     const struct _closure___builtin_bool__s _continuation = ((_env)._continuation);
     ;
     return ((_Bool)(({
-      unsigned int _tmp36807 = ({
+      unsigned int _tmp36872 = ({
         struct _template__var_d__builtin_unsigned_int___s  *_P1 = (P1);
         PlayerId P1 = ((_template_value__builtin_unsigned_int__)((_P1)));
         struct _template__var_d__builtin_unsigned_int___s  *_NP = (NP);
         unsigned int NP = ((_template_value__builtin_unsigned_int__)((_NP)));
         (((((P1) + ((NP) / 2))) % ((NP)))); })
       ;
-      ((_template__unify_var_val__builtin_unsigned_int__)((P2), (_tmp36807), (_trail))); })
+      ((_template__unify_var_val__builtin_unsigned_int__)((P2), (_tmp36872), (_trail))); })
      && ((_template__predicate_isFinished_)((B), (P1), (_trail), ({
-      struct _lambda_env_36808_s _env = {(B), (P2), (_trail), (_continuation)};
+      struct _lambda_env_36873_s _env = {(B), (P2), (_trail), (_continuation)};
       ;
       ;
-      struct _lambda_env_36808_s  *_env_ptr = ((alloca)((sizeof(struct _lambda_env_36808_s))));
-      ((memcpy)((_env_ptr), (&(_env)), (sizeof(struct _lambda_env_36808_s))));
+      struct _lambda_env_36873_s  *_env_ptr = ((alloca)((sizeof(struct _lambda_env_36873_s))));
+      ((memcpy)((_env_ptr), (&(_env)), (sizeof(struct _lambda_env_36873_s))));
       struct _closure___builtin_bool__s _result;
-      (((_result).fn_name) = "_lambda_fn_36808");
+      (((_result).fn_name) = "_lambda_fn_36873");
       (((_result).env) = ((void *)(_env_ptr)));
-      (((_result).fn) = (_lambda_fn_36808));
+      (((_result).fn) = (_lambda_fn_36873));
       ;
       ;
       ((struct _closure___builtin_bool__s)(_result)); })
@@ -13164,7 +13827,7 @@ static _Bool _template__predicate_isWon_(struct _template__var_d__datatype_State
         ((struct _template__var_d__builtin_unsigned_int___s *)(_result)); })
       ;
       if (((({
-        struct State_s _tmp36793 = ((St)((NP), ({
+        struct State_s _tmp36858 = ((St)((NP), ({
           _template__var_d__builtin_bool__  *_result = ((alloca)((sizeof(_template__var_d__builtin_bool__))));
           ((*(_result)) = ((_template__Bound__builtin_bool__)(((_Bool)0))));
           ((struct _template__var_d__builtin_bool___s *)(_result)); })
@@ -13173,28 +13836,28 @@ static _Bool _template__predicate_isWon_(struct _template__var_d__datatype_State
           ((*(_result)) = ((_template__Free__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned___)()));
           ((struct _template__var_d__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned____s *)(_result)); })
         ));
-        ((_template__unify_var_val__datatype_State_161__)((_p0), (_tmp36793), (_trail))); })
+        ((_template__unify_var_val__datatype_State_161__)((_p0), (_tmp36858), (_trail))); })
        && (((_template__unify_var_var__builtin_unsigned_int__)((_p1), (P), (_trail))) && ((_Bool)1))) && (({
-        unsigned int _tmp36796 = ({
+        unsigned int _tmp36861 = ({
           struct _template__var_d__builtin_unsigned_int___s  *_NP = (NP);
           unsigned int NP = ((_template_value__builtin_unsigned_int__)((_NP)));
           (((NP) - 1)); })
         ;
-        ((_template__unify_var_val__builtin_unsigned_int__)((MAX_PLAYER), (_tmp36796), (_trail))); })
+        ((_template__unify_var_val__builtin_unsigned_int__)((MAX_PLAYER), (_tmp36861), (_trail))); })
        && ((_template__predicate_betweenU_)(({
         _template__var_d__builtin_unsigned_int__  *_result = ((alloca)((sizeof(_template__var_d__builtin_unsigned_int__))));
         ((*(_result)) = ((_template__Bound__builtin_unsigned_int__)(((unsigned int)0))));
         ((struct _template__var_d__builtin_unsigned_int___s *)(_result)); })
       , (MAX_PLAYER), (P), (_trail), ({
-        struct _lambda_env_36797_s _env = {(B), (P), (_trail), (_continuation)};
+        struct _lambda_env_36862_s _env = {(B), (P), (_trail), (_continuation)};
         ;
         ;
-        struct _lambda_env_36797_s  *_env_ptr = ((alloca)((sizeof(struct _lambda_env_36797_s))));
-        ((memcpy)((_env_ptr), (&(_env)), (sizeof(struct _lambda_env_36797_s))));
+        struct _lambda_env_36862_s  *_env_ptr = ((alloca)((sizeof(struct _lambda_env_36862_s))));
+        ((memcpy)((_env_ptr), (&(_env)), (sizeof(struct _lambda_env_36862_s))));
         struct _closure___builtin_bool__s _result;
-        (((_result).fn_name) = "_lambda_fn_36797");
+        (((_result).fn_name) = "_lambda_fn_36862");
         (((_result).env) = ((void *)(_env_ptr)));
-        (((_result).fn) = (_lambda_fn_36797));
+        (((_result).fn) = (_lambda_fn_36862));
         ;
         ;
         ((struct _closure___builtin_bool__s)(_result)); })
@@ -13235,7 +13898,7 @@ static _Bool _template__predicate_isWon_(struct _template__var_d__datatype_State
         ((struct _template__var_d__builtin_unsigned_int___s *)(_result)); })
       ;
       if (((({
-        struct State_s _tmp36802 = ((St)((NP), ({
+        struct State_s _tmp36867 = ((St)((NP), ({
           _template__var_d__builtin_bool__  *_result = ((alloca)((sizeof(_template__var_d__builtin_bool__))));
           ((*(_result)) = ((_template__Bound__builtin_bool__)(((_Bool)1))));
           ((struct _template__var_d__builtin_bool___s *)(_result)); })
@@ -13244,28 +13907,28 @@ static _Bool _template__predicate_isWon_(struct _template__var_d__datatype_State
           ((*(_result)) = ((_template__Free__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned___)()));
           ((struct _template__var_d__datatype__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned__edu_umn_cs_melt_exts_ableC_templating__template_map__builtin_unsigned_int___builtin_unsigned_int__compareUnsigned____s *)(_result)); })
         ));
-        ((_template__unify_var_val__datatype_State_161__)((_p0), (_tmp36802), (_trail))); })
+        ((_template__unify_var_val__datatype_State_161__)((_p0), (_tmp36867), (_trail))); })
        && (((_template__unify_var_var__builtin_unsigned_int__)((_p1), (P1), (_trail))) && ((_Bool)1))) && (({
-        unsigned int _tmp36805 = ({
+        unsigned int _tmp36870 = ({
           struct _template__var_d__builtin_unsigned_int___s  *_NP = (NP);
           unsigned int NP = ((_template_value__builtin_unsigned_int__)((_NP)));
           ((((NP) / 2) - 1)); })
         ;
-        ((_template__unify_var_val__builtin_unsigned_int__)((MAX_PLAYER), (_tmp36805), (_trail))); })
+        ((_template__unify_var_val__builtin_unsigned_int__)((MAX_PLAYER), (_tmp36870), (_trail))); })
        && ((_template__predicate_betweenU_)(({
         _template__var_d__builtin_unsigned_int__  *_result = ((alloca)((sizeof(_template__var_d__builtin_unsigned_int__))));
         ((*(_result)) = ((_template__Bound__builtin_unsigned_int__)(((unsigned int)0))));
         ((struct _template__var_d__builtin_unsigned_int___s *)(_result)); })
       , (MAX_PLAYER), (P1), (_trail), ({
-        struct _lambda_env_36812_s _env = {(P1), (NP), (P2), (_trail), (B), (_continuation)};
+        struct _lambda_env_36877_s _env = {(P1), (NP), (P2), (_trail), (B), (_continuation)};
         ;
         ;
-        struct _lambda_env_36812_s  *_env_ptr = ((alloca)((sizeof(struct _lambda_env_36812_s))));
-        ((memcpy)((_env_ptr), (&(_env)), (sizeof(struct _lambda_env_36812_s))));
+        struct _lambda_env_36877_s  *_env_ptr = ((alloca)((sizeof(struct _lambda_env_36877_s))));
+        ((memcpy)((_env_ptr), (&(_env)), (sizeof(struct _lambda_env_36877_s))));
         struct _closure___builtin_bool__s _result;
-        (((_result).fn_name) = "_lambda_fn_36812");
+        (((_result).fn_name) = "_lambda_fn_36877");
         (((_result).env) = ((void *)(_env_ptr)));
-        (((_result).fn) = (_lambda_fn_36812));
+        (((_result).fn) = (_lambda_fn_36877));
         ;
         ;
         ((struct _closure___builtin_bool__s)(_result)); })
@@ -13294,15 +13957,15 @@ _Bool isWon(State  s)
         ((struct _template__var_d__datatype_State_161___s *)(_result)); })
       ;
       struct _closure___builtin_bool__s _success_continuation = ({
-        struct _lambda_env_36788_s _env = {};
+        struct _lambda_env_36853_s _env = {};
         ;
         ;
-        struct _lambda_env_36788_s  *_env_ptr = ((alloca)((sizeof(struct _lambda_env_36788_s))));
-        ((memcpy)((_env_ptr), (&(_env)), (sizeof(struct _lambda_env_36788_s))));
+        struct _lambda_env_36853_s  *_env_ptr = ((alloca)((sizeof(struct _lambda_env_36853_s))));
+        ((memcpy)((_env_ptr), (&(_env)), (sizeof(struct _lambda_env_36853_s))));
         struct _closure___builtin_bool__s _result;
-        (((_result).fn_name) = "_lambda_fn_36788");
+        (((_result).fn_name) = "_lambda_fn_36853");
         (((_result).env) = ((void *)(_env_ptr)));
-        (((_result).fn) = (_lambda_fn_36788));
+        (((_result).fn) = (_lambda_fn_36853));
         ;
         ;
         ((struct _closure___builtin_bool__s)(_result)); })
@@ -13314,11 +13977,11 @@ _Bool isWon(State  s)
         0; })
        : ({
         _Bool _result = (({
-          State _tmp36791 = ({
+          State _tmp36856 = ({
             ;
             (s); })
           ;
-          ((_template__unify_var_val__datatype_State_161__)((S), (_tmp36791), (_trail))); })
+          ((_template__unify_var_val__datatype_State_161__)((S), (_tmp36856), (_trail))); })
          && ((_template__predicate_isWon_)((S), ({
           _template__var_d__builtin_unsigned_int__  *_result = ((alloca)((sizeof(_template__var_d__builtin_unsigned_int__))));
           ((*(_result)) = ((_template__Free__builtin_unsigned_int__)()));
@@ -13331,17 +13994,17 @@ _Bool isWon(State  s)
     ;
   }
 }
-struct _lambda_env_36822_s {
+struct _lambda_env_36887_s {
   unsigned int  *winner;
   struct _template__var_d__builtin_unsigned_int___s  *P;
   
 };
-static _Bool _lambda_fn_36822(void  * _env_ptr)
+static _Bool _lambda_fn_36887(void  * _env_ptr)
 {
 
   ;
   {
-    struct _lambda_env_36822_s _env = (*((struct _lambda_env_36822_s *)(_env_ptr)));
+    struct _lambda_env_36887_s _env = (*((struct _lambda_env_36887_s *)(_env_ptr)));
     PlayerId  *const winner = ((_env).winner);
     struct _template__var_d__builtin_unsigned_int___s  *const P = ((_env).P);
     ;
@@ -13368,15 +14031,15 @@ PlayerId getWinner(State  s)
         ((struct _template__var_d__builtin_unsigned_int___s *)(_result)); })
       ;
       struct _closure___builtin_bool__s _success_continuation = ({
-        struct _lambda_env_36822_s _env = {(winner), (P)};
+        struct _lambda_env_36887_s _env = {(winner), (P)};
         ;
         ;
-        struct _lambda_env_36822_s  *_env_ptr = ((alloca)((sizeof(struct _lambda_env_36822_s))));
-        ((memcpy)((_env_ptr), (&(_env)), (sizeof(struct _lambda_env_36822_s))));
+        struct _lambda_env_36887_s  *_env_ptr = ((alloca)((sizeof(struct _lambda_env_36887_s))));
+        ((memcpy)((_env_ptr), (&(_env)), (sizeof(struct _lambda_env_36887_s))));
         struct _closure___builtin_bool__s _result;
-        (((_result).fn_name) = "_lambda_fn_36822");
+        (((_result).fn_name) = "_lambda_fn_36887");
         (((_result).env) = ((void *)(_env_ptr)));
-        (((_result).fn) = (_lambda_fn_36822));
+        (((_result).fn) = (_lambda_fn_36887));
         ;
         ;
         ((struct _closure___builtin_bool__s)(_result)); })
@@ -13388,11 +14051,11 @@ PlayerId getWinner(State  s)
         0; })
        : ({
         _Bool _result = (({
-          State _tmp36825 = ({
+          State _tmp36890 = ({
             ;
             (s); })
           ;
-          ((_template__unify_var_val__datatype_State_161__)((S), (_tmp36825), (_trail))); })
+          ((_template__unify_var_val__datatype_State_161__)((S), (_tmp36890), (_trail))); })
          && ((_template__predicate_isWon_)((S), (P), (_trail), (_success_continuation))));
         ((undo_trail)((_trail), 0));
         ((_template_delete_vector__datatype__trail_action_58__)((_trail)));
