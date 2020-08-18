@@ -276,18 +276,16 @@ Player makeSearchPlayer(unsigned timeout, PlayoutFn playoutHand, unsigned depth)
         return 0;
       }
 
+      // If no moves will be possible with this hand, choose a random action immediately
+      if (!actionPossible(s, p, h, partnerHand)) {
+        return rand() % actions.size;
+      }
+
       struct timespec start, finish;
       clock_gettime(CLOCK_MONOTONIC, &start);
 
       match (s) {
         St(?&numPlayers, ?&partners, board, _) -> {
-          // If actions are burns and no marbles are out, choose a random action immediately
-          match (actions[0]) {
-            Burn(_) @when (query B is board, P is p, \+ mapContainsValue(B, Out(_), P) { return true; }) -> {
-              return rand() % actions.size;
-            }
-          }
-
           // Construct the deck of remaining cards that may be held by another player
           Hand remaining;
           initializeDeck(remaining);

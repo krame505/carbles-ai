@@ -79,6 +79,17 @@ cardMoves(St(NP, _, B, _), P1, J, [Swap(X, Y)]) :-
     mapContainsValue(B, Y, P2), Y = Out(I),
     I =\= (P2 * SECTOR_SIZE).
 
+cardMovePossible(St(NP, true, B, L), P1, C) :-
+    isFinished(B, P1), !,
+    P2 is mod(P1 + NP / 2, NP), cardMovePossible(St(NP, false, B, L), P2, C).
+cardMovePossible(St(_, _, B, _), P, _) :- mapContainsValue(B, Out(_), P).
+cardMovePossible(St(_, _, B, _), P, C) :- moveOutCard(C), \+ isFinished(B, P).
+
+partnerCardMovePossible(St(_, true, B, _), P, C) :- partnerMoveOutCard(C).
+partnerCardMovePossible(St(NP, true, B, L), P1, C) :-
+    P2 is mod(P1 + NP / 2, NP), isFinished(B, P2),
+    cardMovePossible(St(NP, false, B, L), P1, C).
+
 isFinished(B, P) :-
     mapContains(B, Finish(P, 0), P),
     mapContains(B, Finish(P, 1), P),

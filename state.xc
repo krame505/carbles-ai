@@ -14,6 +14,8 @@ prolog {
   moveOutCard(Card ?);
   partnerMoveOutCard(Card ?);
   cardMoves(State ?, PlayerId ?, Card ?, list<Move ?> ?);
+  cardMovePossible(State ?, PlayerId ?, Card ?);
+  partnerCardMovePossible(State ?, PlayerId ?, Card ?);
 
   isFinished(Board ?, PlayerId ?);
   isWon(State ?, PlayerId ?);
@@ -44,6 +46,19 @@ vector<Action> getActions(State s, PlayerId p, const Hand h) {
     }
   }
   return result;
+}
+
+bool actionPossible(State s, PlayerId p, const Hand h, const Hand partnerHand) {
+  for (Card c = 0; c < CARD_MAX; c++) {
+    if (h[c] && query S is s, P is p, C is c, cardMovePossible(S, P, C) { return true; }) {
+      return true;
+    }
+    if (partnerHand && partnerHand[c] &&
+        query S is s, P is p, C is c, partnerCardMovePossible(S, P, C) { return true; }) {
+      return true;
+    }
+  }
+  return false;
 }
 
 bool isWon(State s) {

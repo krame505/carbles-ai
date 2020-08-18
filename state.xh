@@ -111,6 +111,7 @@ State applyMoves(list<Move ?> ?, State);
 State applyAction(Action, State, Hand, Hand discard);
 
 vector<Action> getActions(State s, PlayerId p, const Hand h);
+_Bool actionPossible(State s, PlayerId p, const Hand h, const Hand partnerHand);
 _Bool isWon(State s);
 PlayerId getWinner(State s);
 
