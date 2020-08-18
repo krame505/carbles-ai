@@ -11,19 +11,20 @@
   <body>
     <h1>Carbles Online</h1>
     Welcome!  Carbles is a game combining cards and marbles, with elements of strategy and chance.
-    <a href="rules.shtml"><b>Rules</b></a>
+    <a href="rules.shtml" target="_blank"><b>Rules</b></a>
     
     <h2>Create or Join a Room</h2>
     <form action="/game.shtml" method="get">
-      <label for="room">Room code:</label>
+      <label for="room">Pick a room name:</label>
       <input type="text" maxlength="30" pattern="[a-zA-Z0-9]+" required id="room" name="room"><br><br>
-      <label for="name">Your name:</label>
+      <label for="name">Enter your name:</label>
       <input type="text" maxlength="50" required id="name" name="name"><br><br>
       <input type="submit" value="Join!">
 
       <script>
         room.oninvalid = function (e) {
-            event.target.setCustomValidity('Room code may only contain numbers and letters');
+            event.target.setCustomValidity(
+                'Room name may only contain numbers and letters, no spaces or special characters');
         }
       </script>
     </form>

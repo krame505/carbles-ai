@@ -189,7 +189,7 @@ function reloadState() {
 	  state.actions.forEach(
 	      function (a, i) {
 		actions.innerHTML +=
-		    `<li><a href="javascript:void(0);" ping="action?room=${room}&id=${id}&action=${i}" class="action">${a}</a></li>`
+		    `<li><a href="javascript:void(0);" onclick="$.ajax('action?room=${room}&id=${id}&action=${i}');" class="action">${a}</a></li>`
 	      })
 	  updateBoard(state.board)
 	}).fail(function () {
@@ -272,8 +272,8 @@ function handleStartEndGame() {
 }
 
 function handleChat() {
-  if (event.key == 'Enter') {
-    ws.send(`chat:${room}:${id}:${chatIn.value}`)
-    chatIn.value = ""
+  if (event.type == 'click' || (event.type == 'keydown' && event.key == 'Enter')) {
+    ws.send(`chat:${room}:${id}:${chatInput.value}`)
+    chatInput.value = ""
   }
 }

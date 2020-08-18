@@ -36,11 +36,14 @@
         <h2 id="turn"></h2>
         <h3 id="hand"></h3>
         <ul id="actions"></ul>
-        <a href="rules.shtml"><b>Rules</b></a>
+        <a href="rules.shtml" target="_blank"><b>Rules</b></a>
       </div>
       <div id="messages">
         <div id="messagesOut"></div><br>
-        <input type="text" id="chatIn" onkeydown="handleChat()">
+        <div id="messagesIn">
+          <input type="text" id="chatInput" onkeydown="handleChat()">
+          <button id="chatSend" onclick="handleChat()">Send</button>
+        </div>
       </div>
     </div>
 

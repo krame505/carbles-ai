@@ -1,9 +1,6 @@
 footer {
   text-align: center;
   font-size: 75%;
-  color: gray;
-  padding-top: 50px;
-  width: 100%;
 }
 
 table {
@@ -12,31 +9,20 @@ table {
   margin-bottom: 20px;
 }
 
-.textCell {
-  border: 1px solid black;
-}
-
-.lotCell {
+td {
   width: 30px;
   text-align: center;
   overflow: hidden;
+}
+
+.lotCell {
   color: white;
   border-radius: 0.7em;
 }
 
 .slotCell {
-  width: 30px;
-  text-align: center;
-  overflow: hidden;
   background: tan;
   border: 2px solid black;
-}
-
-.labelCell {
-  background-color: #fdff96;
-  color: brown;
-  font-weight: bolder;
-  font-size: 150%;
 }
 
 .slot {
@@ -87,6 +73,7 @@ table {
 #messages {
   flex-grow: 1;
   max-width: 50%;
+  min-width: 300px;
   padding: 10px;
 }
 
@@ -96,6 +83,11 @@ table {
   width: 100%;
 }
 
-#chatIn {
+#messagesIn {
   width: 100%;
+  display: flex;
+}
+
+#chatInput {
+  flex-grow: 1;
 }

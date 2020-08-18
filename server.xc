@@ -317,14 +317,14 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
             while (assigned[p]) { p = rand() % numPlayers; }
             assigned[p] = true;
             room->players[p] = makeHeuristicSearchPlayer();
-            room->playerNames[p] = "AI " + str(p + 1);
+            room->playerNames[p] = "AI " + str(i + 1);
             p = partner(numPlayers, p);
           }
           for (unsigned i = 0; i < room->numRandom; i++) {
             while (assigned[p]) { p = rand() % numPlayers; }
             assigned[p] = true;
             room->players[p] = makeRandomPlayer();
-            room->playerNames[p] = "Random " + str(p + 1);
+            room->playerNames[p] = "Random " + str(i + 1);
             p = partner(numPlayers, p);
           }
           room->gameInProgress = true;
@@ -653,6 +653,9 @@ static void *runServerGame(void *arg) {
         pthread_mutex_unlock(&room->mutex);
       },
       lambda (PlayerId p, unsigned handNum) -> void {
+        if (handNum == 0) {
+          notify(roomId, -1, str(""), false, false, room->playerNames[p] + "'s turn to deal", false);
+        }
         notify(roomId, -1, str(""), false, false, "Hand " + str(handNum + 1) +  " for dealer " + room->playerNames[p], false);
       },
       lambda (PlayerId p, Action a) -> void {
