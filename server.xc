@@ -248,6 +248,7 @@ static void handleState(struct mg_connection *nc, struct http_message *hm) {
       ", \"aiPlayers\": " + str(room->numAI) +
       ", \"randomPlayers\": " + str(room->numRandom) +
       ", \"partners\": " + show(room->partners) +
+      ", \"openHands\": " + show(room->openHands) +
       ", \"playersInGame\": " + jsonList(playersInGame) +
       ", \"id\": " + conn->id +
       ", \"actions\": " + jsonActions(actions, conn->id, partnerId) + "}";
