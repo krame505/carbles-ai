@@ -157,8 +157,8 @@ function reloadState() {
     $.ajax({url: `state.json?room=${room}&id=${id}`, cache: false, timeout: 3000}).done(
 	function (s) {
 	  reloadPending = false
-	  console.log("Got state: " + s)
 	  state = JSON.parse(s)
+	  console.log("Got state", state)
 	  playersInGame = state.playersInGame
 	  started = state.turn != null
 	  if (started) {
@@ -219,8 +219,8 @@ function connect() {
   if (ws == null || ws.readyState != WebSocket.OPEN) {
     ws = new WebSocket("ws://" + location.host)
     ws.onmessage = function (event) {
-      console.log("Got message: " + event.data)
       msg = JSON.parse(event.data)
+      console.log("Got message", msg)
       if (msg.room == room) {
 	if (msg.content) {
 	  addMessage(msg.id, msg.name, msg.chat, msg.content)

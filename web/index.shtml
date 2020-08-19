@@ -4,6 +4,7 @@
     <meta charset='utf-8'>
     <meta content='width=device-width, initial-scale=1' name='viewport'>
     <link rel="stylesheet" media="all" href="main.css">
+    <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
 
     <title>Carbles Online</title>
   </head>
@@ -28,6 +29,22 @@
         }
       </script>
     </form>
+
+    <br><br><br><br><br><br><br><br><br>
+    <span id="numActiveUsers"></span> active users and <span id="numActiveGames"></span> games in progress<br>
+    <span id="numUsers"></span> total unique users and <span id="numGames"></span> games played since <span id="startTime"></span><br>
+    <script>
+      $.ajax({url: "stats.json"}).done(
+          function (s) {
+              stats = JSON.parse(s)
+              console.log("Got stats", stats)
+              numActiveUsers.innerHTML = stats.activeUsers
+              numActiveGames.innerHTML = stats.activeGames
+              numUsers.innerHTML = stats.users
+              numGames.innerHTML = stats.games
+              startTime.innerHTML = stats.startTime
+          })
+    </script>
     
     <!--#include "footer.html" -->
   </body>

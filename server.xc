@@ -37,8 +37,7 @@ typedef struct Room Room;
 typedef struct PlayerConn PlayerConn;
 
 struct Room {
-  map<string, PlayerConn *, compareString> ?connections;
-  map<string, PlayerConn *, compareString> ?droppedConnections;
+  map<string, PlayerConn *, compareString> ?connections, ?droppedConnections;
   map<ConnId, string, compareConn> ?socketPlayers;
   unsigned numWeb;
   unsigned numAI;
@@ -86,6 +85,11 @@ static void logmsg(const char *format, ...) {
 static pthread_mutex_t roomsMutex = PTHREAD_MUTEX_INITIALIZER;
 static map<string, Room *, compareString> ?rooms;
 static map<ConnId, string, compareConn> ?socketRooms;
+
+// Stats
+static char startTime[80];
+static unsigned long numGames = 0, numActiveGames = 0;
+static map<string, unsigned, compareString> ?users, ?activeUsers;
 
 static void createRoom(string roomId) {
   logmsg("Creating room %s", roomId.text);
@@ -164,6 +168,24 @@ static string jsonList(vector<string> v) {
   }
   result += "]";
   return result;
+}
+
+static void handleStats(struct mg_connection *nc, struct http_message *hm) {
+  // Send headers
+  mg_printf(nc, "%s", "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n");
+
+  // Generate and send response
+  unsigned long numUsers[1] = {0}, numActiveUsers[1] = {0};
+  mapForeach(users, lambda (string connId, unsigned n) -> void { (*numUsers)++; });
+  mapForeach(activeUsers, lambda (string connId, unsigned n) -> void { (*numActiveUsers)++; });
+  string result = str("{") +
+    "\"startTime\": " + show(startTime) +
+    ", \"games\": " + numGames +
+    ", \"activeGames\": " + numActiveGames +
+    ", \"users\": " + *numUsers +
+    ", \"activeUsers\": " + *numActiveUsers + "}";
+  mg_printf_http_chunk(nc, "%s", result.text);
+  mg_send_http_chunk(nc, "", 0); // Send empty chunk, the end of response
 }
 
 static void handleState(struct mg_connection *nc, struct http_message *hm) {
@@ -298,6 +320,8 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
           notify(roomId, -1, str(""), false, false, str("Partner game requires an even number of players; consider adding an AI player."), true);
         } else {
           logmsg("Starting game in room %s", roomId_s);
+          numGames++;
+          numActiveGames++;
 
           resize_vector(room->playerNames, numPlayers);
           // Assign all players currently in the room
@@ -366,6 +390,8 @@ static void handleEnd(struct mg_connection *nc, struct http_message *hm) {
 
       if (room->gameInProgress) {
         logmsg("Ending game in room %s", roomId_s);
+        numGames--;  // Don't count canceled games towards stats
+        numActiveGames--;
 
         // Reset state
         room->gameInProgress = false;
@@ -424,7 +450,9 @@ static void handleAction(struct mg_connection *nc, struct http_message *hm) {
 }
 
 static void httpHandler(struct mg_connection *nc, int ev, struct http_message *hm) {
-  if (mg_vcmp(&hm->uri, "/state.json") == 0) {
+  if (mg_vcmp(&hm->uri, "/stats.json") == 0) {
+    handleStats(nc, hm);
+  } else if (mg_vcmp(&hm->uri, "/state.json") == 0) {
     handleState(nc, hm);
   } else if (mg_vcmp(&hm->uri, "/config") == 0) {
     handleConfig(nc, hm);
@@ -480,6 +508,16 @@ static void handleRegister(struct mg_connection *nc, const char *data, size_t si
       if (!room->gameInProgress) {
         room->state = initialState(room->numWeb + room->numAI + room->numRandom, room->partners);
       }
+    }
+    if (!mapContains(users, connId)) {
+      users = mapInsert(GC_malloc, users, connId, 1);
+    } else {
+      users = mapInsert(GC_malloc, users, connId, mapGet(users, connId) + 1);
+    }
+    if (!mapContains(activeUsers, connId)) {
+      activeUsers = mapInsert(GC_malloc, activeUsers, connId, 1);
+    } else {
+      activeUsers = mapInsert(GC_malloc, activeUsers, connId, mapGet(activeUsers, connId) + 1);
     }
 
     pthread_mutex_unlock(&room->mutex);
@@ -548,6 +586,13 @@ static void handleUnregister(struct mg_connection *nc) {
 
           notify(roomId, -1, str(""), false, true, conn->name + " left", true);
         }
+        if (mapContains(activeUsers, connId)) {
+          if (mapGet(activeUsers, connId) > 1) {
+            activeUsers = mapInsert(GC_malloc, activeUsers, connId, mapGet(activeUsers, connId) - 1);
+          } else {
+            activeUsers = mapDelete(GC_malloc, activeUsers, connId);
+          }
+        }
         room->socketPlayers = mapDelete(GC_malloc, room->socketPlayers, (ConnId)nc);
       }
       pthread_mutex_unlock(&room->mutex);
@@ -590,9 +635,17 @@ static void signal_handler(int sig_num) {
 }
 
 void serve(const char *port) {
+  // Record startup time
+  time_t t = time(NULL);
+  struct tm tm = *localtime(&t);
+
+  sprintf(startTime, "%d-%02d-%02d at %02d:%02d:%02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+
   // Initialize global variables
   rooms = emptyMap<string, Room *, compareString>(GC_malloc);
   socketRooms = emptyMap<ConnId, string, compareConn>(GC_malloc);
+  users = emptyMap<string, unsigned, compareString>(GC_malloc);
+  activeUsers = emptyMap<string, unsigned, compareString>(GC_malloc);
 
   // Set HTTP server options
   struct mg_bind_opts bind_opts;
@@ -678,6 +731,7 @@ static void *runServerGame(void *arg) {
   pthread_mutex_unlock(&room->mutex);
 
   logmsg("Finished game in room %s", roomId.text);
+  numActiveGames--;
 
   //GC_unregister_my_thread(); // TODO: Causes segfault.  Is this actually needed?
   return NULL;
