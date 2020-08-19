@@ -4,7 +4,7 @@
 #include <assert.h>
 
 PlayerId playGame(
-    unsigned numPlayers, bool partners, Player players[numPlayers],
+    unsigned numPlayers, bool partners, bool openHands, Player players[numPlayers],
     closure<(PlayerId) -> void> updateTurn,
     closure<(PlayerId, Hand) -> void> updateHand,
     closure<(State) -> void> updateState,
@@ -48,7 +48,7 @@ PlayerId playGame(
     unsigned actionNum = p.getAction(
         s,
         hands[currentPlayer],
-        partners? hands[partner(numPlayers, currentPlayer)] : NULL,
+        openHands? hands : NULL,
         discard, turn, currentPlayer, actions);
     assert(actionNum < actions.size);
     Action a = actions[actionNum];
@@ -70,9 +70,9 @@ PlayerId playGame(
   return winner;
 }
 
-PlayerId playQuietGame(unsigned numPlayers, bool partners, Player players[numPlayers]) {
+PlayerId playQuietGame(unsigned numPlayers, bool partners, bool openHands, Player players[numPlayers]) {
   return playGame(
-      numPlayers, partners, players,
+      numPlayers, partners, openHands, players,
       lambda (PlayerId p) -> void {},
       lambda (PlayerId p, Hand h) -> void {},
       lambda (State s) -> void {},
@@ -81,10 +81,10 @@ PlayerId playQuietGame(unsigned numPlayers, bool partners, Player players[numPla
       lambda (PlayerId p) -> void {});
 }
 
-PlayerId playConsoleGame(unsigned numPlayers, bool partners, Player players[numPlayers], FILE *out) {
+PlayerId playConsoleGame(unsigned numPlayers, bool partners, bool openHands, Player players[numPlayers], FILE *out) {
   assert(out != NULL);
   return playGame(
-      numPlayers, partners, players,
+      numPlayers, partners, openHands, players,
       lambda (PlayerId p) -> void {
         fprintf(out, "%s %s's turn\n", players[p].name, showPlayerId(p).text);
       },

@@ -44,6 +44,7 @@ struct Room {
   unsigned numAI;
   unsigned numRandom;
   bool partners;
+  bool openHands;
   Player players[MAX_PLAYERS];
   vector<string> playerNames;
   bool gameInProgress;
@@ -95,7 +96,7 @@ static void createRoom(string roomId) {
     emptyMap<string, PlayerConn *, compareString>(GC_malloc),
     emptyMap<string, PlayerConn *, compareString>(GC_malloc),
     emptyMap<ConnId, string, compareConn>(GC_malloc),
-    0, 1, 0, false,
+    0, 1, 0, false, false,
     {0}, vec<string>[], false, 0, initialState(0, false), {0}, vec<Action>[], false, 0, false,
     false, 0, PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER
   };
@@ -213,10 +214,10 @@ static void handleState(struct mg_connection *nc, struct http_message *hm) {
       (room->gameInProgress?
        "\"turn\": " + str(room->turn) +
        (conn->inGame?
-        ", \"hand\": " + jsonHand(room->hands[conn->id]) +
-        (partnerId != PLAYER_ID_NONE?
-         ", \"partnerHand\": " + jsonHand(room->hands[partnerId])
-         : str(""))
+        ", \"hand\": " + jsonHand(room->hands[conn->id])
+        : str("")) +
+       (room->openHands?
+        ", \"hands\": " + jsonHands(playersInGame.size, room->hands)
         : str("")) +
        ", "
        : str("")) +
@@ -241,14 +242,15 @@ static void handleState(struct mg_connection *nc, struct http_message *hm) {
 
 static void handleConfig(struct mg_connection *nc, struct http_message *hm) {
   // Get form variables
-  char roomId_s[MAX_ROOM_ID] = {0}, ai_s[10], random_s[10], partners_s[6];
+  char roomId_s[MAX_ROOM_ID] = {0}, ai_s[10], random_s[10], partners_s[6], openHands_s[6];
   mg_get_http_var(&hm->query_string, "room", roomId_s, sizeof(roomId_s));
   mg_get_http_var(&hm->query_string, "ai", ai_s, sizeof(ai_s));
   mg_get_http_var(&hm->query_string, "random", random_s, sizeof(random_s));
   mg_get_http_var(&hm->query_string, "partners", partners_s, sizeof(partners_s));
+  mg_get_http_var(&hm->query_string, "openhands", openHands_s, sizeof(openHands_s));
   string roomId = str(roomId_s);
   unsigned ai = atoi(ai_s), random = atoi(random_s);
-  bool partners = !strcmp(partners_s, "true");
+  bool partners = !strcmp(partners_s, "true"), openHands = !strcmp(openHands_s, "true");
 
   bool success = query
     RID is roomId, RS is rooms, mapContains(RS, RID, R),
@@ -259,6 +261,7 @@ static void handleConfig(struct mg_connection *nc, struct http_message *hm) {
       room->numAI = ai;
       room->numRandom = random;
       room->partners = partners;
+      room->openHands = openHands;
       if (!room->gameInProgress) {
         room->state = initialState(room->numWeb + room->numAI + room->numRandom, partners);
       }
@@ -630,7 +633,8 @@ static void *runServerGame(void *arg) {
   Room *room = mapGet(rooms, roomId);
 
   PlayerId winner = playGame(
-      room->numWeb + room->numAI + room->numRandom, room->partners, room->players,
+      room->numWeb + room->numAI + room->numRandom,
+      room->partners, room->openHands, room->players,
       lambda (PlayerId p) -> void {
         pthread_mutex_lock(&room->mutex);
         room->turn = p;
@@ -684,7 +688,7 @@ static void cleanup(void *mutex) {
 }
 
 Player makeWebPlayer(string roomId) {
-  return (Player){"web", lambda (State s, const Hand h, const Hand partnerHand, const Hand discard, unsigned turn, PlayerId p, vector<Action> actions) -> PlayerId {
+  return (Player){"web", lambda (State s, const Hand h, const Hand hands[], const Hand discard, unsigned turn, PlayerId p, vector<Action> actions) -> PlayerId {
       if (!running) {
         fprintf(stderr, "Web server isn't running!\n");
         exit(1);

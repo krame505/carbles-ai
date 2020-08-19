@@ -23,6 +23,7 @@
     <label>AI players: </label><input type="number" min="0" id="aiPlayers" onchange="updateConfig()" class="numInput"><br>
     <label>Random players: </label><input type="number" min="0" id="randomPlayers" onchange="updateConfig()" class="numInput"><br>
     <label>Partners </label><input type="checkbox" id="partners" onchange="updateConfig()"><br>
+    <label>Open hands </label><input type="checkbox" id="openHands" onchange="updateConfig()"><br>
 
     <button id="startEndGame" onclick="handleStartEndGame()">Start Game</button>
 

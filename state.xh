@@ -94,6 +94,7 @@ string showHand(const Hand h);
 string jsonPosition(Position ?p);
 string jsonState(State s);
 string jsonHand(const Hand h);
+string jsonHands(unsigned numPlayers, const Hand hands[numPlayers]);
 string jsonActions(vector<Action> a, PlayerId p1, PlayerId p2);
 
 PlayerId ?copyPlayerId(PlayerId ?);

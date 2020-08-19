@@ -166,9 +166,12 @@ function reloadState() {
 	    if ('hand' in state) {
               hand.innerHTML = "Current hand: " + state.hand
 	    }
-	    if ('partnerHand' in state) {
-	      partnerName = playersInGame[partner(state.board.numPlayers, state.id)]
-              hand.innerHTML += `<br>${partnerName}'s hand: ` + state.partnerHand
+	    if ('hands' in state) {
+	      for (p = 0; p < state.board.numPlayers; p++) {
+		if (p != state.id) {
+		  hand.innerHTML += `<br>${playersInGame[p]}'s hand: ` + state.hands[p]
+		}
+	      }
 	    }
             turn.style.color = getColor(state.turn)
             startEndGame.innerHTML = "End Game"
@@ -185,6 +188,7 @@ function reloadState() {
 	  aiPlayers.value = state.aiPlayers
 	  randomPlayers.value = state.randomPlayers
 	  partners.checked = state.partners
+	  openHands.checked = state.openHands
 	  actions.innerHTML = ""
 	  state.actions.forEach(
 	      function (a, i) {
@@ -258,7 +262,7 @@ function copyLink() {
 }
 
 function updateConfig() {
-  $.ajax({url: `config?room=${room}&ai=${aiPlayers.value}&random=${randomPlayers.value}&partners=${partners.checked}`, cache: false})
+  $.ajax({url: `config?room=${room}&ai=${aiPlayers.value}&random=${randomPlayers.value}&partners=${partners.checked}&openhands=${openHands.checked}`, cache: false})
 }
 
 function handleStartEndGame() {

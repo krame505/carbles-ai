@@ -138,9 +138,7 @@ vector<float> rulePlayoutHand(State s, PlayerId p, Hand hands[], unsigned depth)
   } else {
     vector<Action> actions = getActions(s, p, hands[p]);
     if (actions.size) {
-      Action a = actions[makeRulePlayer().getAction(
-          s, hands[p], partners(s)? hands[partner(numPlayers(s), p)] : NULL,
-          NULL, 0, p, actions)];
+      Action a = actions[makeRulePlayer().getAction(s, hands[p], hands, NULL, 0, p, actions)];
       Card c = getActionCard(a);
       hands[p][c]--;
       vector<float> result[1];
@@ -268,7 +266,7 @@ void expand(PlayoutFn playoutHand, unsigned depth, GameTree *t, Hand deck, Hand 
 }
 
 Player makeSearchPlayer(unsigned timeout, PlayoutFn playoutHand, unsigned depth) {
-  return (Player){"search", lambda (State s, const Hand h, const Hand partnerHand, const Hand discard, unsigned turn, PlayerId p, vector<Action> actions) -> unsigned {
+  return (Player){"search", lambda (State s, const Hand h, const Hand hands[], const Hand discard, unsigned turn, PlayerId p, vector<Action> actions) -> unsigned {
       //printf("%s\n", showHand(h).text);
 
       // If there is only one possible action, choose it immediately
@@ -276,21 +274,28 @@ Player makeSearchPlayer(unsigned timeout, PlayoutFn playoutHand, unsigned depth)
         return 0;
       }
 
-      // If no moves will be possible with this hand, choose a random action immediately
-      if (!actionPossible(s, p, h, partnerHand)) {
-        return rand() % actions.size;
-      }
-
       struct timespec start, finish;
       clock_gettime(CLOCK_MONOTONIC, &start);
 
       match (s) {
         St(?&numPlayers, ?&partners, board, _) -> {
+          // If no moves will be possible with this hand, choose a random action immediately
+          if (!actionPossible(s, p, h, hands && partners? hands[partner(numPlayers, p)] : NULL)) {
+            return rand() % actions.size;
+          }
+
           // Construct the deck of remaining cards that may be held by another player
           Hand remaining;
           initializeDeck(remaining);
           for (Card c = 0; c < CARD_MAX; c++) {
-            remaining[c] -= (h[c] + (partnerHand != NULL? partnerHand[c] : 0) + discard[c]);
+            remaining[c] -= discard[c];
+            if (hands) {
+              for (PlayerId p1 = 0; p1 < numPlayers; p1++) {
+                remaining[c] -= hands[p1][c];
+              }
+            } else {
+              remaining[c] -= h[c];
+            }
           }
 
           // Construct the initial children
@@ -309,19 +314,19 @@ Player makeSearchPlayer(unsigned timeout, PlayoutFn playoutHand, unsigned depth)
           // Perform playouts
           unsigned numPlayouts = 0;
           do {
-            Hand trialDeck;
+            Hand trialDeck, trialHands[numPlayers];
             memcpy(trialDeck, remaining, sizeof(Hand));
-            Hand hands[numPlayers];
-            unsigned size = getDeckSize(h);
-            unsigned dealt = deal(size - 1, size - 1, trialDeck, p, hands);
-            assert(dealt >= size - 1);
-            memcpy(hands[p], h, sizeof(Hand));
-            if (partners && partnerHand != NULL) {
-              memcpy(hands[partner(numPlayers, p)], partnerHand, sizeof(Hand));
+            if (hands) {
+              memcpy(trialHands, hands, sizeof(trialHands));
+            } else {
+              unsigned size = getDeckSize(h);
+              unsigned dealt = deal(size - 1, size - 1, trialDeck, p, trialHands);
+              assert(dealt >= size - 1);
+              memcpy(trialHands[p], h, sizeof(Hand));
+              dealt = deal(size - 1, size, trialDeck, numPlayers - p - 1, trialHands + p + 1);
+              assert(dealt >= size - 1);
             }
-            dealt = deal(size - 1, size, trialDeck, numPlayers - p - 1, hands + p + 1);
-            assert(dealt >= size - 1);
-            expand(playoutHand, depth, &t, trialDeck, hands);
+            expand(playoutHand, depth, &t, trialDeck, trialHands);
             numPlayouts++;
             clock_gettime(CLOCK_MONOTONIC, &finish);
             pthread_testcancel(); // This is a long-running task, allow cancellation at this point

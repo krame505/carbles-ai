@@ -1,6 +1,9 @@
 footer {
   text-align: center;
   font-size: 75%;
+  color: gray;
+  padding-top: 50px;
+  width: 100%;
 }
 
 table {
@@ -15,6 +18,11 @@ td {
   overflow: hidden;
 }
 
+.textCell {
+  width: auto;
+  border: 1px solid black;
+}
+
 .lotCell {
   color: white;
   border-radius: 0.7em;
@@ -23,6 +31,13 @@ td {
 .slotCell {
   background: tan;
   border: 2px solid black;
+}
+
+.labelCell {
+  background-color: #fdff96;
+  color: brown;
+  font-weight: bolder;
+  font-size: 150%;
 }
 
 .slot {

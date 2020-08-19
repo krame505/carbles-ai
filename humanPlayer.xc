@@ -5,10 +5,14 @@
 #include <stdbool.h>
 
 Player makeHumanPlayer() {
-  return (Player){"human", lambda (State s, const Hand h, const Hand partnerHand, const Hand discard, unsigned turn, PlayerId p, vector<Action> actions) -> unsigned {
+  return (Player){"human", lambda (State s, const Hand h, const Hand hands[], const Hand discard, unsigned turn, PlayerId p, vector<Action> actions) -> unsigned {
       printf("Hand: %s\n", showHand(h).text);
-      if (partnerHand) {
-        printf("Partner's hand: %s\n", showHand(partnerHand).text);
+      if (hands) {
+        for (PlayerId p1 = 0; p1 < numPlayers(s); p1++) {
+          if (p != p1) {
+            printf("Player %d's hand: %s\n", p1, showHand(hands[p1]).text);
+          }
+        }
       }
       printf("%s", showActions(actions, p, partner(numPlayers(s), p)).text);
       if (actions.size > 1) {

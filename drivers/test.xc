@@ -15,10 +15,12 @@
 
 int main(unsigned argc, char *argv[]) {
   if (argc < 3) {
-    printf("Usage: %s <number of games> <player 1> <player 2> ...\n", argv[0]);
+    printf("Usage: %s [-o] <number of games> <player 1> <player 2> ...\n", argv[0]);
     return 1;
   }
 
+  bool openHands = !strcmp(argv[1], "-o");
+  if (openHands) { argc--; argv++; }
   unsigned games = atoi(argv[1]);
   unsigned numPlayers = argc - 2;
 
@@ -66,7 +68,7 @@ int main(unsigned argc, char *argv[]) {
       trialPlayers[i] = players[ps[i]];
     }
 
-    PlayerId winner = ps[playQuietGame(numPlayers, false, trialPlayers)];
+    PlayerId winner = ps[playQuietGame(numPlayers, false, openHands, trialPlayers)];
 # if NUM_THREADS > 1
 #  pragma omp critical
 # endif

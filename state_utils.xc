@@ -224,6 +224,16 @@ string jsonHand(const Hand h) {
   return show(showHand(h));
 }
 
+string jsonHands(unsigned numPlayers, const Hand hands[numPlayers]) {
+  string result = str("[");
+  for (unsigned i = 0; i < numPlayers; i++) {
+    if (i) result += ", ";
+    result += jsonHand(hands[i]);
+  }
+  result += "]";
+  return result;
+}
+
 string jsonActions(vector<Action> a, PlayerId p1, PlayerId p2) {
   string result = str("[");
   for (unsigned i = 0; i < a.size; i++) {

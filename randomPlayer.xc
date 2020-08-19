@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 Player makeRandomPlayer() {
-  return (Player){"random", lambda (State s, const Hand h, const Hand partnerHand, const Hand discard, unsigned turn, PlayerId p, vector<Action> actions) ->
+  return (Player){"random", lambda (State s, const Hand h, const Hand hands[], const Hand discard, unsigned turn, PlayerId p, vector<Action> actions) ->
         (unsigned)(rand() % actions.size)
   };
 }
