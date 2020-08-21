@@ -1,3 +1,6 @@
+*.xc linguist-language=ableC
+*.sv linguist-language=Silver
+
 mongoose.h linguist-vendored
 mongoose.c linguist-vendored
 state.c.out linguist-generated
