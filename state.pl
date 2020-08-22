@@ -33,13 +33,15 @@ seqAdvance(S, P, X, N, [MoveDirect(X, Y) | MS]) :-
     N1 is (N - 1), seqAdvance(S, P, Y, N1, MS).
 seqAdvance(_, _, _, 0, []).
 
-splitAdvance(S1, P, XS1, N, MS) :-
-    N > 0, !,
-    select(X, XS1, XS2), between(1, N, N1),
-    seqAdvance(S1, P, X, N1, MS1),
-    moves(S1, MS1, S2), N2 is (N - N1), splitAdvance(S2, P, XS2, N2, MS2),
-    append(MS1, MS2, MS).
-splitAdvance(_, _, [], 0, []).
+splitAdvance(S1, P, XS1, N, MS1, MS) :-
+    N > 0,
+    select(X, XS1, XS2), \+ member(MoveDirect(_, X), MS1),
+    between(1, N, N1),
+    seqAdvance(S1, P, X, N1, MS2),
+    moves(S1, MS2, S2), N2 is (N - N1),
+    append(MS1, MS2, MS3),
+    splitAdvance(S2, P, XS2, N2, MS3, MS).
+splitAdvance(_, _, _, 0, MS, MS).
 
 directCard(C) :- A =< C, C =< 3 .
 directCard(C) :- 5 =< C, C =< 6 .
@@ -70,8 +72,14 @@ cardMoves(S, P, 4, [MoveDirect(X, Y)]) :-
     mapContainsValue(B, X, P), retreat(S, P, X, 4, Y).
 cardMoves(S, P, 7, MS) :-
     S = St(_, _, B, _),
-    mapKeys(B, XS1, P), subset(XS2, XS1),
-    splitAdvance(S, P, XS2, 7, MS).
+    mapKeys(B, XS, P), splitAdvance(S, P, XS, 7, [], MS).
+cardMoves(S, P1, 7, MS) :-
+    S = St(NP, true, B, _), P2 is mod(P1 + NP / 2, NP),
+    mapKeys(B, XS1, P1),
+    between(1, 6, N1), splitAdvance(S, P1, XS1, N1, [], MS1),
+    moves(S, MS1, S1), S1 = St(_, _, B1, _), isFinished(B1, P1), !,
+    mapKeys(B, XS2, P2), N2 is (7 - N1),
+    splitAdvance(S1, P2, XS2, N2, MS1, MS).
 cardMoves(St(NP, _, B, _), P1, J, [Swap(X, Y)]) :-
     MAX_PLAYER is (NP - 1),
     mapContainsValue(B, X, P1), X = Out(_),

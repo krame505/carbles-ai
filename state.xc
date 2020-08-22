@@ -8,7 +8,7 @@ prolog {
   advance(State ?, PlayerId ?, Position ?, unsigned ?, Position ?);
   retreat(State ?, PlayerId ?, Position ?, unsigned ?, Position ?);
   seqAdvance(State ?, PlayerId ?, Position ?, unsigned ?, list<Move ?> ?);
-  splitAdvance(State ?, PlayerId ?, list<Position ?> ?, unsigned ?, list<Move ?> ?);
+  splitAdvance(State ?, PlayerId ?, list<Position ?> ?, unsigned ?, list<Move ?> ?, list<Move ?> ?);
 
   directCard(Card ?);
   moveOutCard(Card ?);
