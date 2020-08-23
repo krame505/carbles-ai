@@ -14,6 +14,9 @@
 #define MAX_NAME 50
 #define MAX_MSG 10000
 
+#define STR2(x) # x
+#define STR(x) STR2(x)
+
 const static struct mg_serve_http_opts s_http_server_opts = {0,
   .document_root = "web/",
   .enable_directory_listing = "no"
@@ -67,19 +70,27 @@ struct PlayerConn {
   string name;
 };
 
+static const char *logFile = "log.txt";
+
 static void logmsg(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 static void logmsg(const char *format, ...) {
   va_list args;
-  va_start(args, format);
-
   time_t t = time(NULL);
   struct tm tm = *localtime(&t);
 
   fprintf(stderr, "[%d-%02d-%02d %02d:%02d:%02d] ", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+  va_start(args, format);
   vfprintf(stderr, format, args);
+  va_end(args);
   fprintf(stderr, "\n");
 
+  FILE *out = fopen(logFile, "a");
+  fprintf(out, "[%d-%02d-%02d %02d:%02d:%02d] ", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+  va_start(args, format);
+  vfprintf(out, format, args);
   va_end(args);
+  fprintf(out, "\n");
+  fclose(out);
 }
 
 static pthread_mutex_t roomsMutex = PTHREAD_MUTEX_INITIALIZER;
@@ -90,6 +101,9 @@ static map<ConnId, string, compareConn> ?socketRooms;
 static char startTime[80];
 static unsigned long numGames = 0, numActiveGames = 0;
 static map<string, unsigned, compareString> ?users, ?activeUsers;
+
+static const char *gamesFile = "games.txt";
+static const char *usersFile = "users.txt";
 
 static void createRoom(string roomId) {
   logmsg("Creating room %s", roomId.text);
@@ -190,7 +204,7 @@ static void handleStats(struct mg_connection *nc, struct http_message *hm) {
 
 static void handleState(struct mg_connection *nc, struct http_message *hm) {
   // Get form variables
-  char roomId_s[MAX_ROOM_ID] = {0}, connId_s[MAX_CONN_ID] = {0};
+  char roomId_s[MAX_ROOM_ID + 1] = {0}, connId_s[MAX_CONN_ID + 1] = {0};
   mg_get_http_var(&hm->query_string, "room", roomId_s, sizeof(roomId_s));
   mg_get_http_var(&hm->query_string, "id", connId_s, sizeof(connId_s));
   string roomId = str(roomId_s), connId = str(connId_s);
@@ -265,7 +279,7 @@ static void handleState(struct mg_connection *nc, struct http_message *hm) {
 
 static void handleConfig(struct mg_connection *nc, struct http_message *hm) {
   // Get form variables
-  char roomId_s[MAX_ROOM_ID] = {0}, ai_s[10], random_s[10], partners_s[6], openHands_s[6];
+  char roomId_s[MAX_ROOM_ID + 1] = {0}, ai_s[10], random_s[10], partners_s[6], openHands_s[6];
   mg_get_http_var(&hm->query_string, "room", roomId_s, sizeof(roomId_s));
   mg_get_http_var(&hm->query_string, "ai", ai_s, sizeof(ai_s));
   mg_get_http_var(&hm->query_string, "random", random_s, sizeof(random_s));
@@ -303,7 +317,7 @@ static void handleConfig(struct mg_connection *nc, struct http_message *hm) {
 
 static void handleStart(struct mg_connection *nc, struct http_message *hm) {
   // Get form variables
-  char roomId_s[MAX_ROOM_ID] = {0};
+  char roomId_s[MAX_ROOM_ID + 1] = {0};
   mg_get_http_var(&hm->query_string, "room", roomId_s, sizeof(roomId_s));
   string roomId = str(roomId_s);
 
@@ -320,9 +334,13 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
         } else if (room->partners && numPlayers % 2 != 0) {
           notify(roomId, -1, str(""), false, false, str("Partner game requires an even number of players; consider adding an AI player."), true);
         } else {
-          logmsg("Starting game in room %s", roomId_s);
+          logmsg("Starting %s%sgame in room %s",
+                 room->openHands? "open-hand " : "", room->partners? "partner " : "", roomId_s);
           numGames++;
           numActiveGames++;
+          FILE *gamesOut = fopen(gamesFile, "w");
+          fprintf(gamesOut, "%d\n", numGames);
+          fclose(gamesOut);
 
           resize_vector(room->playerNames, numPlayers);
           // Assign all players currently in the room
@@ -379,7 +397,7 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
 
 static void handleEnd(struct mg_connection *nc, struct http_message *hm) {
   // Get form variables
-  char roomId_s[MAX_ROOM_ID] = {0};
+  char roomId_s[MAX_ROOM_ID + 1] = {0};
   mg_get_http_var(&hm->query_string, "room", roomId_s, sizeof(roomId_s));
   string roomId = str(roomId_s);
 
@@ -417,7 +435,7 @@ static void handleEnd(struct mg_connection *nc, struct http_message *hm) {
 
 static void handleAction(struct mg_connection *nc, struct http_message *hm) {
   // Get form variables
-  char roomId_s[MAX_ROOM_ID] = {0}, connId_s[MAX_CONN_ID] = {0}, a_s[10];
+  char roomId_s[MAX_ROOM_ID + 1] = {0}, connId_s[MAX_CONN_ID + 1] = {0}, a_s[10];
   mg_get_http_var(&hm->query_string, "room", roomId_s, sizeof(roomId_s));
   mg_get_http_var(&hm->query_string, "id", connId_s, sizeof(connId_s));
   mg_get_http_var(&hm->query_string, "action", a_s, sizeof(a_s));
@@ -469,8 +487,8 @@ static void httpHandler(struct mg_connection *nc, int ev, struct http_message *h
 }
 
 static void handleRegister(struct mg_connection *nc, const char *data, size_t size) {
-  char roomId_s[MAX_ROOM_ID], connId_s[MAX_CONN_ID], name_s[MAX_NAME];
-  if (sscanf(data, "join:%[^:]:%[^:]:%[^\n]", roomId_s, connId_s, name_s) == 3) {
+  char roomId_s[MAX_ROOM_ID + 1], connId_s[MAX_CONN_ID + 1], name_s[MAX_NAME + 1];
+  if (sscanf(data, "join:%"STR(MAX_ROOM_ID)"[^:]:%"STR(MAX_CONN_ID)"[^:]:%"STR(MAX_NAME)"[^\n]", roomId_s, connId_s, name_s) == 3) {
     string roomId = str(roomId_s), connId = str(connId_s), name = str(name_s);
     char addr[32];
     mg_sock_addr_to_str(&nc->sa, addr, sizeof(addr), MG_SOCK_STRINGIFY_IP | MG_SOCK_STRINGIFY_PORT | MG_SOCK_STRINGIFY_REMOTE);
@@ -512,6 +530,9 @@ static void handleRegister(struct mg_connection *nc, const char *data, size_t si
     }
     if (!mapContains(users, connId)) {
       users = mapInsert(GC_malloc, users, connId, 1);
+      FILE *usersOut = fopen(usersFile, "a");
+      fprintf(usersOut, "%s: %s\n", connId_s, name_s);
+      fclose(usersOut);
     } else {
       users = mapInsert(GC_malloc, users, connId, mapGet(users, connId) + 1);
     }
@@ -530,8 +551,8 @@ static void handleRegister(struct mg_connection *nc, const char *data, size_t si
 }
 
 static void handleChat(struct mg_connection *nc, const char *data, size_t size) {
-  char roomId_s[MAX_ROOM_ID], connId_s[MAX_CONN_ID], msg_s[size];
-  if (sscanf(data, "chat:%[^:]:%[^:]:%[^\n]", roomId_s, connId_s, msg_s) == 3) {
+  char roomId_s[MAX_ROOM_ID + 1], connId_s[MAX_CONN_ID + 1], msg_s[size];
+  if (sscanf(data, "chat:%"STR(MAX_ROOM_ID)"[^:]:%"STR(MAX_CONN_ID)"[^:]:%[^\n]", roomId_s, connId_s, msg_s) == 3) {
     string roomId = str(roomId_s), connId = str(connId_s), msg = str(msg_s);
 
     query RID is roomId, RS is rooms, mapContains(RS, RID, R),
@@ -647,6 +668,19 @@ void serve(const char *port) {
   socketRooms = emptyMap<ConnId, string, compareConn>(GC_malloc);
   users = emptyMap<string, unsigned, compareString>(GC_malloc);
   activeUsers = emptyMap<string, unsigned, compareString>(GC_malloc);
+
+  FILE *gamesIn = fopen(gamesFile, "r"), *usersIn = fopen(usersFile, "r");
+  if (gamesIn) {
+    fscanf(gamesIn, "%d", &numGames);
+    fclose(gamesIn);
+  }
+  if (usersIn) {
+    char connId[MAX_CONN_ID + 1] = {0};
+    while (fscanf(usersIn, "%"STR(MAX_CONN_ID)"[^:]:%*[^\n]\n", connId) > 0) {
+      users = mapInsert(GC_malloc, users, str(connId), 0);
+    }
+    fclose(usersIn);
+  }
 
   // Set HTTP server options
   struct mg_bind_opts bind_opts;

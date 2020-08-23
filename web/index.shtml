@@ -32,7 +32,8 @@
 
     <br><br><br><br><br><br><br><br><br>
     <span id="numActiveUsers"></span> active users and <span id="numActiveGames"></span> games in progress<br>
-    <span id="numUsers"></span> total unique users and <span id="numGames"></span> games played since <span id="startTime"></span><br>
+    <span id="numUsers"></span> total unique users and <span id="numGames"></span> games played<br>
+    Server started <span id="startTime"></span><br>
     <script>
       $.ajax({url: "stats.json"}).done(
           function (s) {
