@@ -339,7 +339,7 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
           numGames++;
           numActiveGames++;
           FILE *gamesOut = fopen(gamesFile, "w");
-          fprintf(gamesOut, "%d\n", numGames);
+          fprintf(gamesOut, "%lu\n", numGames);
           fclose(gamesOut);
 
           resize_vector(room->playerNames, numPlayers);
@@ -671,7 +671,7 @@ void serve(const char *port) {
 
   FILE *gamesIn = fopen(gamesFile, "r"), *usersIn = fopen(usersFile, "r");
   if (gamesIn) {
-    fscanf(gamesIn, "%d", &numGames);
+    fscanf(gamesIn, "%lu", &numGames);
     fclose(gamesIn);
   }
   if (usersIn) {
