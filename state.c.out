@@ -6981,7 +6981,7 @@ static _Bool _template__predicate_partnerMoveOutCard_(struct _template__var_d__e
     {
       ;
       if (((({
-        Card _tmp880 = ((Card)(K));
+        Card _tmp880 = ((Card)(Joker));
         ((_template__unify_var_val__enum_Card__)((_p0), (_tmp880), (_trail))); })
        && ((_Bool)1)) && ({
         

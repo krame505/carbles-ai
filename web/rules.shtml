@@ -720,6 +720,10 @@
               <span>
                 Moves out or does nothing</span>
             </p>
+            <p>
+              <span>
+                Moves partner out when playing with partners (see below)</span>
+            </p>
           </td>
         </tr>
         <tr>
@@ -801,10 +805,6 @@
             <p>
               <span>
                 Moves out or advances 13 spaces</span>
-            </p>
-            <p>
-              <span>
-                Moves partner out when playing with partners (see below)</span>
             </p>
           </td>
         </tr>

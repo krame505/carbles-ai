@@ -51,7 +51,7 @@ moveOutCard(Joker).
 moveOutCard(A).
 moveOutCard(K).
 
-partnerMoveOutCard(K).
+partnerMoveOutCard(Joker).
 
 cardMoves(St(NP, true, B, L), P1, C, MS) :-
     isFinished(B, P1), !,
