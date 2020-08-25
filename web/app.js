@@ -216,32 +216,36 @@ function addMessage(id, name, chat, msg) {
 
 function connect() {
   console.log("Connecting")
-  if (ws == null || ws.readyState != WebSocket.OPEN) {
-    ws = new WebSocket("ws://" + location.host)
-    ws.onmessage = function (event) {
-      msg = JSON.parse(event.data)
-      console.log("Got message", msg)
-      if (msg.room == room) {
-	if (msg.content) {
-	  addMessage(msg.id, msg.name, msg.chat, msg.content)
-	}
-	if (msg.reload) {
-	  reloadState()
-	}
+  if (ws != null && ws.readyState != WebSocket.OPEN) {
+    ws.close()
+  }
+  ws = new WebSocket("ws://" + location.host)
+  ws.onmessage = function (event) {
+    msg = JSON.parse(event.data)
+    console.log("Got message", msg)
+    if (msg.disconnect) {
+      addMessage(null, null, false, "Room joined in another tab!  Disconnected here; refresh the page if you would like to reconnect.")
+      actions.innerHTML = ""
+    } else if (msg.room == room) {
+      if (msg.content) {
+	addMessage(msg.id, msg.name, msg.chat, msg.content)
+      }
+      if (msg.reload) {
+	reloadState()
       }
     }
-    ws.onopen = function(e) {
-      console.log("Joining room")
-      ws.send(`join:${room}:${id}:${name}`)
-    }
-    ws.onclose = function(e) {
-      console.log('Socket is closed. Reconnect will be attempted in 5 seconds.', e.reason)
-      addMessage(null, null, false, "Connection lost!  Reconnecting in 5 seconds.")
-      setTimeout(connect, 5000)
-    }
-    ws.onerror = function(e) {
-      console.log('Websocket error: ', e)
-    }
+  }
+  ws.onopen = function(e) {
+    console.log("Joining room")
+    ws.send(`join:${room}:${id}:${name}`)
+  }
+  ws.onclose = function(e) {
+    console.log('Socket is closed. Reconnect will be attempted in 5 seconds.', e.reason)
+    addMessage(null, null, false, "Connection lost!  Reconnecting in 5 seconds.")
+    setTimeout(connect, 5000)
+  }
+  ws.onerror = function(e) {
+    console.log('Websocket error: ', e)
   }
 }
 

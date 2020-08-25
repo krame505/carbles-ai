@@ -27,8 +27,8 @@ static bool running = false;
 static sig_atomic_t signal_received = 0;
 
 // Uniquely identify connections by the memory address of the struct mg_connection
-typedef unsigned long ConnId;
-static int compareConn(ConnId a, ConnId b) {
+typedef unsigned long SocketId;
+static int compareSocket(SocketId a, SocketId b) {
   return (int)a - (int)b;
 }
 
@@ -41,7 +41,7 @@ typedef struct PlayerConn PlayerConn;
 
 struct Room {
   map<string, PlayerConn *, compareString> ?connections, ?droppedConnections;
-  map<ConnId, string, compareConn> ?socketPlayers;
+  map<SocketId, string, compareSocket> ?socketPlayers;
   unsigned numWeb;
   unsigned numAI;
   unsigned numRandom;
@@ -66,6 +66,7 @@ struct Room {
 
 struct PlayerConn {
   bool inGame;
+  SocketId socket;
   PlayerId id;
   string name;
 };
@@ -95,7 +96,7 @@ static void logmsg(const char *format, ...) {
 
 static pthread_mutex_t roomsMutex = PTHREAD_MUTEX_INITIALIZER;
 static map<string, Room *, compareString> ?rooms;
-static map<ConnId, string, compareConn> ?socketRooms;
+static map<SocketId, string, compareSocket> ?socketRooms;
 
 // Stats
 static char startTime[80];
@@ -113,7 +114,7 @@ static void createRoom(string roomId) {
   *room = (Room){
     emptyMap<string, PlayerConn *, compareString>(GC_malloc),
     emptyMap<string, PlayerConn *, compareString>(GC_malloc),
-    emptyMap<ConnId, string, compareConn>(GC_malloc),
+    emptyMap<SocketId, string, compareSocket>(GC_malloc),
     0, 1, 0, false, false,
     {0}, vec<string>[], false, 0, initialState(0, false), {0}, vec<Action>[], false, 0, false,
     false, 0, PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER
@@ -137,7 +138,7 @@ static void notifyHandler(struct mg_connection *nc, int ev, void *ev_data) {
     string msg = ((struct notification *)ev_data)->msg;
 
     query RID is roomId, RS is rooms, mapContains(RS, RID, R),
-          SP is (R->socketPlayers), NC is ((ConnId)nc), mapContains(SP, NC, _) {
+          SP is (R->socketPlayers), NC is ((SocketId)nc), mapContains(SP, NC, _) {
       mg_send_websocket_frame(nc, WEBSOCKET_OP_TEXT, msg.text, msg.length);
     };
   }
@@ -503,24 +504,49 @@ static void handleRegister(struct mg_connection *nc, const char *data, size_t si
 
     // Add the connection to the global map
     pthread_mutex_lock(&roomsMutex);
-    socketRooms = mapInsert(GC_malloc, socketRooms, (ConnId)nc, roomId);
+    socketRooms = mapInsert(GC_malloc, socketRooms, (SocketId)nc, roomId);
     pthread_mutex_unlock(&roomsMutex);
 
-    // Add the player if they are initially joining
     PlayerConn *conn = NULL;
-    if (!mapContains(room->connections, connId)) {
+    if (mapContains(room->connections, connId)) {
+      // The player has already joined
+      conn = mapGet(room->connections, connId);
+      if (conn->socket != (SocketId)nc) {
+        logmsg("Player %s rejoined from a different socket", connId_s);
+
+        // Send a notification to the current tab, but leave the socket open to avoid attempting to reconnect
+        string disconnectMsg = str("{\"disconnect\": true}");
+        mg_send_websocket_frame((struct mg_connection *)conn->socket, WEBSOCKET_OP_TEXT, disconnectMsg.text, disconnectMsg.length);
+
+        // Update the connection
+        pthread_mutex_lock(&roomsMutex);
+        if (mapContains(socketRooms, conn->socket)) {
+          socketRooms = mapDelete(GC_malloc, socketRooms, conn->socket);
+        }
+        pthread_mutex_unlock(&roomsMutex);
+        if (mapContains(room->socketPlayers, conn->socket)) {
+          room->socketPlayers = mapDelete(GC_malloc, room->socketPlayers, conn->socket);
+        }
+        room->socketPlayers = mapInsert(GC_malloc, room->socketPlayers, (SocketId)nc, connId);
+        conn->socket = (SocketId)nc;
+      } else {
+        logmsg("Player %s rejoined from the same socket", connId_s);
+      }
+    } else {
+      // The player is initially joining, add them
       if (mapContains(room->droppedConnections, connId)) {
         conn = mapGet(room->droppedConnections, connId);
         room->droppedConnections = mapDelete(GC_malloc, room->droppedConnections, connId);
+        conn->socket = (SocketId)nc;
       } else {
         conn = GC_malloc(sizeof(PlayerConn));
-        *conn = (PlayerConn){false, 0, connId};
+        *conn = (PlayerConn){false, (SocketId)nc, 0, connId};
       }
       if (name.length) {
         conn->name = name;
       }
       room->connections = mapInsert(GC_malloc, room->connections, connId, conn);
-      room->socketPlayers = mapInsert(GC_malloc, room->socketPlayers, (ConnId)nc, connId);
+      room->socketPlayers = mapInsert(GC_malloc, room->socketPlayers, (SocketId)nc, connId);
       room->numWeb++;
       logmsg("Room has %d players", room->numWeb);
 
@@ -528,6 +554,8 @@ static void handleRegister(struct mg_connection *nc, const char *data, size_t si
         room->state = initialState(room->numWeb + room->numAI + room->numRandom, room->partners);
       }
     }
+    notify(roomId, -1, str(""), false, true, conn->name + " joined", true);
+
     if (!mapContains(users, connId)) {
       users = mapInsert(GC_malloc, users, connId, 1);
       FILE *usersOut = fopen(usersFile, "a");
@@ -543,10 +571,6 @@ static void handleRegister(struct mg_connection *nc, const char *data, size_t si
     }
 
     pthread_mutex_unlock(&room->mutex);
-
-    if (conn != NULL) {
-      notify(roomId, -1, str(""), false, true, conn->name + " joined", true);
-    }
   }
 }
 
@@ -583,30 +607,32 @@ static void websocketHandler(struct mg_connection *nc, int ev, struct websocket_
 
 static void handleUnregister(struct mg_connection *nc) {
   pthread_mutex_lock(&roomsMutex);
-  if (mapContains(socketRooms, (ConnId)nc)) {
-    string roomId = mapGet(socketRooms, (ConnId)nc);
+  if (mapContains(socketRooms, (SocketId)nc)) {
+    string roomId = mapGet(socketRooms, (SocketId)nc);
 
     if (mapContains(rooms, roomId)) {
       Room *room = mapGet(rooms, roomId);
 
       pthread_mutex_lock(&room->mutex);
-      if (mapContains(room->socketPlayers, (ConnId)nc)) {
-        string connId = mapGet(room->socketPlayers, (ConnId)nc);
+      if (mapContains(room->socketPlayers, (SocketId)nc)) {
+        string connId = mapGet(room->socketPlayers, (SocketId)nc);
 
         logmsg("Unregistering %s from %s", connId.text, roomId.text);
         if (mapContains(room->connections, connId)) {
           PlayerConn *conn = mapGet(room->connections, connId);
 
-          room->connections = mapDelete(GC_malloc, room->connections, connId);
-          room->droppedConnections = mapInsert(GC_malloc, room->droppedConnections, connId, conn);
-          room->numWeb--;
-          logmsg("Room has %d players", room->numWeb);
+          if ((SocketId)nc == conn->socket) {
+            room->connections = mapDelete(GC_malloc, room->connections, connId);
+            room->droppedConnections = mapInsert(GC_malloc, room->droppedConnections, connId, conn);
+            room->numWeb--;
+            logmsg("Room has %d players", room->numWeb);
 
-          if (!room->gameInProgress) {
-            room->state = initialState(room->numWeb + room->numAI + room->numRandom, room->partners);
+            if (!room->gameInProgress) {
+              room->state = initialState(room->numWeb + room->numAI + room->numRandom, room->partners);
+            }
+
+            notify(roomId, -1, str(""), false, true, conn->name + " left", true);
           }
-
-          notify(roomId, -1, str(""), false, true, conn->name + " left", true);
         }
         if (mapContains(activeUsers, connId)) {
           if (mapGet(activeUsers, connId) > 1) {
@@ -615,11 +641,11 @@ static void handleUnregister(struct mg_connection *nc) {
             activeUsers = mapDelete(GC_malloc, activeUsers, connId);
           }
         }
-        room->socketPlayers = mapDelete(GC_malloc, room->socketPlayers, (ConnId)nc);
+        room->socketPlayers = mapDelete(GC_malloc, room->socketPlayers, (SocketId)nc);
       }
       pthread_mutex_unlock(&room->mutex);
     }
-    socketRooms = mapDelete(GC_malloc, socketRooms, (ConnId)nc);
+    socketRooms = mapDelete(GC_malloc, socketRooms, (SocketId)nc);
   }
   pthread_mutex_unlock(&roomsMutex);
 }
@@ -665,7 +691,7 @@ void serve(const char *port) {
 
   // Initialize global variables
   rooms = emptyMap<string, Room *, compareString>(GC_malloc);
-  socketRooms = emptyMap<ConnId, string, compareConn>(GC_malloc);
+  socketRooms = emptyMap<SocketId, string, compareSocket>(GC_malloc);
   users = emptyMap<string, unsigned, compareString>(GC_malloc);
   activeUsers = emptyMap<string, unsigned, compareString>(GC_malloc);
 
