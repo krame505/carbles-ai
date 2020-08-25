@@ -12,6 +12,10 @@
 
   <body onload="connect()" onbeforeunload="disconnect()" onunload="disconnect()">
     <h1>Carbles Online</h1>
+    <a href="/"><b>Home</b></a>
+    <a href="rules.shtml" target="_blank"><b>Rules</b></a>
+
+    <br><br>
 
     <input type="text" size="50" readonly id="joinLink"><script>initLink()</script>
     <button onclick="copyLink()">Copy room link</button>
