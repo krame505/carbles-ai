@@ -41,7 +41,7 @@ function partner(numPlayers, p) {
 }
 
 function getColor(player) {
-  return ['dimgrey', 'red', 'blue', 'green', 'orange', 'purple', 'gold', 'maroon', 'turquoise', 'indigo', 'midnightblue', 'salmon'][player]
+  return ['#606060', 'red', 'blue', 'green', 'orange', 'purple', 'gold', 'maroon', 'turquoise', 'indigo', 'midnightblue', 'salmon'][player]
 }
 
 function updateCell(cell, label, state, l, r, t, b, highlight=null) {
@@ -137,7 +137,8 @@ function updateBoard(state) {
     let headCell = document.createElement('th')
     headCell.innerHTML = playersInGame[p]
     if (state.partners) {
-      headCell.innerHTML += `<br>(${playersInGame[partner(state.numPlayers, p)]})`
+      p2 = partner(state.numPlayers, p)
+      headCell.innerHTML += `<br>(<span style="color: ${getColor(p2)};">${playersInGame[p2]}</span>)`
     }
     headCell.colSpan = 3
     head.append(headCell)
@@ -169,7 +170,7 @@ function reloadState() {
 	    if ('hands' in state) {
 	      for (p = 0; p < state.board.numPlayers; p++) {
 		if (p != state.id) {
-		  hand.innerHTML += `<br>${playersInGame[p]}'s hand: ` + state.hands[p]
+		  hand.innerHTML += `<br><span style="color: ${getColor(p)};">${playersInGame[p]}</span>'s hand: ` + state.hands[p]
 		}
 	      }
 	    }
