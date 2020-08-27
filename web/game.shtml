@@ -4,6 +4,7 @@
     <meta charset='utf-8'>
     <meta content='width=device-width, initial-scale=1' name='viewport'>
     <link rel="stylesheet" media="all" href="main.css">
+    <link rel="stylesheet" type="text/css" href="emoji.css"/>
     <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
     <script src="app.js"></script>
 
@@ -45,12 +46,14 @@
       </div>
       <div id="messages">
         <div id="messagesOut"></div><br>
-        <div id="messagesIn">
-          <input type="text" id="chatInput" onkeydown="handleChat()">
-          <button id="chatSend" onclick="handleChat()">Send</button>
+        <div id="messagesIn" class="emojipicker-container">
+          <input type="text" id="chatInput" onkeydown="handleChat()" placeholder="Press enter to send">
+          <div class="horizontalgap" style="width:30px"></div>
         </div>
       </div>
     </div>
+
+    <script src="emoji.js"></script>
 
     <!--#include "footer.html" -->
   </body>
