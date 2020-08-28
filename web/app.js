@@ -217,6 +217,7 @@ function addMessage(id, name, chat, msg) {
   messagesOut.scrollTop = messagesOut.scrollHeight
 }
 
+var reconnectInterval = 1
 function connect() {
   console.log("Connecting")
   if (ws != null && ws.readyState != WebSocket.OPEN) {
@@ -241,11 +242,15 @@ function connect() {
   ws.onopen = function(e) {
     console.log("Joining room")
     ws.send(`join:${room}:${id}:${name}`)
+    reconnectInterval = 1
   }
   ws.onclose = function(e) {
-    console.log('Socket is closed. Reconnect will be attempted in 5 seconds.', e.reason)
-    addMessage(null, null, false, "Connection lost!  Reconnecting in 5 seconds.")
-    setTimeout(connect, 5000)
+    console.log(`Socket is closed. Reconnect will be attempted in ${reconnectInterval} seconds.`, e.reason)
+    addMessage(null, null, false, `Connection lost!  Reconnecting in ${reconnectInterval} seconds.`)
+    setTimeout(connect, reconnectInterval * 1000)
+    if (reconnectInterval < 10) {
+      reconnectInterval += 1
+    }
   }
   ws.onerror = function(e) {
     console.log('Websocket error: ', e)

@@ -55,7 +55,7 @@
         </div>
     
         <div id="labelIn" class="emojipicker-container">
-          <button onclick="handleToggle(labelEmojis, labelIn)">Change Emoji</div>
+          <button onclick="handleToggle(labelEmojis, labelIn)">Set Emoji</div>
           <button onclick="updateLabel('')">Clear Emoji</div>
           <div id="labelEmojis"></div>
           <script>setupEmojiWindow(labelEmojis, updateLabel)</script>
