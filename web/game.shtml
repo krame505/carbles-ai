@@ -6,6 +6,7 @@
     <link rel="stylesheet" media="all" href="main.css">
     <link rel="stylesheet" type="text/css" href="emoji.css"/>
     <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+    <script src="emoji.js"></script>
     <script src="app.js"></script>
 
     <title>Carbles Online</title>
@@ -16,7 +17,7 @@
     <a href="/"><b>Home</b></a>
     <a href="rules.shtml" target="_blank"><b>Rules</b></a>
 
-    <br><br>
+    <br>
 
     <input type="text" size="50" readonly id="joinLink"><script>initLink()</script>
     <button onclick="copyLink()">Copy room link</button>
@@ -25,15 +26,15 @@
     <br><br>
 
     <label>Players in room: </label><span id="playersInRoom"></span><br>
-    <label>AI players: </label><input type="number" min="0" id="aiPlayers" onchange="updateConfig()" class="numInput"><br>
-    <label>Random players: </label><input type="number" min="0" id="randomPlayers" onchange="updateConfig()" class="numInput"><br>
-    <label>Partners </label><input type="checkbox" id="partners" onchange="updateConfig()"><br>
-    <label>Open hands </label><input type="checkbox" id="openHands" onchange="updateConfig()"><br>
+    <label>AI players: </label><input type="number" min="0" id="aiPlayers" onchange="updateConfig()" class="numInput">&nbsp;
+    <label>Random players: </label><input type="number" min="0" id="randomPlayers" onchange="updateConfig()" class="numInput">&nbsp;
+    <label>Partners</label><input type="checkbox" id="partners" onchange="updateConfig()">&nbsp;
+    <label>Open hands</label><input type="checkbox" id="openHands" onchange="updateConfig()"><br>
 
     <button id="startEndGame" onclick="handleStartEndGame()">Start Game</button>
 
     <br><br>
-    
+
     <table class="board" id="board">
     </table>
 
@@ -48,12 +49,19 @@
         <div id="messagesOut"></div><br>
         <div id="messagesIn" class="emojipicker-container">
           <input type="text" id="chatInput" onkeydown="handleChat()" placeholder="Press enter to send">
-          <div class="horizontalgap" style="width:30px"></div>
+          <div class="emoji-toggle" onclick="handleToggle(chatEmojis, messagesIn)">😃</div>
+          <div id="chatEmojis"></div>
+          <script>setupEmojiWindow(chatEmojis, em => insertAtCaret(chatInput, em))</script>
+        </div>
+    
+        <div id="labelIn" class="emojipicker-container">
+          <button onclick="handleToggle(labelEmojis, labelIn)">Change Emoji</div>
+          <button onclick="updateLabel('')">Clear Emoji</div>
+          <div id="labelEmojis"></div>
+          <script>setupEmojiWindow(labelEmojis, updateLabel)</script>
         </div>
       </div>
     </div>
-
-    <script src="emoji.js"></script>
 
     <!--#include "footer.html" -->
   </body>

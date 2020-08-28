@@ -44,12 +44,13 @@ function getColor(player) {
   return ['#505050', 'red', 'blue', 'green', 'orange', 'purple', 'gold', 'maroon', 'turquoise', 'indigo', 'midnightblue', 'salmon'][player]
 }
 
-function updateCell(cell, label, state, l, r, t, b, highlight=null) {
+function updateCell(cell, label, state, playerLabels, l, r, t, b, highlight=null) {
+  let cellId = state.board[label]
   cell.innerHTML = `
 <div class="slot"
     <span class="label">${label}</span>
-    <span class="marble" style="color: ${state.board[label] != null && state.board[label] != highlight? getColor(state.board[label]) : "white"}">
-      ${state.board[label] != null && state.board[label] == highlight? '◯' : '⬤'}
+    <span class="marble" style="color: ${cellId != null && cellId != highlight? getColor(cellId) : "white"}">
+      ${cellId != null && playerLabels[cellId]? playerLabels[cellId] : cellId != null && cellId == highlight? '◯' : '⬤'}
     </span>
 </div>`
   cell.className = "slotCell"
@@ -63,12 +64,12 @@ function updateCell(cell, label, state, l, r, t, b, highlight=null) {
     cell.style.backgroundColor = getColor(highlight)
   }
 
-  if (state.board[label] != null) {
-    cell.style.color = getColor(state.board[label])
+  if (cellId != null) {
+    cell.style.color = getColor(cellId)
   }
 }
 
-function updateBoard(state) {
+function updateBoard(state, playerLabels) {
   // Clear board
   while (board.rows.length) {
     board.deleteRow(0)
@@ -88,42 +89,43 @@ function updateBoard(state) {
     let prevP = (p + state.numPlayers - 1) % state.numPlayers
 
     for (i = 0; i < 8; i++) {
-      updateCell(rows[i].insertCell(0), i + 7 + prevP * SECTOR_SIZE, state, i == 7, false, i > 0, i < 7)
+      updateCell(rows[i].insertCell(0), i + 7 + prevP * SECTOR_SIZE, state, playerLabels, i == 7, false, i > 0, i < 7)
     }
     rows[0].cells[0].colSpan = 2
     for (i = 0; i < 7; i++) {
       rows[i].insertCell(0)
     }
-    updateCell(rows[7].insertCell(0), 15 + prevP * SECTOR_SIZE, state, true, true, false, false)
+    updateCell(rows[7].insertCell(0), 15 + prevP * SECTOR_SIZE, state, playerLabels, true, true, false, false)
     rows[0].insertCell(0)
     let lot = rows[1].insertCell(0)
     lot.className = 'lotCell'
     lot.style.backgroundColor = getColor(p)
     let lotCount = state.lot[p]
+    let pl = playerLabels[p]? playerLabels[p] : '◯'
     if (lotCount == 0) {
       lot.innerHTML = '⬤⬤<br>⬤⬤'
     } else if (lotCount == 1) {
-      lot.innerHTML = '⬤⬤<br>⬤◯'
+      lot.innerHTML = `⬤⬤<br>⬤${pl}`
     } else if (lotCount == 2) {
-      lot.innerHTML = '⬤⬤<br>◯◯'
+      lot.innerHTML = `⬤⬤<br>${pl}${pl}`
     } else if (lotCount == 3) {
-      lot.innerHTML = '⬤◯<br>◯◯'
+      lot.innerHTML = `⬤${pl}<br>${pl}${pl}`
     } else {
-      lot.innerHTML = '◯◯<br>◯◯'
+      lot.innerHTML = `${pl}${pl}<br>${pl}${pl}`
     }
     rows[2].insertCell(0)
     for (i = 0; i < NUM_PIECES; i++) {
       let cell = rows[6 - i].insertCell(0)
-      updateCell(cell, "F" + p + i, state, false, false, i < NUM_PIECES - 1, true, p)
+      updateCell(cell, "F" + p + i, state, playerLabels, false, false, i < NUM_PIECES - 1, true, p)
     }
-    updateCell(rows[7].insertCell(0), 16 + prevP * SECTOR_SIZE, state, true, true, true, false)
+    updateCell(rows[7].insertCell(0), 16 + prevP * SECTOR_SIZE, state, playerLabels, true, true, true, false)
     for (i = 0; i < 7; i++) {
       rows[i].insertCell(0)
     }
-    updateCell(rows[7].insertCell(0), 17 + prevP * SECTOR_SIZE, state, true, true, false, false)
-    updateCell(rows[7].insertCell(0), p * SECTOR_SIZE, state, false, true, true, false, p)
+    updateCell(rows[7].insertCell(0), 17 + prevP * SECTOR_SIZE, state, playerLabels, true, true, false, false)
+    updateCell(rows[7].insertCell(0), p * SECTOR_SIZE, state, playerLabels, false, true, true, false, p)
     for (i = 1; i < 7; i++) {
-      updateCell(rows[7 - i].insertCell(0), i + p * SECTOR_SIZE, state, false, false, i < 7, true)
+      updateCell(rows[7 - i].insertCell(0), i + p * SECTOR_SIZE, state, playerLabels, false, false, i < 7, true)
     }
   }
   rows[0].insertCell(0)
@@ -196,7 +198,7 @@ function reloadState() {
 		actions.innerHTML +=
 		    `<li><a href="javascript:void(0);" onclick="$.ajax('action?room=${room}&id=${id}&action=${i}');" class="action">${a}</a></li>`
 	      })
-	  updateBoard(state.board)
+	  updateBoard(state.board, state.playerLabels)
 	}).fail(function () {
 	  reloadPending = false
 	  console.log("Failed to reload state")
@@ -285,4 +287,9 @@ function handleChat() {
     ws.send(`chat:${room}:${id}:${chatInput.value}`)
     chatInput.value = ""
   }
+}
+
+function updateLabel(e) {
+  console.log("Setting label to", e)
+  ws.send(`label:${room}:${id}:${e}`)
 }

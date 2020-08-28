@@ -12,6 +12,7 @@
 #define MAX_CONN_ID 100
 #define MAX_IP_ADDR 50
 #define MAX_NAME 50
+#define MAX_LABEL 8
 #define MAX_MSG 10000
 
 #define STR2(x) # x
@@ -48,7 +49,7 @@ struct Room {
   bool partners;
   bool openHands;
   Player players[MAX_PLAYERS];
-  vector<string> playerNames;
+  vector<string> playerNames, playerLabels;
   bool gameInProgress;
   PlayerId turn;
   State state;
@@ -69,6 +70,7 @@ struct PlayerConn {
   SocketId socket;
   PlayerId id;
   string name;
+  string label;
 };
 
 static const char *logFile = "log.txt";
@@ -116,7 +118,7 @@ static void createRoom(string roomId) {
     emptyMap<string, PlayerConn *, compareString>(GC_malloc),
     emptyMap<SocketId, string, compareSocket>(GC_malloc),
     0, 1, 0, false, false,
-    {0}, vec<string>[], false, 0, initialState(0, false), {0}, vec<Action>[], false, 0, false,
+    {0}, vec<string>[], vec<string>[], false, 0, initialState(0, false), {0}, vec<Action>[], false, 0, false,
     false, 0, PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER
   };
   rooms = mapInsert(GC_malloc, rooms, roomId, room);
@@ -227,17 +229,21 @@ static void handleState(struct mg_connection *nc, struct http_message *hm) {
          _ -> PLAYER_ID_NONE;);
       vector<string> playersInRoom = vec<string>[];
       mapForeach(room->connections, lambda (string connId, PlayerConn *conn) -> void {
-          playersInRoom.append(conn->name);
+          playersInRoom.append(conn->label + conn->name);
         });
       vector<string> playersInGame;
+      vector<string> playerLabels;
       if (room->gameInProgress) {
         playersInGame = room->playerNames;
+        playerLabels = room->playerLabels;
       } else {
         match (room->state) {
           St(?&numPlayers, _, _, _) -> {
             playersInGame = new vector<string>(numPlayers);
+            playerLabels = new vector<string>(numPlayers);
             for (PlayerId p = 0; p < numPlayers; p++) {
               playersInGame[p] = "Player " + str(p + 1);
+              playerLabels[p] = "";
             }
           }
         }
@@ -265,6 +271,7 @@ static void handleState(struct mg_connection *nc, struct http_message *hm) {
       ", \"partners\": " + show(room->partners) +
       ", \"openHands\": " + show(room->openHands) +
       ", \"playersInGame\": " + jsonList(playersInGame) +
+      ", \"playerLabels\": " + jsonList(playerLabels) +
       ", \"id\": " + conn->id +
       ", \"actions\": " + jsonActions(actions, conn->id, partnerId) + "}";
       mg_printf_http_chunk(nc, "%s", result.text);
@@ -344,6 +351,7 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
           fclose(gamesOut);
 
           resize_vector(room->playerNames, numPlayers);
+          resize_vector(room->playerLabels, numPlayers);
           // Assign all players currently in the room
           bool assigned[numPlayers];
           memset(assigned, 0, sizeof(assigned));
@@ -352,7 +360,8 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
               while (assigned[*p_p]) {*p_p = rand() % numPlayers; }
               assigned[*p_p] = true;
               room->players[*p_p] = makeWebPlayer(roomId);
-              room->playerNames[*p_p] = conn->name;
+              room->playerNames[*p_p] = conn->label + conn->name;
+              room->playerLabels[*p_p] = conn->label;
               conn->inGame = true;
               conn->id = *p_p;
               *p_p = partner(numPlayers, *p_p);
@@ -365,6 +374,7 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
             assigned[p] = true;
             room->players[p] = makeHeuristicSearchPlayer();
             room->playerNames[p] = "AI " + str(i + 1);
+            room->playerLabels[p] = "";
             p = partner(numPlayers, p);
           }
           for (unsigned i = 0; i < room->numRandom; i++) {
@@ -372,6 +382,7 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
             assigned[p] = true;
             room->players[p] = makeRandomPlayer();
             room->playerNames[p] = "Random " + str(i + 1);
+            room->playerLabels[p] = "";
             p = partner(numPlayers, p);
           }
           room->gameInProgress = true;
@@ -540,10 +551,13 @@ static void handleRegister(struct mg_connection *nc, const char *data, size_t si
         conn->socket = (SocketId)nc;
       } else {
         conn = GC_malloc(sizeof(PlayerConn));
-        *conn = (PlayerConn){false, (SocketId)nc, 0, connId};
+        *conn = (PlayerConn){false, (SocketId)nc, 0, connId, str("")};
       }
       if (name.length) {
         conn->name = name;
+        if (room->gameInProgress && conn->inGame) {
+          room->playerNames[conn->id] = conn->label + conn->name;
+        }
       }
       room->connections = mapInsert(GC_malloc, room->connections, connId, conn);
       room->socketPlayers = mapInsert(GC_malloc, room->socketPlayers, (SocketId)nc, connId);
@@ -582,7 +596,26 @@ static void handleChat(struct mg_connection *nc, const char *data, size_t size) 
     query RID is roomId, RS is rooms, mapContains(RS, RID, R),
           CID is connId, CS is (R->connections), mapContains(CS, CID, C) {
       PlayerConn *conn = value(C);
-      notify(roomId, conn->id, conn->name, true, false, msg, true);
+      notify(roomId, conn->id, conn->label + conn->name, true, false, msg, true);
+    };
+  }
+}
+
+static void handleLabel(struct mg_connection *nc, const char *data, size_t size) {
+  char roomId_s[MAX_ROOM_ID + 1], connId_s[MAX_CONN_ID + 1], label_s[MAX_LABEL + 1];
+  if (sscanf(data, "label:%"STR(MAX_ROOM_ID)"[^:]:%"STR(MAX_CONN_ID)"[^:]:%"STR(MAX_LABEL)"[^\n]", roomId_s, connId_s, label_s) >= 2) { // >= 2 since label can be empty
+    string roomId = str(roomId_s), connId = str(connId_s), label = str(label_s);
+
+    query RID is roomId, RS is rooms, mapContains(RS, RID, R),
+          CID is connId, CS is (R->connections), mapContains(CS, CID, C) {
+      Room *room = value(R);
+      PlayerConn *conn = value(C);
+      conn->label = label;
+      if (room->gameInProgress && conn->inGame) {
+        room->playerNames[conn->id] = conn->label + conn->name;
+        room->playerLabels[conn->id] = conn->label;
+      }
+      notify(roomId, -1, str(""), false, true, conn->name + " is now " + conn->label + conn->name, true);
     };
   }
 }
@@ -600,6 +633,8 @@ static void websocketHandler(struct mg_connection *nc, int ev, struct websocket_
     handleRegister(nc, data, size);
   } else if (!strncmp(data, "chat", 4)) {
     handleChat(nc, data, size);
+  } else if (!strncmp(data, "label", 5)) {
+    handleLabel(nc, data, size);
   } else {
     logmsg("Bad websocket message: %s\n", data);
   }

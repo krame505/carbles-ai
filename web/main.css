@@ -26,6 +26,7 @@ td {
 .lotCell {
   color: white;
   border-radius: 0.7em;
+  white-space: nowrap
 }
 
 .slotCell {
@@ -94,6 +95,7 @@ td {
 
 #messagesOut {
   overflow-y: scroll;
+  resize: vertical;
   height: 200px;
   width: 100%;
 }
