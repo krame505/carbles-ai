@@ -610,12 +610,13 @@ static void handleLabel(struct mg_connection *nc, const char *data, size_t size)
           CID is connId, CS is (R->connections), mapContains(CS, CID, C) {
       Room *room = value(R);
       PlayerConn *conn = value(C);
+      string oldLabel = conn->label;
       conn->label = label;
       if (room->gameInProgress && conn->inGame) {
         room->playerNames[conn->id] = conn->label + conn->name;
         room->playerLabels[conn->id] = conn->label;
       }
-      notify(roomId, -1, str(""), false, true, conn->name + " is now " + conn->label + conn->name, true);
+      notify(roomId, -1, str(""), false, true, oldLabel + conn->name + " is now " + conn->label + conn->name, true);
     };
   }
 }
