@@ -12,7 +12,7 @@
 #define MAX_CONN_ID 100
 #define MAX_IP_ADDR 50
 #define MAX_NAME 50
-#define MAX_LABEL 8
+#define MAX_LABEL 50
 #define MAX_MSG 10000
 
 #define STR2(x) # x
