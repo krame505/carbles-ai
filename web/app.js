@@ -41,7 +41,7 @@ function partner(numPlayers, p) {
 }
 
 function getColor(player) {
-  return ['#505050', 'red', 'blue', 'green', 'orange', 'purple', 'gold', 'maroon', 'turquoise', 'indigo', 'midnightblue', 'salmon'][player]
+  return ['#505050', 'red', 'blue', 'green', 'orange', 'purple', 'gold', 'brown', 'turquoise', 'olive', 'coral', 'goldenrod'][player]
 }
 
 function updateCell(cell, label, state, playerLabels, l, r, t, b, highlight=null) {
