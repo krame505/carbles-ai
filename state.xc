@@ -28,6 +28,15 @@ prolog {
 #undef between
 }
 
+vector<list<Move ?> ?> getCardMoves(State s, PlayerId p, Card c) {
+  vector<list<Move ?> ?> result = new vector<list<Move ?> ?>();
+  query S is s, P is p, C is c, cardMoves(S, P, C, MS) {
+    result.append(copyMoves(MS));
+    return false;
+  };
+  return result;
+}
+
 vector<Action> getActions(State s, PlayerId p, const Hand h) {
   vector<Action> result = new vector<Action>();
   for (Card c = 0; c < CARD_MAX; c++) {
@@ -74,4 +83,3 @@ PlayerId getWinner(State s) {
   assert(isWon);
   return *winner;
 }
-
