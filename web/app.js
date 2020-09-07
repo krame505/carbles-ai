@@ -168,6 +168,8 @@ function reloadState() {
             turn.innerHTML = `${playersInGame[state.turn]}'s turn`
 	    if ('hand' in state) {
               hand.innerHTML = "Current hand: " + state.hand
+	    } else {
+              hand.innerHTML = ""
 	    }
 	    if ('hands' in state) {
 	      for (p = 0; p < state.board.numPlayers; p++) {
