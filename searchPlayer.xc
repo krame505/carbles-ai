@@ -31,9 +31,9 @@ void printGameTree(GameTree tree, unsigned depth) {
     {_, a, .status=Unexpanded()} -> {
       printf("0 : %s\n", showAction(a, PLAYER_ID_NONE, PLAYER_ID_NONE).text);
     }
-    {_, a, St(?&numPlayers, _, _, _), parent, Leaf(winner)} -> {
+    {_, a, St(?&numPlayers, ?&partners, _, _), parent, Leaf(winner)} -> {
       if (parent != NULL) {
-        printf(" %d", winner == parent->player);
+        printf("leaf %d", winner == parent->player || (partners && winner == partner(numPlayers, parent->player)));
       }
       if (depth > 0) {
         printf(": %s", showAction(a, PLAYER_ID_NONE, PLAYER_ID_NONE).text);
@@ -158,7 +158,7 @@ vector<float> rulePlayoutHand(State s, PlayerId p, Hand hands[], unsigned depth)
 
 void backpropagate(GameTree *t, vector<float> scores) {
   match (t) {
-    !NULL@&{.state = St(?&numPlayers, _, _, _), .parent=parent, .status=Expanded(_, trials, wins)} -> {
+    !NULL@&{.state=St(?&numPlayers, _, _, _), .parent=parent, .status=Expanded(_, trials, wins)} -> {
       t->status.contents.Expanded.trials++;
       for (PlayerId p = 0; p < numPlayers; p++) {
         wins[p] += scores[p];
@@ -170,11 +170,12 @@ void backpropagate(GameTree *t, vector<float> scores) {
 
 float weight(GameTree *t) {
   PlayerId p = t->parent->player;
-  return match (t->status, t->parent->status)
-    (Unexpanded(), _ -> INFINITY;
-     Expanded(_, trials, wins), Expanded(_, parentTrials, _) ->
-     (float)wins[p] / trials + sqrtf(2 * logf((float)parentTrials) / trials);
-     Leaf(winner), _ -> p == winner;);
+  return match (t)
+    (&{.status=Unexpanded()} -> INFINITY;
+     &{.status=Expanded(_, trials, wins), .parent=&{.status=Expanded(_, parentTrials, _)}} ->
+       (float)wins[p] / trials + sqrtf(2 * logf((float)parentTrials) / trials);
+     &{.status=Leaf(winner), .state=St(?&numPlayers, ?&partners, _, _)} ->
+       p == winner || (partners && winner == partner(numPlayers, p)););
 }
 
 void expand(PlayoutFn playoutHand, unsigned depth, GameTree *t,
@@ -379,9 +380,9 @@ Player makeSearchPlayer(unsigned timeout, PlayoutFn playoutHand, unsigned depth)
               unsigned maxAction;
               for (unsigned i = 0; i < actions.size; i++) {
                 float w = match (children[i].status)
-                          (Expanded(_, trials, wins) -> (float)wins[p] / trials;
-                           Leaf(winner) -> winner == p;
-                           Unexpanded() -> -INFINITY;);
+                  (Expanded(_, trials, wins) -> (float)wins[p] / trials;
+                   Leaf(winner) -> winner == p || (partners && winner == partner(numPlayers, p));
+                   Unexpanded() -> -INFINITY;);
                 if (w > maxScore) {
                   maxScore = w;
                   maxAction = i;
