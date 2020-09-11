@@ -291,9 +291,13 @@ function handleStartEndGame() {
 
 function handleChat() {
   if (event.type == 'click' || (event.type == 'keydown' && event.key == 'Enter')) {
-    ws.send(`chat:${room}:${id}:${chatInput.value}`)
+    sendChat(chatInput.value)
     chatInput.value = ""
   }
+}
+
+function sendChat(msg) {
+  ws.send(`chat:${room}:${id}:${msg}`)
 }
 
 function updateLabel(e) {
