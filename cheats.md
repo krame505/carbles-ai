@@ -25,3 +25,13 @@ Type these in the chat to mess with people endlessly.
 ```
 <button onclick="sendChat('my moves are' + actions.innerHTML)">click me</button>
 ```
+
+## Self modifying text
+```
+<div id="laughs" onmouseover="function update() { laughs.innerHTML += ' ha'; setTimeout(update, 500) }; update();">ha ha ha ha ha ha ha</div>
+```
+
+## Youtube video
+```
+<iframe width="420" height="315" src="https://www.youtube.com/embed/tgbNymZ7vqY"></iframe>
+```
