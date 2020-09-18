@@ -13,30 +13,43 @@
 #define PLAYOUT_DEPTH 10
 
 void printGameTree(GameTree tree, unsigned depth) {
-  printf("%s", (str("  ") * depth).text);
+  if (tree.status.tag != NodeStatus_Unexpanded)
+    printf("%s", (str("  ") * depth).text);
+  char *parentAction = match (tree.parent)
+      (!NULL@&{.status=ExpandedBurn(_)} -> "burn *";
+       !NULL@_ -> (char *)showAction(tree.action, PLAYER_ID_NONE, PLAYER_ID_NONE).text;
+       _ -> "";);
   match (tree) {
-    {_, a, St(?&numPlayers, _, _, _), parent, Expanded(children, trials, wins)} -> {
+    {_, _, St(?&numPlayers, _, _, _), parent, Expanded(children, trials, wins)} -> {
       printf("%d", trials);
       if (parent != NULL) {
         printf(" %f", wins[parent->player] / trials);
       }
       if (depth > 0) {
-        printf(" : %s", showAction(a, PLAYER_ID_NONE, PLAYER_ID_NONE).text);
+        printf(" : %s", parentAction);
       }
       printf("\n");
       for (unsigned i = 0; i < children.size; i++) {
         printGameTree(children[i], depth + 1);
       }
     }
-    {_, a, .status=Unexpanded()} -> {
-      printf("0 : %s\n", showAction(a, PLAYER_ID_NONE, PLAYER_ID_NONE).text);
+    {_, _, St(?&numPlayers, _, _, _), parent, ExpandedBurn(&child)} -> {
+      printf("?");
+      if (depth > 0) {
+        printf(" : %s", parentAction);
+      }
+      printf("\n");
+      printGameTree(child, depth + 1);
     }
-    {_, a, St(?&numPlayers, ?&partners, _, _), parent, Leaf(winner)} -> {
+    {_, _, .status=Unexpanded()} -> {
+      //printf("0 : %s\n", parentAction);
+    }
+    {_, _, St(?&numPlayers, ?&partners, _, _), parent, Leaf(winner)} -> {
       if (parent != NULL) {
         printf("leaf %d", winner == parent->player || (partners && winner == partner(numPlayers, parent->player)));
       }
       if (depth > 0) {
-        printf(": %s", showAction(a, PLAYER_ID_NONE, PLAYER_ID_NONE).text);
+        printf(" : %s", parentAction);
       }
       printf("\n");
     }
@@ -158,24 +171,32 @@ vector<float> rulePlayoutHand(State s, PlayerId p, Hand hands[], unsigned depth)
 
 void backpropagate(GameTree *t, vector<float> scores) {
   match (t) {
-    !NULL@&{.state=St(?&numPlayers, _, _, _), .parent=parent, .status=Expanded(_, trials, wins)} -> {
+    !NULL@&{.status=Expanded(_, trials, wins), .state=St(?&numPlayers, _, _, _), .parent=parent} -> {
       t->status.contents.Expanded.trials++;
       for (PlayerId p = 0; p < numPlayers; p++) {
         wins[p] += scores[p];
       }
       backpropagate(parent, scores);
     }
+    !NULL@&{.status=ExpandedBurn(_), .parent=parent} -> {
+      backpropagate(parent, scores);
+    }
   }
 }
 
+GameTree expandedChild(GameTree t) {
+  return match (t.status)
+    (ExpandedBurn(&t1) -> expandedChild(t1);
+     _ -> t;);
+}
+
 float weight(GameTree *t) {
-  PlayerId p = t->parent->player;
-  return match (t)
-    (&{.status=Unexpanded()} -> INFINITY;
-     &{.status=Expanded(_, trials, wins), .parent=&{.status=Expanded(_, parentTrials, _)}} ->
+  return match (expandedChild(*t).status, t->parent)
+    (Unexpanded(), _ -> INFINITY;
+     Expanded(_, trials, wins), &{.status=Expanded(_, parentTrials, _), .player=p} ->
        (float)wins[p] / trials + sqrtf(2 * logf((float)parentTrials) / trials);
-     &{.status=Leaf(winner), .state=St(?&numPlayers, ?&partners, _, _)} ->
-       p == winner || (partners && winner == partner(numPlayers, p)););
+     Leaf(winner), &{.player=p} ->
+     p == winner || (partners(t->state) && winner == partner(numPlayers(t->state), p)););
 }
 
 void expand(PlayoutFn playoutHand, unsigned depth, GameTree *t,
@@ -203,13 +224,27 @@ void expand(PlayoutFn playoutHand, unsigned depth, GameTree *t,
   }
 
   match (t) {
-    &{p, _, s@St(?&numPlayers, _, _, _), parent, .status=Unexpanded()} -> {
+    &{p, _, s@St(?&numPlayers, ?&partners, _, _), .status=Unexpanded()} -> {
+      PlayerId newPlayer = (p + 1) % numPlayers;
       if (isWon(s)) {
         t->status = Leaf(getWinner(s));
         backpropagate(t, heuristicScore(s));
+      } else if (!actionPossible(s, p, possibleHands[p], partners? possibleHands[partner(numPlayers, p)] : NULL)) {
+        // All moves for the player will be burns, collapse children to a single node
+        GameTree *child = GC_malloc(sizeof(GameTree));
+        *child = (GameTree){newPlayer, Burn(CARD_MAX), s, t, Unexpanded()};
+        t->status = ExpandedBurn(child);
+
+        // Play an arbitrary card and expand the child
+        for (Card c = 0; c < CARD_MAX; c++) {
+          if (hands[p][c]) {
+            hands[p][c]--;
+            break;
+          }
+        }
+        expand(playoutHand, depth, child, deck, possibleHands, hands);
       } else {
         // Compute valid actions
-        PlayerId newPlayer = (p + 1) % numPlayers;
         vector<Action> actions = getActions(s, p, possibleHands[p]);
         assert(actions.size > 0);
 
@@ -241,6 +276,16 @@ void expand(PlayoutFn playoutHand, unsigned depth, GameTree *t,
         vector<float> scores = playoutHand(s, p, hands, depth);
         backpropagate(t, scores);
       }
+    }
+    &{p, .state=s, .status=ExpandedBurn(child)} -> {
+      // Play an arbitrary card and expand the child
+      for (Card c = 0; c < CARD_MAX; c++) {
+        if (hands[p][c]) {
+          hands[p][c]--;
+          break;
+        }
+      }
+      expand(playoutHand, depth, child, deck, possibleHands, hands);
     }
     &{p, .state=s, .status=Expanded(children, trials, wins)} -> {
       assert(children.size > 0);
@@ -379,7 +424,7 @@ Player makeSearchPlayer(unsigned timeout, PlayoutFn playoutHand, unsigned depth)
               float maxScore = -INFINITY;
               unsigned maxAction;
               for (unsigned i = 0; i < actions.size; i++) {
-                float w = match (children[i].status)
+                float w = match (expandedChild(children[i]).status)
                   (Expanded(_, trials, wins) -> (float)wins[p] / trials;
                    Leaf(winner) -> winner == p || (partners && winner == partner(numPlayers, p));
                    Unexpanded() -> -INFINITY;);

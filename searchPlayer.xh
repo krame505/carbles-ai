@@ -8,6 +8,7 @@ typedef struct GameTree GameTree;
 
 datatype NodeStatus {
   Unexpanded();
+  ExpandedBurn(GameTree *child);
   Expanded(vector<GameTree> children, unsigned trials, vector<float> wins);
   Leaf(PlayerId winner);
 };
