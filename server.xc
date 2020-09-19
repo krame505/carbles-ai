@@ -445,41 +445,6 @@ static void handleEnd(struct mg_connection *nc, struct http_message *hm) {
   }
 }
 
-static void handleAction(struct mg_connection *nc, struct http_message *hm) {
-  // Get form variables
-  char roomId_s[MAX_ROOM_ID + 1] = {0}, connId_s[MAX_CONN_ID + 1] = {0}, a_s[10];
-  mg_get_http_var(&hm->query_string, "room", roomId_s, sizeof(roomId_s));
-  mg_get_http_var(&hm->query_string, "id", connId_s, sizeof(connId_s));
-  mg_get_http_var(&hm->query_string, "action", a_s, sizeof(a_s));
-  string roomId = str(roomId_s), connId = str(connId_s);
-  unsigned a = atoi(a_s);
-
-  bool success = query
-    RID is roomId, RS is rooms, mapContains(RS, RID, R),
-    initially { pthread_mutex_lock(&R->mutex); },
-    finally   { pthread_mutex_unlock(&R->mutex); },
-    CID is connId, CS is (R->connections), mapContains(CS, CID, C) {
-      Room *room = value(R);
-      PlayerConn *conn = value(C);
-
-      if (room->gameInProgress && conn->id == room->turn) {
-        // Update the current state
-        room->action = a;
-        room->actionReady = true;
-        pthread_cond_signal(&room->cv);
-
-        // Send empty response
-        sendEmpty(nc);
-        return true;
-      }
-      return false;
-    };
-
-  if (!success) {
-    sendError(nc);
-  }
-}
-
 static void httpHandler(struct mg_connection *nc, int ev, struct http_message *hm) {
   if (mg_vcmp(&hm->uri, "/stats.json") == 0) {
     handleStats(nc, hm);
@@ -491,8 +456,6 @@ static void httpHandler(struct mg_connection *nc, int ev, struct http_message *h
     handleStart(nc, hm);
   } else if (mg_vcmp(&hm->uri, "/end") == 0) {
     handleEnd(nc, hm);
-  } else if (mg_vcmp(&hm->uri, "/action") == 0) {
-    handleAction(nc, hm);
   } else {
     mg_serve_http(nc, hm, s_http_server_opts);
   }
@@ -588,6 +551,29 @@ static void handleRegister(struct mg_connection *nc, const char *data, size_t si
   }
 }
 
+static void handleAction(struct mg_connection *nc, const char *data, size_t size) {
+  // Get form variables
+  char roomId_s[MAX_ROOM_ID + 1] = {0}, connId_s[MAX_CONN_ID + 1] = {0};
+  unsigned a;
+  if (sscanf(data, "action:%"STR(MAX_ROOM_ID)"[^:]:%"STR(MAX_CONN_ID)"[^:]:%u", roomId_s, connId_s, &a) == 3) {
+    string roomId = str(roomId_s), connId = str(connId_s);
+
+    query RID is roomId, RS is rooms, mapContains(RS, RID, R),
+          initially { pthread_mutex_lock(&R->mutex); },
+          finally   { pthread_mutex_unlock(&R->mutex); },
+          CID is connId, CS is (R->connections), mapContains(CS, CID, C) {
+      Room *room = value(R);
+      PlayerConn *conn = value(C);
+      if (room->gameInProgress && conn->id == room->turn) {
+        // Record the action and wake up the driver thread
+        room->action = a;
+        room->actionReady = true;
+        pthread_cond_signal(&room->cv);
+      }
+    };
+  }
+}
+
 static void handleChat(struct mg_connection *nc, const char *data, size_t size) {
   char roomId_s[MAX_ROOM_ID + 1], connId_s[MAX_CONN_ID + 1], msg_s[size];
   if (sscanf(data, "chat:%"STR(MAX_ROOM_ID)"[^:]:%"STR(MAX_CONN_ID)"[^:]:%[^\n]", roomId_s, connId_s, msg_s) == 3) {
@@ -636,6 +622,8 @@ static void websocketHandler(struct mg_connection *nc, int ev, struct websocket_
     handleChat(nc, data, size);
   } else if (!strncmp(data, "label", 5)) {
     handleLabel(nc, data, size);
+  } else if (!strncmp(data, "action", 5)) {
+    handleAction(nc, data, size);
   } else {
     logmsg("Bad websocket message: %s\n", data);
   }

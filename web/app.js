@@ -198,7 +198,7 @@ function reloadState() {
 	  state.actions.forEach(
 	      function (a, i) {
 		actions.innerHTML +=
-		    `<li><a href="javascript:void(0);" onclick="$.ajax('action?room=${room}&id=${id}&action=${i}');" class="action">${a}</a></li>`
+		    `<li><a href="javascript:void(0);" onclick="sendAction(${i})" class="action">${a}</a></li>`
 	      })
 	  updateBoard(state.board, state.playerLabels)
 	}).fail(function () {
@@ -296,6 +296,11 @@ function handleChat() {
   }
 }
 
+function sendAction(i) {
+  console.log("Sending action", i)
+  ws.send(`action:${room}:${id}:${i}`)
+}
+
 function sendChat(msg) {
   ws.send(`chat:${room}:${id}:${msg}`)
 }
@@ -304,3 +309,4 @@ function updateLabel(e) {
   console.log("Setting label to", e)
   ws.send(`label:${room}:${id}:${e}`)
 }
+
