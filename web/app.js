@@ -298,15 +298,14 @@ function handleChat() {
 
 function sendAction(i) {
   console.log("Sending action", i)
-  ws.send(`action:${room}:${id}:${i}`)
+  ws.send(`action:${i}`)
 }
 
 function sendChat(msg) {
-  ws.send(`chat:${room}:${id}:${msg}`)
+  ws.send(`chat:${msg}`)
 }
 
 function updateLabel(e) {
   console.log("Setting label to", e)
-  ws.send(`label:${room}:${id}:${e}`)
+  ws.send(`label:${e}`)
 }
-

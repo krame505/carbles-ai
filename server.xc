@@ -553,15 +553,14 @@ static void handleRegister(struct mg_connection *nc, const char *data, size_t si
 
 static void handleAction(struct mg_connection *nc, const char *data, size_t size) {
   // Get form variables
-  char roomId_s[MAX_ROOM_ID + 1] = {0}, connId_s[MAX_CONN_ID + 1] = {0};
   unsigned a;
-  if (sscanf(data, "action:%"STR(MAX_ROOM_ID)"[^:]:%"STR(MAX_CONN_ID)"[^:]:%u", roomId_s, connId_s, &a) == 3) {
-    string roomId = str(roomId_s), connId = str(connId_s);
-
-    query RID is roomId, RS is rooms, mapContains(RS, RID, R),
+  if (sscanf(data, "action:%u", &a) == 1) {
+    query NC is ((SocketId)nc), SRS is socketRooms, mapContains(SRS, NC, RID),
+          RS is rooms, mapContains(RS, RID, R),
           initially { pthread_mutex_lock(&R->mutex); },
           finally   { pthread_mutex_unlock(&R->mutex); },
-          CID is connId, CS is (R->connections), mapContains(CS, CID, C) {
+          SPS is (R->socketPlayers), mapContains(SPS, NC, CID),
+          CS is (R->connections), mapContains(CS, CID, C) {
       Room *room = value(R);
       PlayerConn *conn = value(C);
       if (room->gameInProgress && conn->id == room->turn) {
@@ -575,12 +574,16 @@ static void handleAction(struct mg_connection *nc, const char *data, size_t size
 }
 
 static void handleChat(struct mg_connection *nc, const char *data, size_t size) {
-  char roomId_s[MAX_ROOM_ID + 1], connId_s[MAX_CONN_ID + 1], msg_s[size];
-  if (sscanf(data, "chat:%"STR(MAX_ROOM_ID)"[^:]:%"STR(MAX_CONN_ID)"[^:]:%[^\n]", roomId_s, connId_s, msg_s) == 3) {
-    string roomId = str(roomId_s), connId = str(connId_s), msg = str(msg_s);
-
-    query RID is roomId, RS is rooms, mapContains(RS, RID, R),
-          CID is connId, CS is (R->connections), mapContains(CS, CID, C) {
+  char msg_s[size];
+  if (sscanf(data, "chat:%[^\n]", msg_s) == 1) {
+    string msg = str(msg_s);
+    query NC is ((SocketId)nc), SRS is socketRooms, mapContains(SRS, NC, RID),
+          RS is rooms, mapContains(RS, RID, R),
+          initially { pthread_mutex_lock(&R->mutex); },
+          finally   { pthread_mutex_unlock(&R->mutex); },
+          SPS is (R->socketPlayers), mapContains(SPS, NC, CID),
+          CS is (R->connections), mapContains(CS, CID, C) {
+      string roomId = value(RID);
       PlayerConn *conn = value(C);
       notify(roomId, conn->id, conn->label + conn->name, true, false, msg, true);
     };
@@ -588,23 +591,27 @@ static void handleChat(struct mg_connection *nc, const char *data, size_t size) 
 }
 
 static void handleLabel(struct mg_connection *nc, const char *data, size_t size) {
-  char roomId_s[MAX_ROOM_ID + 1], connId_s[MAX_CONN_ID + 1], label_s[MAX_LABEL + 1];
-  if (sscanf(data, "label:%"STR(MAX_ROOM_ID)"[^:]:%"STR(MAX_CONN_ID)"[^:]:%"STR(MAX_LABEL)"[^\n]", roomId_s, connId_s, label_s) >= 2) { // >= 2 since label can be empty
-    string roomId = str(roomId_s), connId = str(connId_s), label = str(label_s);
+  char label_s[MAX_LABEL + 1];
+  sscanf(data, "label:%"STR(MAX_LABEL)"[^\n]", label_s); // Unchecked since label can be empty
+  string label = str(label_s);
 
-    query RID is roomId, RS is rooms, mapContains(RS, RID, R),
-          CID is connId, CS is (R->connections), mapContains(CS, CID, C) {
-      Room *room = value(R);
-      PlayerConn *conn = value(C);
-      string oldLabel = conn->label;
-      conn->label = label;
-      if (room->gameInProgress && conn->inGame) {
-        room->playerNames[conn->id] = conn->label + conn->name;
-        room->playerLabels[conn->id] = conn->label;
-      }
-      notify(roomId, -1, str(""), false, true, oldLabel + conn->name + " is now " + conn->label + conn->name, true);
-    };
-  }
+  query NC is ((SocketId)nc), SRS is socketRooms, mapContains(SRS, NC, RID),
+        RS is rooms, mapContains(RS, RID, R),
+        initially { pthread_mutex_lock(&R->mutex); },
+        finally   { pthread_mutex_unlock(&R->mutex); },
+        SPS is (R->socketPlayers), mapContains(SPS, NC, CID),
+        CS is (R->connections), mapContains(CS, CID, C) {
+    string roomId = value(RID);
+    Room *room = value(R);
+    PlayerConn *conn = value(C);
+    string oldLabel = conn->label;
+    conn->label = label;
+    if (room->gameInProgress && conn->inGame) {
+      room->playerNames[conn->id] = conn->label + conn->name;
+      room->playerLabels[conn->id] = conn->label;
+    }
+    notify(roomId, -1, str(""), false, true, oldLabel + conn->name + " is now " + conn->label + conn->name, true);
+  };
 }
 
 static void websocketHandler(struct mg_connection *nc, int ev, struct websocket_message *wm) {
