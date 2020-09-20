@@ -171,14 +171,15 @@ vector<float> rulePlayoutHand(State s, PlayerId p, Hand hands[], unsigned depth)
 
 void backpropagate(GameTree *t, vector<float> scores) {
   match (t) {
-    !NULL@&{.status=Expanded(_, trials, wins), .state=St(?&numPlayers, _, _, _), .parent=parent} -> {
-      t->status.contents.Expanded.trials++;
-      for (PlayerId p = 0; p < numPlayers; p++) {
-        wins[p] += scores[p];
+    !NULL@&{.status=status, .state=St(?&numPlayers, _, _, _), .parent=parent} -> {
+      match (status) {
+        Expanded(_, trials, wins) -> {
+          t->status.contents.Expanded.trials++;
+          for (PlayerId p = 0; p < numPlayers; p++) {
+            wins[p] += scores[p];
+          }
+        }
       }
-      backpropagate(parent, scores);
-    }
-    !NULL@&{.status=ExpandedBurn(_), .parent=parent} -> {
       backpropagate(parent, scores);
     }
   }
