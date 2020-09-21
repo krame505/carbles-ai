@@ -612,7 +612,7 @@ static void handleChat(struct mg_connection *nc, const char *data, size_t size) 
 }
 
 static void handleLabel(struct mg_connection *nc, const char *data, size_t size) {
-  char label_s[MAX_LABEL + 1];
+  char label_s[MAX_LABEL + 1] = {0};
   sscanf(data, "label:%"STR(MAX_LABEL)"[^\n]", label_s); // Unchecked since label can be empty
   string label = str(label_s);
 
