@@ -21,11 +21,6 @@ Type these in the chat to mess with people endlessly.
 <button onclick="function sendSecrets() { sendChat('my cards are ' + hand.innerHTML.split(':')[1]); setTimeout(sendSecrets, 60000) }; sendSecrets()">click me</button>
 ```
 
-## Print moves
-```
-<button onclick="sendChat('my moves are' + actions.innerHTML)">click me</button>
-```
-
 ## Self modifying text
 ```
 <div id="laughs" onmouseover="function update() { laughs.innerHTML += ' ha'; setTimeout(update, 500) }; update();">ha ha ha ha ha ha ha</div>
