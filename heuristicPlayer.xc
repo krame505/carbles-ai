@@ -73,11 +73,11 @@ int getHeuristicValue(State s, PlayerId p) {
 }
 
 Player makeHeuristicPlayer() {
-  return (Player){"heuristic", lambda (State s, const Hand h, const Hand hands[], const Hand discard, unsigned turn, PlayerId p, vector<Action> actions) -> unsigned {
+  return (Player){"heuristic", lambda (State s, const Hand h, const Hand hands[], const Hand discard, const unsigned handSizes[], TurnInfo turn, vector<Action> actions) -> unsigned {
       unsigned maxAction;
       int maxScore = INT_MIN;
       for (unsigned i = 0; i < actions.size; i++) {
-        int score = getHeuristicValue(applyAction(actions[i], s, NULL, NULL), p);
+        int score = getHeuristicValue(applyAction(actions[i], s, NULL, NULL), turn.player);
         if (score > maxScore) {
           maxAction = i;
           maxScore = score;

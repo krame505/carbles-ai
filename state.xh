@@ -12,6 +12,7 @@
 #define SECTOR_SIZE 18
 #define NUM_PIECES 4
 #define FINISH_BACKTRACK_DIST 2
+#define DECK_SIZE 54 * 2
 #define MIN_HAND 4
 #define MAX_HAND 5
 #define MAX_PLAYERS 12

@@ -5,7 +5,9 @@
 #include <stdbool.h>
 
 Player makeRulePlayer() {
-  return (Player){"rule", lambda (State s, const Hand h, const Hand hands[], const Hand discard, unsigned turn, PlayerId p, vector<Action> actions) -> unsigned {
+  return (Player){"rule", lambda (State s, const Hand h, const Hand hands[], const Hand discard, const unsigned handSizes[], TurnInfo turn, vector<Action> actions) -> unsigned {
+      PlayerId p = turn.player;
+      
       // Finish if possible
       for (unsigned i = 0; i < actions.size; i++) {
         match (actions[i]) {

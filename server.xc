@@ -878,7 +878,7 @@ static void cleanup(void *mutex) {
 }
 
 Player makeWebPlayer(string roomId) {
-  return (Player){"web", lambda (State s, const Hand h, const Hand hands[], const Hand discard, unsigned turn, PlayerId p, vector<Action> actions) -> PlayerId {
+  return (Player){"web", lambda (State s, const Hand h, const Hand hands[], const Hand discard, const unsigned handSizes[], TurnInfo turn, vector<Action> actions) -> PlayerId {
       if (!running) {
         fprintf(stderr, "Web server isn't running!\n");
         exit(1);

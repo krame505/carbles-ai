@@ -14,7 +14,7 @@ datatype NodeStatus {
 };
 
 struct GameTree {
-  PlayerId player;
+  TurnInfo turn;
   Action action;
   State state;
   GameTree *parent;

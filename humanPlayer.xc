@@ -5,7 +5,8 @@
 #include <stdbool.h>
 
 Player makeHumanPlayer() {
-  return (Player){"human", lambda (State s, const Hand h, const Hand hands[], const Hand discard, unsigned turn, PlayerId p, vector<Action> actions) -> unsigned {
+  return (Player){"human", lambda (State s, const Hand h, const Hand hands[], const Hand discard, const unsigned handSizes[], TurnInfo turn, vector<Action> actions) -> unsigned {
+      PlayerId p = turn.player;
       printf("Hand: %s\n", showHand(h).text);
       if (hands) {
         for (PlayerId p1 = 0; p1 < numPlayers(s); p1++) {

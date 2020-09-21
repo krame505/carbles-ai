@@ -11,7 +11,15 @@
 #ifndef _DRIVER_XH
 #define _DRIVER_XH
 
-typedef closure<(State s, const Hand h, const Hand hands[], const Hand discard, unsigned turn, PlayerId p, vector<Action> actions) -> unsigned> PlayerCallback;
+struct TurnInfo {
+  PlayerId player, dealer, handNum, startingPlayer;
+};
+typedef struct TurnInfo TurnInfo;
+
+TurnInfo nextTurn(TurnInfo turn, unsigned numPlayers, _Bool redeal, _Bool newDeck);
+
+typedef closure<(State s, const Hand h, const Hand hands[], const Hand discard, const unsigned handSizes[],
+                 TurnInfo turn, vector<Action> actions) -> unsigned> PlayerCallback;
 
 struct Player {
   const char *name;

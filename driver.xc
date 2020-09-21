@@ -3,6 +3,22 @@
 #include <stdbool.h>
 #include <assert.h>
 
+TurnInfo nextTurn(TurnInfo turn, unsigned numPlayers, _Bool redeal, _Bool newDeck) {
+  if (redeal) {
+    if (newDeck) {
+      turn.dealer = (turn.dealer + 1) % numPlayers;
+      turn.handNum = 0;
+    } else {
+      turn.handNum++;
+    }
+    turn.startingPlayer = (turn.dealer + turn.handNum + 1) % numPlayers;
+    turn.player = turn.startingPlayer;
+  } else {
+    turn.player = (turn.player + 1) % numPlayers;
+  }
+  return turn;
+}
+
 PlayerId playGame(
     unsigned numPlayers, bool partners, bool openHands, Player players[numPlayers],
     closure<(PlayerId) -> void> updateTurn,
@@ -19,49 +35,49 @@ PlayerId playGame(
   State s = initialState(numPlayers, partners);
   Hand deck = {0}, discard = {0};
   Hand hands[numPlayers];
-  unsigned handSize = 0;
+  TurnInfo turn = {1 % numPlayers, 0, 0, 1 % numPlayers};
+  initializeDeck(deck);
+  deal(MIN_HAND, MAX_HAND, deck, numPlayers, hands);
+  handleDeal(turn.dealer, turn.handNum);
+  for (PlayerId p = 0; p < numPlayers; p++) {
+    updateHand(p, hands[p]);
+  }
 
-  unsigned turn = 0;
-  PlayerId currentPlayer = 0, dealer = numPlayers - 1, handNum = 0, startingPlayer = 0;
-  while (1) {
-    if (handSize == 0) {
+  while (!isWon(s)) {
+    updateState(s);
+    updateTurn(turn.player);
+    vector<Action> actions = getActions(s, turn.player, hands[turn.player]);
+    Player p = players[turn.player];
+    unsigned handSizes[numPlayers];
+    for (PlayerId p = 0; p < numPlayers; p++) {
+      handSizes[p] = getDeckSize(hands[p]);
+    }
+    unsigned actionNum = p.getAction(
+        s,
+        hands[turn.player],
+        openHands? hands : NULL,
+        discard, handSizes, turn, actions);
+    assert(actionNum < actions.size);
+    Action a = actions[actionNum];
+    handleAction(turn.player, a);
+    s = applyAction(a, s, hands[turn.player], discard);
+    updateHand(turn.player, hands[turn.player]);
+    bool redeal = false, newDeck = false;
+    if (handSizes[(turn.player + 1) % numPlayers] == 0) {
+      redeal = true;
       if (getDeckSize(deck) < numPlayers * MIN_HAND) {
+        newDeck = true;
         memset(discard, 0, sizeof(Hand));
         initializeDeck(deck);
-        dealer = (dealer + 1) % numPlayers;
-        handNum = 0;
-      } else {
-        handNum++;
       }
-      handleDeal(dealer, handNum);
-      handSize = deal(MIN_HAND, MAX_HAND, deck, numPlayers, hands);
-      startingPlayer = (dealer + handNum + 1) % numPlayers;
-      currentPlayer = startingPlayer;
+      deal(MIN_HAND, MAX_HAND, deck, numPlayers, hands);
       for (PlayerId p = 0; p < numPlayers; p++) {
         updateHand(p, hands[p]);
       }
     }
-    updateState(s);
-    updateTurn(currentPlayer);
-    vector<Action> actions = getActions(s, currentPlayer, hands[currentPlayer]);
-    Player p = players[currentPlayer];
-    unsigned actionNum = p.getAction(
-        s,
-        hands[currentPlayer],
-        openHands? hands : NULL,
-        discard, turn, currentPlayer, actions);
-    assert(actionNum < actions.size);
-    Action a = actions[actionNum];
-    handleAction(currentPlayer, a);
-    s = applyAction(a, s, hands[currentPlayer], discard);
-    updateHand(currentPlayer, hands[currentPlayer]);
-    if (isWon(s)) {
-      break;
-    }
-    currentPlayer = (currentPlayer + 1) % numPlayers;
-    if (currentPlayer == startingPlayer) {
-      handSize--;
-      turn++;
+    turn = nextTurn(turn, numPlayers, redeal, newDeck);
+    if (redeal) {
+      handleDeal(turn.dealer, turn.handNum);
     }
   }
   PlayerId winner = getWinner(s);
