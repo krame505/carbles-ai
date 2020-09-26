@@ -12,7 +12,7 @@
 #ifdef DEBUG
 #define TIMEOUT 5
 #else
-#define TIMEOUT 12
+#define TIMEOUT 15
 #endif
 #define PLAYOUT_DEPTH 10
 //#define PRINT_UNEXPANDED
