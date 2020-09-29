@@ -214,22 +214,24 @@ float weight(GameTree *t) {
 }
 
 void expand(PlayoutFn playoutHand, unsigned depth, GameTree *t,
-            Hand deck, Hand possibleHands[], Hand hands[]) {
+            Hand possibleDeck, Hand deck, Hand possibleHands[], Hand hands[]) {
   match (t) {
     &{{p}, .state=St(?&numPlayers, _, _, _)} -> {
       // Re-deal from deck if the hand is empty
       if (getDeckSize(hands[p]) == 0) {
         if (getDeckSize(deck) < numPlayers * MIN_HAND) {
+          initializeDeck(possibleDeck);
           initializeDeck(deck);
         }
         for (PlayerId p = 0; p < numPlayers; p++) {
-          memcpy(possibleHands[p], deck, sizeof(Hand));
+          memcpy(possibleHands[p], possibleDeck, sizeof(Hand));
         }
         deal(MIN_HAND, MAX_HAND, deck, numPlayers, hands);
       }
 
-      for (PlayerId p = 0; p < numPlayers; p++) {
-        for (Card c = Joker; c < CARD_MAX; c++) {
+      for (Card c = Joker; c < CARD_MAX; c++) {
+        assert(deck[c] <= possibleDeck[c]);
+        for (PlayerId p = 0; p < numPlayers; p++) {
           assert(hands[p][c] <= possibleHands[p][c]);
         }
       }
@@ -256,7 +258,7 @@ void expand(PlayoutFn playoutHand, unsigned depth, GameTree *t,
             break;
           }
         }
-        expand(playoutHand, depth, child, deck, possibleHands, hands);
+        expand(playoutHand, depth, child, possibleDeck, deck, possibleHands, hands);
       } else {
         // Compute valid actions
         vector<Action> actions = getActions(s, p, possibleHands[p]);
@@ -296,7 +298,7 @@ void expand(PlayoutFn playoutHand, unsigned depth, GameTree *t,
           break;
         }
       }
-      expand(playoutHand, depth, child, deck, possibleHands, hands);
+      expand(playoutHand, depth, child, possibleDeck, deck, possibleHands, hands);
     }
     &{{p}, .state=s, .status=Expanded(children, trials, wins)} -> {
       assert(children.size > 0);
@@ -342,9 +344,12 @@ void expand(PlayoutFn playoutHand, unsigned depth, GameTree *t,
         }
       }
       assert(maxChild != NULL);
-      hands[p][getActionCard(maxChild->action)]--;
-      possibleHands[p][getActionCard(maxChild->action)]--;
-      expand(playoutHand, depth, maxChild, deck, possibleHands, hands);
+      Card c = getActionCard(maxChild->action);
+      assert(possibleHands[p][c]);
+      assert(hands[p][c]);
+      possibleHands[p][c]--;
+      hands[p][c]--;
+      expand(playoutHand, depth, maxChild, possibleDeck, deck, possibleHands, hands);
     }
     &{.state=s, .status=Leaf(_)} -> {
       backpropagate(t, heuristicScore(s));
@@ -352,8 +357,10 @@ void expand(PlayoutFn playoutHand, unsigned depth, GameTree *t,
   }
 }
 
-Player makeSearchPlayer(unsigned timeout, PlayoutFn playoutHand, unsigned depth) {
-  return (Player){"search", lambda (State s, const Hand h, const Hand hands[], const Hand discard, const unsigned handSizes[], TurnInfo turn, vector<Action> actions) -> unsigned {
+Player makeSearchPlayer(unsigned numPlayers, unsigned timeout, PlayoutFn playoutHand, unsigned depth) {
+  Hand *possibleHands = GC_malloc(sizeof(Hand[numPlayers]));
+  return (Player){"search", lambda (State s, const Hand h, const Hand hands[], const Hand discard, const unsigned handSizes[],
+                                    TurnInfo turn, vector<Action> actions) -> unsigned {
       PlayerId p = turn.player;
 #ifdef DEBUG
       printf("%s\n", showHand(h).text);
@@ -368,7 +375,9 @@ Player makeSearchPlayer(unsigned timeout, PlayoutFn playoutHand, unsigned depth)
       clock_gettime(CLOCK_MONOTONIC, &start);
 
       match (s) {
-        St(?&numPlayers, ?&partners, board, _) -> {
+        St(?&stateNumPlayers, ?&partners, board, _) -> {
+          assert(numPlayers == stateNumPlayers);
+
           // If no moves will be possible with this hand, choose a random action immediately
           if (!actionPossible(s, p, h, hands && partners? hands[partner(numPlayers, p)] : NULL)) {
             return rand() % actions.size;
@@ -386,6 +395,28 @@ Player makeSearchPlayer(unsigned timeout, PlayoutFn playoutHand, unsigned depth)
             } else {
               remaining[c] -= h[c];
             }
+          }
+
+          // Update the possible hands held by each player
+          if (turn.turnNum == 0) {
+            // This is the first turn in a hand, reset the possible hands
+            for (PlayerId p1 = 0; p1 < numPlayers; p1++) {
+              initializeDeck(possibleHands[p1]);
+            }
+          }
+          if (hands) {
+            // The possible hands are known exactly
+            memcpy(possibleHands, hands, sizeof(Hand[numPlayers]));
+          } else {
+            // Update the possible hands based on the remaining cards
+            for (Card c = 0; c < CARD_MAX; c++) {
+              for (PlayerId p1 = 0; p1 < numPlayers; p1++) {
+                if (p != p1 && possibleHands[p1][c] > remaining[c]) {
+                  possibleHands[p1][c] = remaining[c];
+                }
+              }
+            }
+            memcpy(possibleHands[p], h, sizeof(Hand));
           }
 
           // Construct the initial children
@@ -406,23 +437,34 @@ Player makeSearchPlayer(unsigned timeout, PlayoutFn playoutHand, unsigned depth)
           // Perform playouts
           unsigned numPlayouts = 0;
           do {
-            Hand trialDeck, trialPossibleHands[numPlayers], trialHands[numPlayers];
-            memcpy(trialDeck, remaining, sizeof(Hand));
-            if (hands) {
-              memcpy(trialPossibleHands, hands, sizeof(trialPossibleHands));
-              memcpy(trialHands, hands, sizeof(trialHands));
-            } else {
-              for (PlayerId p1 = 0; p1 < numPlayers; p1++) {
-                if (p1 != p) {
-                  memcpy(trialPossibleHands[p1], remaining, sizeof(Hand));
-                  unsigned dealt = deal(handSizes[p1], handSizes[p1], trialDeck, 1, trialHands + p1);
-                  assert(dealt == handSizes[p1]);
-                }
+            Hand trialPossibleDeck, trialDeck, trialPossibleHands[numPlayers], trialHands[numPlayers];
+            memcpy(trialPossibleDeck, remaining, sizeof(Hand));
+            bool validHands;
+            do {
+              initializeDeck(trialDeck);
+              for (Card c = 0; c < CARD_MAX; c++) {
+                trialDeck[c] -= discard[c];
               }
-              memcpy(trialPossibleHands[p], h, sizeof(Hand));
-              memcpy(trialHands[p], h, sizeof(Hand));
-            }
-            expand(playoutHand, depth, &t, trialDeck, trialPossibleHands, trialHands);
+              validHands = true;
+              for (PlayerId p1 = 0; p1 < numPlayers; p1++) {
+                Hand possibleHand;
+                memcpy(possibleHand, possibleHands[p1], sizeof(Hand));
+                unsigned dealt = deal(handSizes[p1], handSizes[p1], possibleHand, 1, trialHands + p1);
+                assert(dealt == handSizes[p1]);
+                for (Card c = 0; c < CARD_MAX; c++) {
+                  if (trialDeck[c] < trialHands[p1][c]) {
+                    validHands = false;
+                    break;
+                  }
+                  trialDeck[c] -= trialHands[p1][c];
+                }
+                if (!validHands) {
+                  break;
+                }
+                memcpy(trialPossibleHands[p1], possibleHands[p1], sizeof(Hand));
+              }
+            } while (!validHands);
+            expand(playoutHand, depth, &t, trialPossibleDeck, trialDeck, trialPossibleHands, trialHands);
             numPlayouts++;
             clock_gettime(CLOCK_MONOTONIC, &finish);
             pthread_testcancel(); // This is a long-running task, allow cancellation at this point
@@ -457,24 +499,51 @@ Player makeSearchPlayer(unsigned timeout, PlayoutFn playoutHand, unsigned depth)
         }
         _ -> { assert(false); }
       }
+    }, lambda (State s, TurnInfo turn, Action action) -> void {
+      PlayerId p = turn.player;
+
+      if (turn.turnNum == 0) {
+        // This is the first turn in a hand, reset the possible hands
+        for (PlayerId p1 = 0; p1 < numPlayers; p1++) {
+          initializeDeck(possibleHands[p1]);
+        }
+      }
+
+      match (action) {
+        Burn(_) -> {
+          // Remove all cards from the player's hand that could have enabled a move
+          for (Card c = 0; c < CARD_MAX; c++) {
+            if (possibleHands[p][c] && getCardMoves(s, p, c).size > 0) {
+              possibleHands[p][c] = 0;
+            }
+          }
+        }
+      }
+
+#ifdef DEBUG
+      printf("\nPossible hands\n");
+      for (PlayerId p = 0; p < numPlayers; p++) {
+        printf("Player %d: %s\n", p, showHand(possibleHands[p]).text);
+      }
+#endif
     }
   };
 }
 
-Player makeHeuristicSearchPlayer() {
-  Player result = makeSearchPlayer(TIMEOUT, playoutHand, PLAYOUT_DEPTH);
+Player makeHeuristicSearchPlayer(unsigned numPlayers) {
+  Player result = makeSearchPlayer(numPlayers, TIMEOUT, playoutHand, PLAYOUT_DEPTH);
   result.name = "search";
   return result;
 }
 
-Player makeDeepSearchPlayer() {
-  Player result = makeSearchPlayer(TIMEOUT, playoutHand, 15);
+Player makeDeepSearchPlayer(unsigned numPlayers) {
+  Player result = makeSearchPlayer(numPlayers, TIMEOUT, playoutHand, 15);
   result.name = "deep_search";
   return result;
 }
 
-Player makeRuleSearchPlayer() {
-  Player result = makeSearchPlayer(TIMEOUT, rulePlayoutHand, PLAYOUT_DEPTH);
+Player makeRuleSearchPlayer(unsigned numPlayers) {
+  Player result = makeSearchPlayer(numPlayers, TIMEOUT, rulePlayoutHand, PLAYOUT_DEPTH);
   result.name = "rule_search";
   return result;
 }

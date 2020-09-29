@@ -17,7 +17,7 @@ int main(unsigned argc, char *argv[]) {
 
   Player players[numPlayers];
   for (unsigned i = 0; i < numPlayers; i++) {
-    players[i] = getPlayer(argv[i + 1]);
+    players[i] = getPlayer(argv[i + 1], numPlayers);
     if (!players[i].name) {
       printf("Invalid player %s\n", argv[i + 1]);
       return 1;

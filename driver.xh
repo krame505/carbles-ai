@@ -12,7 +12,10 @@
 #define _DRIVER_XH
 
 struct TurnInfo {
-  PlayerId player, dealer, handNum, startingPlayer;
+  PlayerId player, dealer;
+  unsigned handNum;
+  PlayerId startingPlayer;
+  unsigned turnNum;
 };
 typedef struct TurnInfo TurnInfo;
 
@@ -24,6 +27,7 @@ typedef closure<(State s, const Hand h, const Hand hands[], const Hand discard, 
 struct Player {
   const char *name;
   PlayerCallback getAction;
+  closure<(State s, TurnInfo turn, Action action) -> void> notifyAction;
 };
 typedef struct Player Player;
 

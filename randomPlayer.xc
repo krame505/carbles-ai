@@ -5,6 +5,6 @@
 
 Player makeRandomPlayer() {
   return (Player){"random", lambda (State s, const Hand h, const Hand hands[], const Hand discard, const unsigned handSizes[], TurnInfo turn, vector<Action> actions) ->
-        (unsigned)(rand() % actions.size)
-  };
+      (unsigned)(rand() % actions.size),
+      lambda (State s, TurnInfo turn, Action action) -> void {}};
 }

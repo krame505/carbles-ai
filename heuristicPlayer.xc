@@ -84,6 +84,6 @@ Player makeHeuristicPlayer() {
         }
       }
       return maxAction;
-    }
+    }, lambda (State s, TurnInfo turn, Action action) -> void {}
   };
 }

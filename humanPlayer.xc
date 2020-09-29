@@ -37,6 +37,6 @@ Player makeHumanPlayer() {
         while (getchar() != '\n');
         return 0;
       }
-    }
+    }, lambda (State s, TurnInfo turn, Action action) -> void {}
   };
 }

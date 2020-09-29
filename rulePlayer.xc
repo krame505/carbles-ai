@@ -81,6 +81,6 @@ Player makeRulePlayer() {
       }
 
       return rand() % actions.size;
-    }
+    }, lambda (State s, TurnInfo turn, Action action) -> void {}
   };
 }

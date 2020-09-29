@@ -375,7 +375,7 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
           for (unsigned i = 0; i < room->numAI; i++) {
             while (assigned[p]) { p = rand() % numPlayers; }
             assigned[p] = true;
-            room->players[p] = makeHeuristicSearchPlayer();
+            room->players[p] = makeHeuristicSearchPlayer(numPlayers);
             room->playerNames[p] = "AI " + str(i + 1);
             room->playerLabels[p] = "";
             p = partner(numPlayers, p);
@@ -908,6 +908,6 @@ Player makeWebPlayer(string roomId) {
       pthread_cleanup_pop(0);
 
       return result;
-    }
+    }, lambda (State s, TurnInfo turn, Action action) -> void {}
   };
 }

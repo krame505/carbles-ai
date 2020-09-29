@@ -13,8 +13,10 @@ TurnInfo nextTurn(TurnInfo turn, unsigned numPlayers, _Bool redeal, _Bool newDec
     }
     turn.startingPlayer = (turn.dealer + turn.handNum + 1) % numPlayers;
     turn.player = turn.startingPlayer;
+    turn.turnNum = 0;
   } else {
     turn.player = (turn.player + 1) % numPlayers;
+    turn.turnNum++;
   }
   return turn;
 }
@@ -35,7 +37,7 @@ PlayerId playGame(
   State s = initialState(numPlayers, partners);
   Hand deck = {0}, discard = {0};
   Hand hands[numPlayers];
-  TurnInfo turn = {1 % numPlayers, 0, 0, 1 % numPlayers};
+  TurnInfo turn = {1 % numPlayers, 0, 0, 1 % numPlayers, 0};
   initializeDeck(deck);
   deal(MIN_HAND, MAX_HAND, deck, numPlayers, hands);
   handleDeal(turn.dealer, turn.handNum);
@@ -60,6 +62,9 @@ PlayerId playGame(
     assert(actionNum < actions.size);
     Action a = actions[actionNum];
     handleAction(turn.player, a);
+    for (PlayerId p = 0; p < numPlayers; p++) {
+      players[p].notifyAction(s, turn, a);
+    }
     s = applyAction(a, s, hands[turn.player], discard);
     updateHand(turn.player, hands[turn.player]);
     bool redeal = false, newDeck = false;
