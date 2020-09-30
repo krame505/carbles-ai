@@ -225,7 +225,7 @@ function connect() {
   if (ws != null && ws.readyState != WebSocket.OPEN) {
     ws.close()
   }
-  ws = new WebSocket("ws://" + location.host)
+  ws = new WebSocket((location.protocol === "https:"? "wss://" : "ws://") + location.host)
   ws.onmessage = function (event) {
     msg = JSON.parse(event.data)
     console.log("Got message", msg)
