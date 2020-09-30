@@ -8,8 +8,6 @@
 #include <stdbool.h>
 #include <time.h>
 
-#define TIMEOUT 100 // Seconds
-
 #define MAX_ROOM_ID 30
 #define MAX_CONN_ID 100
 #define MAX_IP_ADDR 50
@@ -509,6 +507,7 @@ static void handleRegister(struct mg_connection *nc, const char *data, size_t si
       } else {
         logmsg("Player %s rejoined from the same socket", connId_s);
       }
+      notify(roomId, -1, str(""), false, true, str(""), true);
     } else {
       // The player is initially joining, add them
       if (mapContains(room->droppedConnections, connId)) {
@@ -534,42 +533,24 @@ static void handleRegister(struct mg_connection *nc, const char *data, size_t si
         room->state = initialState(room->numWeb + room->numAI + room->numRandom, room->partners);
       }
       notify(roomId, -1, str(""), false, true, conn->name + " joined", true);
-    }
-    // Set timeout for auto-disconnect
-    conn->activeTime = mg_time();
-    mg_set_timer(nc, mg_time() + TIMEOUT);
 
-    if (!mapContains(users, connId)) {
-      users = mapInsert(GC_malloc, users, connId, 1);
-      FILE *usersOut = fopen(usersFile, "a");
-      fprintf(usersOut, "%s: %s\n", connId_s, name_s);
-      fclose(usersOut);
-    } else {
-      users = mapInsert(GC_malloc, users, connId, mapGet(users, connId) + 1);
-    }
-    if (!mapContains(activeUsers, connId)) {
-      activeUsers = mapInsert(GC_malloc, activeUsers, connId, 1);
-    } else {
-      activeUsers = mapInsert(GC_malloc, activeUsers, connId, mapGet(activeUsers, connId) + 1);
+      if (!mapContains(users, connId)) {
+        users = mapInsert(GC_malloc, users, connId, 1);
+        FILE *usersOut = fopen(usersFile, "a");
+        fprintf(usersOut, "%s: %s\n", connId_s, name_s);
+        fclose(usersOut);
+      } else {
+        users = mapInsert(GC_malloc, users, connId, mapGet(users, connId) + 1);
+      }
+      if (!mapContains(activeUsers, connId)) {
+        activeUsers = mapInsert(GC_malloc, activeUsers, connId, 1);
+      } else {
+        activeUsers = mapInsert(GC_malloc, activeUsers, connId, mapGet(activeUsers, connId) + 1);
+      }
     }
 
     pthread_mutex_unlock(&room->mutex);
   }
-}
-
-static void handlePing(struct mg_connection *nc) {
-  query NC is ((SocketId)nc), SRS is socketRooms, mapContains(SRS, NC, RID),
-        RS is rooms, mapContains(RS, RID, R),
-        initially { pthread_mutex_lock(&R->mutex); },
-        finally   { pthread_mutex_unlock(&R->mutex); },
-        SPS is (R->socketPlayers), mapContains(SPS, NC, CID),
-        CS is (R->connections), mapContains(CS, CID, C) {
-    PlayerConn *conn = value(C);
-      
-    // Set timeout for auto-disconnect
-    conn->activeTime = mg_time();
-    mg_set_timer(nc, mg_time() + TIMEOUT);
-  };
 }
 
 static void handleAction(struct mg_connection *nc, const char *data, size_t size) {
@@ -646,8 +627,6 @@ static void websocketHandler(struct mg_connection *nc, int ev, struct websocket_
   // Dispatch to the appropriate handler
   if (!strncmp(data, "join", 4)) {
     handleRegister(nc, data, size);
-  } else if (!strncmp(data, "ping", 4)) {
-    handlePing(nc);
   } else if (!strncmp(data, "chat", 4)) {
     handleChat(nc, data, size);
   } else if (!strncmp(data, "label", 5)) {
@@ -704,24 +683,6 @@ static void handleUnregister(struct mg_connection *nc) {
   pthread_mutex_unlock(&roomsMutex);
 }
 
-static void handleTimeout(struct mg_connection *nc) {
-  bool timeout = query
-    NC is ((SocketId)nc), SRS is socketRooms, mapContains(SRS, NC, RID),
-    RS is rooms, mapContains(RS, RID, R),
-    initially { pthread_mutex_lock(&R->mutex); },
-    finally   { pthread_mutex_unlock(&R->mutex); },
-    SPS is (R->socketPlayers), mapContains(SPS, NC, CID),
-    CS is (R->connections), mapContains(CS, CID, C) {
-      PlayerConn *conn = value(C);
-      return mg_time() > conn->activeTime + TIMEOUT;
-    };
-
-  if (timeout) {
-    // Closing the connection will automatically unregister the player
-    nc->flags |= MG_F_CLOSE_IMMEDIATELY;
-  }
-}
-
 static void evHandler(struct mg_connection *nc, int ev, void *ev_data) {
   switch (ev) {
   case MG_EV_HTTP_REQUEST: {
@@ -741,10 +702,6 @@ static void evHandler(struct mg_connection *nc, int ev, void *ev_data) {
     if (nc->flags & MG_F_IS_WEBSOCKET) {
       handleUnregister(nc);
     }
-    break;
-  }
-  case MG_EV_TIMER: {
-    handleTimeout(nc);
     break;
   }
   default:

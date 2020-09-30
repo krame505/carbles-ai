@@ -220,15 +220,6 @@ function addMessage(id, name, chat, msg) {
 }
 
 var reconnectInterval = 1
-var enablePing = false
-function ping() {
-  console.log("Sending ping")
-  if (enablePing) {
-    ws.send('ping')
-    setTimeout(ping, 30000) // Send ping every 30 seconds
-  }
-}
-
 function connect() {
   console.log("Connecting")
   if (ws != null && ws.readyState != WebSocket.OPEN) {
@@ -254,8 +245,6 @@ function connect() {
     console.log("Joining room")
     ws.send(`join:${room}:${id}:${name}`)
     reconnectInterval = 1
-    enablePing = true
-    ping()
   }
   ws.onclose = function(e) {
     console.log(`Socket is closed. Reconnect will be attempted in ${reconnectInterval} seconds.`, e.reason)
@@ -264,7 +253,6 @@ function connect() {
     if (reconnectInterval < 10) {
       reconnectInterval += 1
     }
-    enablePing = false
   }
   ws.onerror = function(e) {
     console.log('Websocket error: ', e)
