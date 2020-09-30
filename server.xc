@@ -8,6 +8,9 @@
 #include <stdbool.h>
 #include <time.h>
 
+#define SSL_CERT "/etc/letsencrypt/live/carbles.net/fullchain.pem"
+#define SSL_KEY "/etc/letsencrypt/live/carbles.net/privkey.pem"
+
 #define MAX_ROOM_ID 30
 #define MAX_CONN_ID 100
 #define MAX_IP_ADDR 50
@@ -745,8 +748,10 @@ void serve(const char *port) {
   memset(&bind_opts, 0, sizeof(bind_opts));
   const char *err_str;
   bind_opts.error_string = &err_str;
-  bind_opts.ssl_cert = "/etc/letsencrypt/live/carbles.net/cert.pem";
-  bind_opts.ssl_key = "/etc/letsencrypt/live/carbles.net/privkey.pem";
+#ifdef SSL
+  bind_opts.ssl_cert = SSL_CERT;
+  bind_opts.ssl_key = SSL_KEY;
+#endif
   mg_mgr_init(&mgr, NULL);
   struct mg_connection *nc = mg_bind_opt(&mgr, port, evHandler, bind_opts);
   if (nc == NULL) {
