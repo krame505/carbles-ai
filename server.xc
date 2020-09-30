@@ -745,6 +745,8 @@ void serve(const char *port) {
   memset(&bind_opts, 0, sizeof(bind_opts));
   const char *err_str;
   bind_opts.error_string = &err_str;
+  bind_opts.ssl_cert = "/etc/letsencrypt/live/carbles.net/cert.pem";
+  bind_opts.ssl_key = "/etc/letsencrypt/live/carbles.net/privkey.pem";
   mg_mgr_init(&mgr, NULL);
   struct mg_connection *nc = mg_bind_opt(&mgr, port, evHandler, bind_opts);
   if (nc == NULL) {
