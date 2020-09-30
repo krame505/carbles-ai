@@ -84,12 +84,17 @@ LIBS=$(SRC_DIRS:src=libs)
 # All C and XC files used to build libraries, to be included as dependencies
 SRC_SOURCES=$(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.*c))
 
-override CPPFLAGS+=-DMG_ENABLE_THREADS=1 -DMG_ENABLE_SSL=1
+override CPPFLAGS+=-DMG_ENABLE_THREADS=1
 
 ifeq ($(CONF), rel)
   override CPPFLAGS+=-DNDEBUG
   override CFLAGS+=-O3
   override LDFLAGS+=-O3
+else ifeq ($(CONF), ssl)
+  override CPPFLAGS+=-DNDEBUG -DSSL -DMG_ENABLE_SSL -DMG_SSL_IF=MG_SSL_IF_MBEDTLS -DMG_SSL_MBED_DUMMY_RANDOM
+  override CFLAGS+=-O3
+  override LDFLAGS+=-O3
+  override LDLIBS+=-lmbedcrypto -lmbedx509 -lmbedtls
 else ifeq ($(CONF), dbg)
   override CPPFLAGS+=-DDEBUG
   override CFLAGS+=-O0 -g
