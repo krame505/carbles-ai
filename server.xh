@@ -4,6 +4,6 @@
 #ifndef _SERVER_XH
 #define _SERVER_XH
 
-void serve(const char *port);
+void serve(const char *port_http, const char *port_https);
 
 #endif

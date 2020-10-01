@@ -720,7 +720,7 @@ static void signal_handler(int sig_num) {
   signal_received = sig_num;
 }
 
-void serve(const char *port) {
+void serve(const char *port_http, const char *port_https) {
   // Record startup time
   time_t t = time(NULL);
   struct tm tm = *localtime(&t);
@@ -751,25 +751,35 @@ void serve(const char *port) {
   memset(&bind_opts, 0, sizeof(bind_opts));
   const char *err_str;
   bind_opts.error_string = &err_str;
-#ifdef SSL
-  bind_opts.ssl_cert = SSL_CERT;
-  bind_opts.ssl_key = SSL_KEY;
-#endif
   mg_mgr_init(&mgr, NULL);
-  struct mg_connection *nc = mg_bind_opt(&mgr, port, evHandler, bind_opts);
-  if (nc == NULL) {
-    fprintf(stderr, "Error starting server on port %s: %s\n", port, *bind_opts.error_string);
+  
+  logmsg("Starting server on port %s", port_http);
+  struct mg_connection *nc_http = mg_bind_opt(&mgr, port_http, evHandler, bind_opts);
+  if (nc_http == NULL) {
+    fprintf(stderr, "Error starting server on port %s: %s\n", port_http, *bind_opts.error_string);
     exit(1);
   }
-
-  mg_set_protocol_http_websocket(nc);
+  mg_set_protocol_http_websocket(nc_http);
+  
+#ifdef SSL
+  if (port_https) {
+    bind_opts.ssl_cert = SSL_CERT;
+    bind_opts.ssl_key = SSL_KEY;
+    logmsg("Starting server on port %s", port_https);
+    struct mg_connection *nc_https = mg_bind_opt(&mgr, port_https, evHandler, bind_opts);
+    if (nc_https == NULL) {
+      fprintf(stderr, "Error starting server on port %s: %s\n", port_https, *bind_opts.error_string);
+      exit(1);
+    }
+    mg_set_protocol_http_websocket(nc_https);
+  }
+#endif
 
   // Set up signal handling
   signal(SIGTERM, signal_handler);
   signal(SIGINT, signal_handler);
 
   // Start server
-  logmsg("Starting server on port %s", port);
   running = true;
   while (signal_received == 0) {
     mg_mgr_poll(&mgr, 1000);
