@@ -54,6 +54,7 @@ struct Room {
   unsigned numRandom;
   bool partners;
   bool openHands;
+  unsigned aiTime;
   Player players[MAX_PLAYERS];
   vector<string> playerNames, playerLabels;
   bool gameInProgress;
@@ -124,7 +125,7 @@ static void createRoom(string roomId) {
     emptyMap<string, PlayerConn *, compareString>(GC_malloc),
     emptyMap<string, PlayerConn *, compareString>(GC_malloc),
     emptyMap<SocketId, string, compareSocket>(GC_malloc),
-    0, 1, 0, false, false,
+    0, 1, 0, false, false, 12,
     {0}, vec<string>[], vec<string>[], false, 0, initialState(0, false), {0}, vec<Action>[], false, 0, false,
     false, 0, PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER
   };
@@ -277,6 +278,7 @@ static void handleState(struct mg_connection *nc, struct http_message *hm) {
       ", \"randomPlayers\": " + str(room->numRandom) +
       ", \"partners\": " + show(room->partners) +
       ", \"openHands\": " + show(room->openHands) +
+      ", \"aiTime\": " + show(room->aiTime) +
       ", \"playersInGame\": " + jsonList(playersInGame) +
       ", \"playerLabels\": " + jsonList(playerLabels) +
       ", \"id\": " + conn->id +
@@ -294,14 +296,15 @@ static void handleState(struct mg_connection *nc, struct http_message *hm) {
 
 static void handleConfig(struct mg_connection *nc, struct http_message *hm) {
   // Get form variables
-  char roomId_s[MAX_ROOM_ID + 1] = {0}, ai_s[10], random_s[10], partners_s[6], openHands_s[6];
+  char roomId_s[MAX_ROOM_ID + 1] = {0}, ai_s[10], random_s[10], partners_s[6], openHands_s[6], aiTime_s[10];
   mg_get_http_var(&hm->query_string, "room", roomId_s, sizeof(roomId_s));
   mg_get_http_var(&hm->query_string, "ai", ai_s, sizeof(ai_s));
   mg_get_http_var(&hm->query_string, "random", random_s, sizeof(random_s));
   mg_get_http_var(&hm->query_string, "partners", partners_s, sizeof(partners_s));
   mg_get_http_var(&hm->query_string, "openhands", openHands_s, sizeof(openHands_s));
+  mg_get_http_var(&hm->query_string, "aitime", aiTime_s, sizeof(openHands_s));
   string roomId = str(roomId_s);
-  unsigned ai = atoi(ai_s), random = atoi(random_s);
+  unsigned ai = atoi(ai_s), random = atoi(random_s), aiTime = atoi(aiTime_s);
   bool partners = !strcmp(partners_s, "true"), openHands = !strcmp(openHands_s, "true");
 
   bool success = query
@@ -314,6 +317,7 @@ static void handleConfig(struct mg_connection *nc, struct http_message *hm) {
       room->numRandom = random;
       room->partners = partners;
       room->openHands = openHands;
+      room->aiTime = aiTime;
       if (!room->gameInProgress) {
         room->state = initialState(room->numWeb + room->numAI + room->numRandom, partners);
       }
@@ -379,7 +383,7 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
           for (unsigned i = 0; i < room->numAI; i++) {
             while (assigned[p]) { p = rand() % numPlayers; }
             assigned[p] = true;
-            room->players[p] = makeHeuristicSearchPlayer(numPlayers);
+            room->players[p] = makeSearchPlayer(numPlayers, room->aiTime, playoutHand, 10);
             room->playerNames[p] = "AI " + str(i + 1);
             room->playerLabels[p] = "";
             p = partner(numPlayers, p);

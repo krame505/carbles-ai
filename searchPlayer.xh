@@ -23,6 +23,9 @@ struct GameTree {
 
 typedef vector<float> (*PlayoutFn)(State s, PlayerId p, Hand hands[], unsigned depth);
 
+vector<float> playoutHand(State s, PlayerId p, Hand hands[], unsigned depth);
+vector<float> rulePlayoutHand(State s, PlayerId p, Hand hands[], unsigned depth);
+
 Player makeSearchPlayer(unsigned numPlayers, unsigned timeout, PlayoutFn playoutHand, unsigned depth);
 Player makeHeuristicSearchPlayer(unsigned numPlayers);
 Player makeDeepSearchPlayer(unsigned numPlayers);

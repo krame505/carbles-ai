@@ -194,6 +194,7 @@ function reloadState() {
 	  randomPlayers.value = state.randomPlayers
 	  partners.checked = state.partners
 	  openHands.checked = state.openHands
+          aiTime.value = state.aiTime
 	  actions.innerHTML = ""
 	  state.actions.forEach(
 	      function (a, i) {
@@ -276,7 +277,7 @@ function copyLink() {
 }
 
 function updateConfig() {
-  $.ajax({url: `config?room=${room}&ai=${aiPlayers.value}&random=${randomPlayers.value}&partners=${partners.checked}&openhands=${openHands.checked}`, cache: false})
+  $.ajax({url: `config?room=${room}&ai=${aiPlayers.value}&random=${randomPlayers.value}&partners=${partners.checked}&openhands=${openHands.checked}&aitime=${aiTime.value}`, cache: false})
 }
 
 function handleStartEndGame() {
