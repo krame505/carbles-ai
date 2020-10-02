@@ -1,5 +1,9 @@
 #ifndef NUM_THREADS
-# define NUM_THREADS 8
+# ifdef DEBUG
+#  define NUM_THREADS 1
+# else
+#  define NUM_THREADS 8
+# endif
 #endif
 
 #if NUM_THREADS > 1
@@ -24,11 +28,11 @@ int main(unsigned argc, char *argv[]) {
   unsigned games = atoi(argv[1]);
   unsigned numPlayers = argc - 2;
 
-  Player players[numPlayers];
+  char **players = argv + 2;
   for (unsigned i = 0; i < numPlayers; i++) {
-    players[i] = getPlayer(argv[i + 2], numPlayers);
-    if (!players[i].name) {
-      printf("Invalid player %s\n", argv[i + 2]);
+    Player p = getPlayer(players[i], numPlayers);
+    if (!p.name) {
+      printf("Invalid player %s\n", players[i]);
       return 1;
     }
   }
@@ -65,7 +69,7 @@ int main(unsigned argc, char *argv[]) {
     }
     Player trialPlayers[numPlayers];
     for (unsigned i = 0; i < numPlayers; i++) {
-      trialPlayers[i] = players[ps[i]];
+      trialPlayers[i] = getPlayer(players[ps[i]], numPlayers);
     }
 
     PlayerId winner = ps[playQuietGame(numPlayers, false, openHands, trialPlayers)];
@@ -77,7 +81,7 @@ int main(unsigned argc, char *argv[]) {
       wins[winner]++;
       printf("\nFinished game %d:\n", numGames);
       for (unsigned i = 0; i < numPlayers; i++) {
-        printf("  %s: %d\n", players[i].name, wins[i]);
+        printf("  %s: %d\n", players[i], wins[i]);
       }
       fflush(stdout);
     }

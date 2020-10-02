@@ -449,8 +449,9 @@ Player makeSearchPlayer(unsigned numPlayers, unsigned timeout, PlayoutFn playout
               for (PlayerId p1 = 0; p1 < numPlayers; p1++) {
                 Hand possibleHand;
                 memcpy(possibleHand, possibleHands[p1], sizeof(Hand));
-                unsigned dealt = deal(handSizes[p1], handSizes[p1], possibleHand, 1, trialHands + p1);
-                assert(dealt == handSizes[p1]);
+                unsigned handSize = handSizes[p1];
+                unsigned dealt = deal(handSize, handSize, possibleHand, 1, trialHands + p1);
+                assert(dealt == handSize);
                 for (Card c = 0; c < CARD_MAX; c++) {
                   if (trialDeck[c] < trialHands[p1][c]) {
                     validHands = false;
