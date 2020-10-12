@@ -30,3 +30,8 @@ Type these in the chat to mess with people endlessly.
 ```
 <iframe width="420" height="315" src="https://www.youtube.com/embed/tgbNymZ7vqY"></iframe>
 ```
+
+## Autoplay youtube video
+```
+<iframe width="420" height="315" src="https://www.youtube.com/embed/tgbNymZ7vqY?rel=0&amp;controls=0&amp;showinfo=0&amp;autoplay=1"></iframe>
+```

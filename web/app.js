@@ -210,13 +210,19 @@ function reloadState() {
 }
 
 function addMessage(id, name, chat, msg) {
-  messagesOut.innerHTML +=`
-<span style="${id != null? `color:${getColor(id)}` : ""}">
-  <b>${name? name + ": " : ""}</b>
-  <span style="${chat? "" : "font-style:italic;"}${id != null? "" : "font-weight:bold;"}">
-    ${msg}
-  </span>
-</span><br>`
+  let message = document.createElement('span')
+  if (id != null) {
+    let messageStyle = document.createAttribute('style')
+    messageStyle.value = `color:${getColor(id)}`
+    message.setAttributeNode(messageStyle)
+  }
+  message.innerHTML = `
+    <b>${name? name + ": " : ""}</b>
+    <span style="${chat? "" : "font-style:italic;"}${id != null? "" : "font-weight:bold;"}">
+      ${msg}
+    </span>
+    <br>`
+  messagesOut.appendChild(message)
   messagesOut.scrollTop = messagesOut.scrollHeight
 }
 
