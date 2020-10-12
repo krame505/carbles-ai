@@ -804,7 +804,7 @@ static void *runServerGame(void *arg) {
   Room *room = mapGet(rooms, roomId);
 
   unsigned numWeb = room->numWeb, numAI = room->numAI, numRandom = room->numRandom,
-    numPlayers = numWeb + numAI + numRandom;
+    numPlayers = numWeb + numAI + numRandom, aiTime = room->aiTime;
   bool partners = room->partners, openHands = room->openHands;
   PlayerId winner = playGame(
       numPlayers, partners, openHands, room->players,
@@ -858,13 +858,13 @@ static void *runServerGame(void *arg) {
   }
   FILE *statsOut = fopen(statsFile, "a");
   if (!statsExists) {
-    fprintf(statsOut, "# Players, # Human, # AI, # Random, Partners, Open Hands, Winner Type, Winner Name(s)\n");
+    fprintf(statsOut, "# Players, # Human, # AI, # Random, Partners, Open Hands, AI time, Winner Type, Winner Name(s)\n");
   }
   string winnerName = room->playerNames[winner];
   if (partners) {
     winnerName += " and " + room->playerNames[partner(numPlayers, winner)];
   }
-  fprintf(statsOut, "%d, %d, %d, %d, %d, %d, %s, %s\n", numPlayers, numWeb, numAI, numRandom, partners, openHands, room->players[winner].name, winnerName.text);
+  fprintf(statsOut, "%d, %d, %d, %d, %d, %d, %d, %s, %s\n", numPlayers, numWeb, numAI, numRandom, partners, openHands, aiTime, room->players[winner].name, winnerName.text);
   fclose(statsOut);
   pthread_mutex_unlock(&roomsMutex);
 
