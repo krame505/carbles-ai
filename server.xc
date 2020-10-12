@@ -115,6 +115,7 @@ static map<string, unsigned, compareString> ?users, ?activeUsers;
 
 static const char *gamesFile = "games.txt";
 static const char *usersFile = "users.txt";
+static const char *statsFile = "stats.csv";
 
 static void createRoom(string roomId) {
   logmsg("Creating room %s", roomId.text);
@@ -802,9 +803,11 @@ static void *runServerGame(void *arg) {
   string roomId = str((const char *)arg);
   Room *room = mapGet(rooms, roomId);
 
+  unsigned numWeb = room->numWeb, numAI = room->numAI, numRandom = room->numRandom,
+    numPlayers = numWeb + numAI + numRandom;
+  bool partners = room->partners, openHands = room->openHands;
   PlayerId winner = playGame(
-      room->numWeb + room->numAI + room->numRandom,
-      room->partners, room->openHands, room->players,
+      numPlayers, partners, openHands, room->players,
       lambda (PlayerId p) -> void {
         pthread_mutex_lock(&room->mutex);
         room->turn = p;
@@ -833,22 +836,41 @@ static void *runServerGame(void *arg) {
         notify(roomId, -1, str(""), false, false, "Hand " + str(handNum + 1) +  " for dealer " + room->playerNames[p], false);
       },
       lambda (PlayerId p, Action a) -> void {
-        notify(roomId, p, room->playerNames[p], false, false, showAction(a, p, room->partners? partner(numPlayers(room->state), p) : PLAYER_ID_NONE), false);
+        notify(roomId, p, room->playerNames[p], false, false, showAction(a, p, partners? partner(numPlayers, p) : PLAYER_ID_NONE), false);
       },
       lambda (PlayerId p) -> void {
-        if (room->partners) {
-          notify(roomId, -1, str(""), false, true, room->playerNames[p] + " and " + room->playerNames[partner(numPlayers(room->state), p)] + " won!", false);
+        if (partners) {
+          notify(roomId, -1, str(""), false, true, room->playerNames[p] + " and " + room->playerNames[partner(numPlayers, p)] + " won!", false);
         } else {
           notify(roomId, -1, str(""), false, true, room->playerNames[p] + " won!", false);
         }
       });
 
+  logmsg("Finished game in room %s", roomId.text);
+  numActiveGames--;
+  
+  pthread_mutex_lock(&roomsMutex);
+  bool statsExists = false;
+  FILE *statsIn = fopen(statsFile, "r");
+  if (statsIn) {
+    statsExists = true;
+    fclose(statsIn);
+  }
+  FILE *statsOut = fopen(statsFile, "a");
+  if (!statsExists) {
+    fprintf(statsOut, "# Players, # Human, # AI, # Random, Partners, Open Hands, Winner Type, Winner Name(s)\n");
+  }
+  string winnerName = room->playerNames[winner];
+  if (partners) {
+    winnerName += " and " + room->playerNames[partner(numPlayers, winner)];
+  }
+  fprintf(statsOut, "%d, %d, %d, %d, %d, %d, %s, %s\n", numPlayers, numWeb, numAI, numRandom, partners, openHands, room->players[winner].name, winnerName.text);
+  fclose(statsOut);
+  pthread_mutex_unlock(&roomsMutex);
+
   pthread_mutex_lock(&room->mutex);
   room->gameInProgress = false;
   pthread_mutex_unlock(&room->mutex);
-
-  logmsg("Finished game in room %s", roomId.text);
-  numActiveGames--;
 
   //GC_unregister_my_thread(); // TODO: Causes segfault.  Is this actually needed?
   return NULL;
