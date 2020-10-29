@@ -839,6 +839,9 @@ static void *runServerGame(void *arg) {
         notify(roomId, p, room->playerNames[p], false, false, showAction(a, p, partners? partner(numPlayers, p) : PLAYER_ID_NONE), false);
       },
       lambda (PlayerId p) -> void {
+        pthread_mutex_lock(&room->mutex);
+        room->gameInProgress = false;
+        pthread_mutex_unlock(&room->mutex);
         if (partners) {
           notify(roomId, -1, str(""), false, true, room->playerNames[p] + " and " + room->playerNames[partner(numPlayers, p)] + " won!", false);
         } else {
@@ -867,10 +870,6 @@ static void *runServerGame(void *arg) {
   fprintf(statsOut, "%d, %d, %d, %d, %d, %d, %d, %s, %s\n", numPlayers, numWeb, numAI, numRandom, partners, openHands, aiTime, room->players[winner].name, winnerName.text);
   fclose(statsOut);
   pthread_mutex_unlock(&roomsMutex);
-
-  pthread_mutex_lock(&room->mutex);
-  room->gameInProgress = false;
-  pthread_mutex_unlock(&room->mutex);
 
   //GC_unregister_my_thread(); // TODO: Causes segfault.  Is this actually needed?
   return NULL;
