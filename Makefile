@@ -64,7 +64,7 @@ C_INCLUDE_SOURCES=$(foreach dir,$(INCLUDE_DIRS),$(wildcard $(dir)/*.h))
 # Flags passed to ableC including the appropriate directories
 override CPPFLAGS+=$(addprefix -I,$(INCLUDE_DIRS))
 # Flags passed to Java when invoking ableC
-override JAVAFLAGS+=-Xss1G -Xmx8G
+override JAVAFLAGS+=-Xss1G -Xmx12G
 
 # Flags passed to the C compiler, e.g. to enable various compiler extensions
 override CFLAGS+=-fopenmp
@@ -130,7 +130,7 @@ $(BIN_DIR) $(TARGET_DIR):
 
 # Remove everything but C files and ableC jar
 mostlyclean:
-	rm -rf $(OBJECTS) $(TARGETS) *~ *.copperdump.html build.xml
+	rm -rf $(OBJECTS) $(TARGETS) *.i *~ *.copperdump.html build.xml
 
 # Remove everything but the ableC jar
 clean: mostlyclean
