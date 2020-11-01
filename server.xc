@@ -187,7 +187,7 @@ static void sendEmpty(struct mg_connection *nc) {
 }
 
 static string jsonList(vector<string> v) {
-  string result = str("[");
+  string result = "[";
   for (unsigned i = 0; i < v.size; i++) {
     if (i) result += ", ";
     result += show(v[i]);
@@ -219,7 +219,7 @@ static void handleState(struct mg_connection *nc, struct http_message *hm) {
   char roomId_s[MAX_ROOM_ID + 1] = {0}, connId_s[MAX_CONN_ID + 1] = {0};
   mg_get_http_var(&hm->query_string, "room", roomId_s, sizeof(roomId_s));
   mg_get_http_var(&hm->query_string, "id", connId_s, sizeof(connId_s));
-  string roomId = str(roomId_s), connId = str(connId_s);
+  string roomId = roomId_s, connId = connId_s;
 
   bool success = query
     RID is roomId, RS is rooms, mapContains(RS, RID, R),
@@ -304,7 +304,7 @@ static void handleConfig(struct mg_connection *nc, struct http_message *hm) {
   mg_get_http_var(&hm->query_string, "partners", partners_s, sizeof(partners_s));
   mg_get_http_var(&hm->query_string, "openhands", openHands_s, sizeof(openHands_s));
   mg_get_http_var(&hm->query_string, "aitime", aiTime_s, sizeof(openHands_s));
-  string roomId = str(roomId_s);
+  string roomId = roomId_s;
   unsigned ai = atoi(ai_s), random = atoi(random_s), aiTime = atoi(aiTime_s);
   bool partners = !strcmp(partners_s, "true"), openHands = !strcmp(openHands_s, "true");
 
@@ -339,7 +339,7 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
   // Get form variables
   char roomId_s[MAX_ROOM_ID + 1] = {0};
   mg_get_http_var(&hm->query_string, "room", roomId_s, sizeof(roomId_s));
-  string roomId = str(roomId_s);
+  string roomId = roomId_s;
 
   bool success = query
     RID is roomId, RS is rooms, mapContains(RS, RID, R),
@@ -423,7 +423,7 @@ static void handleEnd(struct mg_connection *nc, struct http_message *hm) {
   // Get form variables
   char roomId_s[MAX_ROOM_ID + 1] = {0};
   mg_get_http_var(&hm->query_string, "room", roomId_s, sizeof(roomId_s));
-  string roomId = str(roomId_s);
+  string roomId = roomId_s;
 
   bool success = query
     RID is roomId, RS is rooms, mapContains(RS, RID, R),
@@ -476,7 +476,7 @@ static void httpHandler(struct mg_connection *nc, int ev, struct http_message *h
 static void handleRegister(struct mg_connection *nc, const char *data, size_t size) {
   char roomId_s[MAX_ROOM_ID + 1], connId_s[MAX_CONN_ID + 1], name_s[MAX_NAME + 1];
   if (sscanf(data, "join:%"STR(MAX_ROOM_ID)"[^:]:%"STR(MAX_CONN_ID)"[^:]:%"STR(MAX_NAME)"[^\n]", roomId_s, connId_s, name_s) == 3) {
-    string roomId = str(roomId_s), connId = str(connId_s), name = str(name_s);
+    string roomId = roomId_s, connId = connId_s, name = name_s;
     char addr[32];
     mg_sock_addr_to_str(&nc->sa, addr, sizeof(addr), MG_SOCK_STRINGIFY_IP | MG_SOCK_STRINGIFY_PORT | MG_SOCK_STRINGIFY_REMOTE);
     logmsg("Registering %s (%s@%s) to %s", connId_s, name_s, addr, roomId_s);
@@ -501,7 +501,7 @@ static void handleRegister(struct mg_connection *nc, const char *data, size_t si
         logmsg("Player %s rejoined from a different socket", connId_s);
 
         // Send a notification to the current tab, but leave the socket open to avoid attempting to reconnect
-        string disconnectMsg = str("{\"disconnect\": true}");
+        string disconnectMsg = "{\"disconnect\": true}";
         mg_send_websocket_frame((struct mg_connection *)conn->socket, WEBSOCKET_OP_TEXT, disconnectMsg.text, disconnectMsg.length);
 
         // Update the connection
@@ -589,7 +589,7 @@ static void handleAction(struct mg_connection *nc, const char *data, size_t size
 static void handleChat(struct mg_connection *nc, const char *data, size_t size) {
   char msg_s[size];
   if (sscanf(data, "chat:%[^\n]", msg_s) == 1) {
-    string msg = str(msg_s);
+    string msg = msg_s;
     query NC is ((SocketId)nc), SRS is socketRooms, mapContains(SRS, NC, RID),
           RS is rooms, mapContains(RS, RID, R),
           initially { pthread_mutex_lock(&R->mutex); },
@@ -606,7 +606,7 @@ static void handleChat(struct mg_connection *nc, const char *data, size_t size) 
 static void handleLabel(struct mg_connection *nc, const char *data, size_t size) {
   char label_s[MAX_LABEL + 1] = {0};
   sscanf(data, "label:%"STR(MAX_LABEL)"[^\n]", label_s); // Unchecked since label can be empty
-  string label = str(label_s);
+  string label = label_s;
 
   query NC is ((SocketId)nc), SRS is socketRooms, mapContains(SRS, NC, RID),
         RS is rooms, mapContains(RS, RID, R),
@@ -800,7 +800,7 @@ static void *runServerGame(void *arg) {
   GC_get_stack_base(&sb);
   GC_register_my_thread(&sb);
 
-  string roomId = str((const char *)arg);
+  string roomId = (const char *)arg;
   Room *room = mapGet(rooms, roomId);
 
   unsigned numWeb = room->numWeb, numAI = room->numAI, numRandom = room->numRandom,

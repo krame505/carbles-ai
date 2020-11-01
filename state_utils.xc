@@ -128,7 +128,7 @@ string showState(State s) {
       }
     }
   }
-  string result = str("");
+  string result = "";
   for (unsigned i = 0; i < 8; i++) {
     result += rows[i] + "\n";
   }
@@ -159,7 +159,7 @@ string showAction(Action a, PlayerId p1, PlayerId p2) {
 }
 
 string showActions(vector<Action> a, PlayerId p1, PlayerId p2) {
-  string result = str("");
+  string result = "";
   for (unsigned i = 0; i < a.size; i++) {
     result += str(i) + ": " + showAction(a[i], p1, p2) + "\n";
   }
@@ -167,7 +167,7 @@ string showActions(vector<Action> a, PlayerId p1, PlayerId p2) {
 }
 
 string showHand(const Hand h) {
-  string result = str("");
+  string result = "";
   for (Card c = 0; c < CARD_MAX; c++) {
     for (unsigned i = 0; i < h[c]; i++) {
       result += str(c) + " ";
@@ -225,7 +225,7 @@ string jsonHand(const Hand h) {
 }
 
 string jsonHands(unsigned numPlayers, const Hand hands[numPlayers]) {
-  string result = str("[");
+  string result = "[";
   for (unsigned i = 0; i < numPlayers; i++) {
     if (i) result += ", ";
     result += jsonHand(hands[i]);
@@ -235,7 +235,7 @@ string jsonHands(unsigned numPlayers, const Hand hands[numPlayers]) {
 }
 
 string jsonActions(vector<Action> a, PlayerId p1, PlayerId p2) {
-  string result = str("[");
+  string result = "[";
   for (unsigned i = 0; i < a.size; i++) {
     if (i) result += ", ";
     result += show(showAction(a[i], p1, p2));
