@@ -117,6 +117,12 @@ static const char *gamesFile = "games.txt";
 static const char *usersFile = "users.txt";
 static const char *statsFile = "stats.csv";
 
+static const unsigned initialNumAIs = 1;
+static const unsigned initialNumRandom = 0;
+static const bool initialPartners = false;
+static const bool initialOpenHands = false;
+static const unsigned initialAITime = 8;
+
 static void createRoom(string roomId) {
   logmsg("Creating room %s", roomId.text);
 
@@ -126,7 +132,7 @@ static void createRoom(string roomId) {
     emptyMap<string, PlayerConn *, compareString>(GC_malloc),
     emptyMap<string, PlayerConn *, compareString>(GC_malloc),
     emptyMap<SocketId, string, compareSocket>(GC_malloc),
-    0, 1, 0, false, false, 12,
+    0, initialNumAIs, initialNumRandom, initialPartners, initialOpenHands, initialAITime,
     {0}, vec<string>[], vec<string>[], false, 0, initialState(0, false), {0}, vec<Action>[], false, 0, false,
     false, 0, PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER
   };
@@ -351,6 +357,8 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
       if (!room->gameInProgress && numPlayers) {
         if (numPlayers > MAX_PLAYERS) {
           notify(roomId, -1, str(""), false, false, "Too many players! Limit is " + str(MAX_PLAYERS), true);
+        } else if (room->partners && numPlayers < 4) {
+          notify(roomId, -1, str(""), false, false, str("Partner game requires at least 4 players; consider adding AI player(s)."), true);
         } else if (room->partners && numPlayers % 2 != 0) {
           notify(roomId, -1, str(""), false, false, str("Partner game requires an even number of players; consider adding an AI player."), true);
         } else {
