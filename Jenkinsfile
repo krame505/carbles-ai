@@ -28,10 +28,18 @@ melt.trynode(extension_name) {
     newenv = ablec.prepareWorkspace(extension_name, extensions, true)
   }
 
-  stage ("Test") {
+  stage ("Build") {
     withEnv(newenv) {
       dir("extensions/carbles-ai") {
         sh "make -j"
+      }
+    }
+  }
+
+  stage ("Test") {
+    withEnv(newenv) {
+      dir("extensions/carbles-ai") {
+        sh "./bin/rel/play random heuristic random rule"
       }
     }
   }
