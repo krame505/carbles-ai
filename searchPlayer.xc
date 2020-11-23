@@ -363,7 +363,7 @@ Player makeSearchPlayer(unsigned numPlayers, unsigned timeout, PlayoutFn playout
                                     TurnInfo turn, vector<Action> actions) -> unsigned {
       PlayerId p = turn.player;
 #ifdef DEBUG
-      printf("%s\n", showHand(h).text);
+      printf("%s\n", show(h).text);
 #endif
 
       // If there is only one possible action, choose it immediately
@@ -524,7 +524,7 @@ Player makeSearchPlayer(unsigned numPlayers, unsigned timeout, PlayoutFn playout
 #ifdef DEBUG
       printf("\nPossible hands\n");
       for (PlayerId p = 0; p < numPlayers; p++) {
-        printf("Player %d: %s\n", p, showHand(possibleHands[p]).text);
+        printf("Player %d: %s\n", p, show(possibleHands[p]).text);
       }
 #endif
     }

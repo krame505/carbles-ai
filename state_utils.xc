@@ -55,14 +55,14 @@ string showPlayerId(PlayerId p) {
   return wrapPlayerEffectForeground(p, str("Player ") + p);
 }
 
-string showPosition(Position ?p) {
+string showPosition(Position p) {
   return match (p)
-    (?&Out(?&n) -> str(n);
-     ?&Finish(?&p, ?&n) -> str("F") + p + n;);
+    (Out(?&n) -> str(n);
+     Finish(?&p, ?&n) -> str("F") + p + n;);
 }
 
 string showStatePosition(State s, Position pos) {
-  string res = showPosition(boundvar(alloca, pos));
+  string res = show(pos);
   match (s) {
     St(?&numPlayers, _, board, _) -> {
       if (mapContains(board, pos)) {
@@ -140,8 +140,8 @@ string showMove(Move m, PlayerId p1, PlayerId p2) {
       (MoveOut(?&p) @when (p == p1) -> str("move out");
        MoveOut(?&p) @when (p == p2) -> str("move partner out");
        MoveOut(?&p) -> str("move Player ") + p + " out";
-       MoveDirect(f, t) -> showPosition(f) + " → " + showPosition(t);
-       Swap(a, b) -> "swap " + showPosition(a) + " with " + showPosition(b););
+       MoveDirect(f, t) -> show(f) + " → " + show(t);
+       Swap(a, b) -> "swap " + show(a) + " with " + show(b););
 }
 
 string showMoves(list<Move ?> ?ms, PlayerId p1, PlayerId p2) {
@@ -177,7 +177,7 @@ string showHand(const Hand h) {
 }
 
 string jsonPosition(Position ?p) {
-  return show(showPosition(p));
+  return show(show(value(p)));
 }
 
 string jsonStatePosition(State s, Position pos) {
@@ -290,15 +290,15 @@ PlayerId ?copyPlayerId(PlayerId ?p) {
 
 Position ?copyPosition(Position ?p) {
   return match (p)
-    (?&Out(?&i) -> GC_malloc_Out(boundvar(GC_malloc, i));
-     ?&Finish(p, ?&i) -> GC_malloc_Finish(copyPlayerId(p), boundvar(GC_malloc, i)););
+    (?&Out(?&i) -> gcOut(boundvar(GC_malloc, i));
+     ?&Finish(p, ?&i) -> gcFinish(copyPlayerId(p), boundvar(GC_malloc, i)););
 }
 
 Move ?copyMoveDirect(Move ?m) {
   return match (m)
-    (?&MoveOut(?&p) -> GC_malloc_MoveOut(boundvar(GC_malloc, p));
-     ?&MoveDirect(from, to) -> GC_malloc_MoveDirect(copyPosition(from), copyPosition(to));
-     ?&Swap(a, b) -> GC_malloc_Swap(copyPosition(a), copyPosition(b)););
+    (?&MoveOut(?&p) -> gcMoveOut(boundvar(GC_malloc, p));
+     ?&MoveDirect(from, to) -> gcMoveDirect(copyPosition(from), copyPosition(to));
+     ?&Swap(a, b) -> gcSwap(copyPosition(a), copyPosition(b)););
 }
 
 list<Move ?> ?copyMoves(list<Move ?> ?ms) {

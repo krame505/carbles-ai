@@ -28,8 +28,8 @@ datatype Position {
   Finish(PlayerId ?, unsigned ?);
 };
 typedef datatype Position Position;
-
-var_reference datatype Position with GC_malloc;
+var_reference datatype Position with GC_malloc prefix gc;
+show datatype Position with showPosition;
 
 static inline int comparePosition(Position p1, Position p2) {
   return match (p1, p2)
@@ -52,6 +52,7 @@ datatype State {
      Board ?board, Lot ?lot);
 };
 typedef datatype State State;
+show datatype State with showState;
 
 unsigned numPlayers(State);
 _Bool partners(State);
@@ -69,8 +70,7 @@ datatype Move {
   Swap(Position ?, Position ?);
 };
 typedef datatype Move Move;
-
-var_reference datatype Move with GC_malloc;
+var_reference datatype Move with GC_malloc prefix gc;
 
 typedef unsigned Hand[CARD_MAX];
 
@@ -84,7 +84,7 @@ Card getActionCard(Action);
 list<Move ?> ?getActionMoves(Action);
 
 string showPlayerId(PlayerId p);
-string showPosition(Position ?p);
+string showPosition(Position p);
 string showState(State s);
 string showMove(Move m, PlayerId p1, PlayerId p2);
 string showMoves(list<Move ?> ?m, PlayerId p1, PlayerId p2);

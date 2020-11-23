@@ -110,7 +110,7 @@ PlayerId playConsoleGame(unsigned numPlayers, bool partners, bool openHands, Pla
         fprintf(out, "%s %s's turn\n", players[p].name, showPlayerId(p).text);
       },
       lambda (PlayerId p, Hand h) -> void {},
-      lambda (State s) -> void { fprintf(out, "\n\n%s\n", showState(s).text); },
+      lambda (State s) -> void { fprintf(out, "\n\n%s\n", show(s).text); },
       lambda (PlayerId p, unsigned handNum) -> void {
         fprintf(out, "Hand %d for dealer %s\n", handNum, showPlayerId(p).text);
       },
