@@ -119,8 +119,8 @@ _Bool isWon(State s);
 PlayerId getWinner(State s);
 
 prolog {
-  move(State ?, Move ?, State ?);
-  moves(State ?, list<Move ?> ?, State ?);
+  move(State, Move, State ?);
+  moves(State, list<Move ?>, State ?);
 
 #include "state_utils.pl"
 }

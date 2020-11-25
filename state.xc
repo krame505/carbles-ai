@@ -3,22 +3,22 @@
 #include <assert.h>
 
 prolog {
-  advanceStep(State ?, PlayerId ?, Position ?, Position ?);
-  retreatStep(State ?, PlayerId ?, Position ?, Position ?);
-  advance(State ?, PlayerId ?, Position ?, unsigned ?, Position ?);
-  retreat(State ?, PlayerId ?, Position ?, unsigned ?, Position ?);
-  seqAdvance(State ?, PlayerId ?, Position ?, unsigned ?, list<Move ?> ?);
-  splitAdvance(State ?, PlayerId ?, list<Position ?> ?, unsigned ?, list<Move ?> ?, list<Move ?> ?);
+  advanceStep(State, PlayerId, Position ?, Position ?);
+  retreatStep(State, PlayerId, Position ?, Position ?);
+  advance(State, PlayerId, Position ?, unsigned, Position ?);
+  retreat(State, PlayerId, Position ?, unsigned, Position ?);
+  seqAdvance(State, PlayerId, Position ?, unsigned, list<Move ?> ?);
+  splitAdvance(State, PlayerId, list<Position ?>, unsigned, list<Move ?>, list<Move ?> ?);
 
   directCard(Card ?);
   moveOutCard(Card ?);
   partnerMoveOutCard(Card ?);
-  cardMoves(State ?, PlayerId ?, Card ?, list<Move ?> ?);
-  cardMovePossible(State ?, PlayerId ?, Card ?);
-  partnerCardMovePossible(State ?, PlayerId ?, Card ?);
+  cardMoves(State, PlayerId, Card ?, list<Move ?> ?);
+  cardMovePossible(State, PlayerId, Card ?);
+  partnerCardMovePossible(State, PlayerId, Card ?);
 
-  isFinished(Board ?, PlayerId ?);
-  isWon(State ?, PlayerId ?);
+  isFinished(Board, PlayerId);
+  isWon(State, PlayerId ?);
 
   // Use unsigned version of between
 #define between(A, B, C) betweenU(A, B, C)
