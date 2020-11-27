@@ -112,7 +112,6 @@ vector<float> playout(State s, PlayerId p, unsigned depth) {
     vector<float> result[1];
     bool success = query S1 is s, MS is (getActionMoves(a)), moves(S1, MS, S2) {
       *result = playout(value(S2), (p + 1) % numPlayers(s), depth - 1);
-      return true;
     };
     assert(success);
     return *result;
@@ -131,7 +130,6 @@ vector<float> playoutHand(State s, PlayerId p, Hand hands[], unsigned depth) {
       vector<float> result[1];
       bool success = query S1 is s, MS is (getActionMoves(a)), moves(S1, MS, S2) {
         *result = playoutHand(value(S2), (p + 1) % numPlayers(s), hands, depth - 1);
-        return true;
       };
       assert(success);
       return *result;
@@ -153,7 +151,6 @@ vector<float> rulePlayout(State s, PlayerId p, unsigned depth) {
     vector<float> result[1];
     bool success = query S1 is s, MS is (getActionMoves(a)), moves(S1, MS, S2) {
       *result = rulePlayout(value(S2), (p + 1) % numPlayers(s), depth - 1);
-      return true;
     };
     assert(success);
     return *result;
@@ -172,7 +169,6 @@ vector<float> rulePlayoutHand(State s, PlayerId p, Hand hands[], unsigned depth)
       vector<float> result[1];
       bool success = query S1 is s, MS is (getActionMoves(a)), moves(S1, MS, S2) {
         *result = rulePlayoutHand(value(S2), (p + 1) % numPlayers(s), hands, depth - 1);
-        return true;
       };
       assert(success);
       return *result;

@@ -59,11 +59,11 @@ vector<Action> getActions(State s, PlayerId p, const Hand h) {
 
 bool actionPossible(State s, PlayerId p, const Hand h, const Hand partnerHand) {
   for (Card c = 0; c < CARD_MAX; c++) {
-    if (h[c] && query S is s, P is p, C is c, cardMovePossible(S, P, C) { return true; }) {
+    if (h[c] && query S is s, P is p, C is c, cardMovePossible(S, P, C) {}) {
       return true;
     }
     if (partnerHand && partnerHand[c] &&
-        query S is s, P is p, C is c, partnerCardMovePossible(S, P, C) { return true; }) {
+        query S is s, P is p, C is c, partnerCardMovePossible(S, P, C) {}) {
       return true;
     }
   }
@@ -78,7 +78,6 @@ PlayerId getWinner(State s) {
   PlayerId winner[1];
   bool isWon = query S is s, isWon(S, P) {
     *winner = value(P);
-    return true;
   };
   assert(isWon);
   return *winner;

@@ -12,7 +12,7 @@ Player makeRulePlayer() {
       for (unsigned i = 0; i < actions.size; i++) {
         match (actions[i]) {
           Play(_, ms) -> {
-            if (query MS is ms, member(MoveDirect(Out(_), Finish(_, _)), MS) { return true; }) {
+            if (query MS is ms, member(MoveDirect(Out(_), Finish(_, _)), MS) {}) {
               return i;
             }
           }
@@ -24,12 +24,12 @@ Player makeRulePlayer() {
           Play(_, ms) -> {
             if (query MS is ms, St(_, false, B, _) is s, P is p,
                 I is (P * SECTOR_SIZE), \+ mapContains(B, Out(I), P),
-                member(MoveOut(_), MS) { return true; }) {
+                member(MoveOut(_), MS) {}) {
               return i;
             }
             if (query MS is ms, St(NP, true, B, _) is s, P1 is p, P2 is (partner(NP, P1)),
                 member(MoveOut(P), MS), I is (P * SECTOR_SIZE),
-                \+ mapContains(B, Out(I), P1), \+ mapContains(B, Out(I), P2) { return true; }) {
+                \+ mapContains(B, Out(I), P1), \+ mapContains(B, Out(I), P2) {}) {
               return i;
             }
           }
@@ -39,7 +39,7 @@ Player makeRulePlayer() {
       for (unsigned i = 0; i < actions.size; i++) {
         match (actions[i]) {
           Play(_, ms) -> {
-            if (query MS is ms, member(MoveDirect(_, Finish(_, _)), MS) { return true; }) {
+            if (query MS is ms, member(MoveDirect(_, Finish(_, _)), MS) {}) {
               return i;
             }
           }
@@ -51,13 +51,13 @@ Player makeRulePlayer() {
           Play(_, ms) -> {
             if (query MS is ms, St(_, false, B, _) is s, P1 is p,
                 member(MoveDirect(_, X), MS),
-                mapContains(B, X, P2), P1 =\= P2 { return true; }) {
+                mapContains(B, X, P2), P1 =\= P2 {}) {
               return i;
             }
             if (query MS is ms, St(NP, true, B, _) is s, P1 is p,
                 member(MoveDirect(_, X), MS),
                 mapContains(B, X, P2), P1 =\= P2,
-                P1 =\= (partner(NP, P1)) { return true; }) {
+                P1 =\= (partner(NP, P1)) {}) {
               return i;
             }
           }
@@ -68,12 +68,12 @@ Player makeRulePlayer() {
         match (actions[i]) {
           Play(_, ms) -> {
             if (query MS is ms, St(_, false, _, _) is s, P is p,
-                I is (P * SECTOR_SIZE), \+ member(MoveDirect(Out(I), _), MS) { return true; }) {
+                I is (P * SECTOR_SIZE), \+ member(MoveDirect(Out(I), _), MS) {}) {
               return i;
             }
             if (query MS is ms, St(NP, true, _, _) is s, P1 is p, P2 is (partner(NP, P1)),
                 I1 is (P1 * SECTOR_SIZE), I2 is (P2 * SECTOR_SIZE),
-                \+ member(MoveDirect(Out(I1), _), MS), \+ member(MoveDirect(Out(I2), _), MS) { return true; }) {
+                \+ member(MoveDirect(Out(I1), _), MS), \+ member(MoveDirect(Out(I2), _), MS) {}) {
               return i;
             }
           }
