@@ -19,22 +19,22 @@ retreatStep(St(NP, _, B, _), _, Out(I1), Out(I2)) :-
     (mod(I2, SECTOR_SIZE)) =:= 0, P2 is (I2 / SECTOR_SIZE), \+ mapContains(B, Out(I2), P2).
 
 advance(S, P, X, N, Z) :-
-    N > 1, advanceStep(S, P, X, Y),
+    N > 1, !, advanceStep(S, P, X, Y),
     N1 is (N - 1), advance(S, P, Y, N1, Z).
 advance(S, P, X, 1, Y) :- advanceStep(S, P, X, Y).
 
 retreat(S, P, X, N, Z) :-
-    N > 1, retreatStep(S, P, X, Y),
+    N > 1, !, retreatStep(S, P, X, Y),
     N1 is (N - 1), retreat(S, P, Y, N1, Z).
 retreat(S, P, X, 1, Y) :- retreatStep(S, P, X, Y).
 
 seqAdvance(S, P, X, N, [MoveDirect(X, Y) | MS]) :-
-    N > 0, advanceStep(S, P, X, Y),
+    N > 0, !, advanceStep(S, P, X, Y),
     N1 is (N - 1), seqAdvance(S, P, Y, N1, MS).
 seqAdvance(_, _, _, 0, []).
 
 splitAdvance(S1, P, XS1, N, MS1, MS) :-
-    N > 0,
+    N > 0, !,
     select(X, XS1, XS2), \+ member(MoveDirect(_, X), MS1),
     between(1, N, N1),
     seqAdvance(S1, P, X, N1, MS2),
