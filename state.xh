@@ -19,6 +19,8 @@
 
 typedef unsigned PlayerId;
 
+string showPlayerId(PlayerId p);
+
 #define PLAYER_ID_NONE ((PlayerId)-1)
 
 PlayerId partner(unsigned numPlayers, PlayerId p);
@@ -29,6 +31,8 @@ datatype Position {
 };
 typedef datatype Position Position;
 var_reference datatype Position with GC_malloc prefix gc;
+
+string showPosition(Position p);
 show datatype Position with showPosition;
 
 static inline int comparePosition(Position p1, Position p2) {
@@ -52,6 +56,8 @@ datatype State {
      Board ?board, Lot ?lot);
 };
 typedef datatype State State;
+
+string showState(State s);
 show datatype State with showState;
 
 unsigned numPlayers(State);
@@ -72,7 +78,12 @@ datatype Move {
 typedef datatype Move Move;
 var_reference datatype Move with GC_malloc prefix gc;
 
+string showMove(Move m, PlayerId p1, PlayerId p2);
+string showMoves(list<Move ?> ?m, PlayerId p1, PlayerId p2);
+
 typedef unsigned Hand[CARD_MAX];
+
+string showHand(const Hand h);
 
 datatype Action {
   Play(Card, list<Move ?> ?);
@@ -80,17 +91,11 @@ datatype Action {
 };
 typedef datatype Action Action;
 
-Card getActionCard(Action);
-list<Move ?> ?getActionMoves(Action);
-
-string showPlayerId(PlayerId p);
-string showPosition(Position p);
-string showState(State s);
-string showMove(Move m, PlayerId p1, PlayerId p2);
-string showMoves(list<Move ?> ?m, PlayerId p1, PlayerId p2);
 string showAction(Action a, PlayerId p1, PlayerId p2);
 string showActions(vector<Action> a, PlayerId p1, PlayerId p2);
-string showHand(const Hand h);
+
+Card getActionCard(Action);
+list<Move ?> ?getActionMoves(Action);
 
 string jsonPosition(Position ?p);
 string jsonState(State s);
