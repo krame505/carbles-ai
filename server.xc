@@ -18,6 +18,8 @@
 #define MAX_LABEL 50
 #define MAX_MSG 10000
 
+#define GAME_TIMEOUT 2 * 24 * 60 * 60 // 2 days
+
 #define STR2(x) # x
 #define STR(x) STR2(x)
 
@@ -412,6 +414,9 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
           pthread_create(&room->thread, NULL, &runServerGame, (void *)roomId.text);
           room->threadRunning = true;
 
+          // Set the game timeout
+          mg_set_timer(nc, mg_time() + GAME_TIMEOUT);
+
           // Send empty response
           sendEmpty(nc);
 
@@ -589,6 +594,9 @@ static void handleAction(struct mg_connection *nc, const char *data, size_t size
         room->action = a;
         room->actionReady = true;
         pthread_cond_signal(&room->cv);
+
+        // Update the game timeout
+        mg_set_timer(nc, mg_time() + GAME_TIMEOUT);
       }
     };
   }
@@ -657,6 +665,35 @@ static void websocketHandler(struct mg_connection *nc, int ev, struct websocket_
   }
 }
 
+static void handleTimeout(struct mg_connection *nc) {
+  query NC is ((SocketId)nc), SRS is socketRooms, mapContains(SRS, NC, RID),
+        RS is rooms, mapContains(RS, RID, R),
+        initially { pthread_mutex_lock(&R->mutex); },
+        finally   { pthread_mutex_unlock(&R->mutex); },
+        SPS is (R->socketPlayers), mapContains(SPS, NC, CID),
+        CS is (R->connections), mapContains(CS, CID, C) {
+      string roomId = value(RID);
+      Room *room = value(R);
+
+      if (room->gameInProgress) {
+        logmsg("Game in room %s timed out", roomId.text);
+        numGames--;  // Don't count canceled games towards stats
+        numActiveGames--;
+
+        // Reset state
+        room->gameInProgress = false;
+        room->actionsReady = false;
+
+        // Cancel the thread
+        pthread_cancel(room->thread);
+
+        notify(roomId, -1, str(""), false, true, str("Game timed out due to inactivity."), true);
+        return true;
+      }
+      return false;
+    };
+}
+
 static void handleUnregister(struct mg_connection *nc) {
   pthread_mutex_lock(&roomsMutex);
   if (mapContains(socketRooms, (SocketId)nc)) {
@@ -714,6 +751,11 @@ static void evHandler(struct mg_connection *nc, int ev, void *ev_data) {
 
   case MG_EV_WEBSOCKET_FRAME: {
     websocketHandler(nc, ev, (struct websocket_message *)ev_data);
+    break;
+  }
+
+  case MG_EV_TIMER: {
+    handleTimeout(nc);
     break;
   }
 
