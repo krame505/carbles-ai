@@ -210,8 +210,8 @@ static void handleStats(struct mg_connection *nc, struct http_message *hm) {
 
   // Generate and send response
   unsigned long numUsers[1] = {0}, numActiveUsers[1] = {0};
-  mapForeach(users, lambda (string connId, unsigned n) -> void { (*numUsers)++; });
-  mapForeach(activeUsers, lambda (string connId, unsigned n) -> void { (*numActiveUsers)++; });
+  query US is users, mapContainsValue(US, _, _) { (*numUsers)++; return false; };
+  query US is activeUsers, mapContainsValue(US, _, _) { (*numActiveUsers)++; return false; };
   string result = str("{") +
     "\"startTime\": " + show(startTime) +
     ", \"games\": " + numGames +
@@ -245,9 +245,11 @@ static void handleState(struct mg_connection *nc, struct http_message *hm) {
         (St(?&numPlayers, ?&true, _, _) -> partner(numPlayers, conn->id);
          _ -> PLAYER_ID_NONE;);
       vector<string> playersInRoom = vec<string>[];
-      mapForeach(room->connections, lambda (string connId, PlayerConn *conn) -> void {
-          playersInRoom.append(conn->label + conn->name);
-        });
+      query CS is (room->connections), mapContainsValue(CS, _, C) {
+        PlayerConn *otherConn = value(C);
+        playersInRoom.append(otherConn->label + otherConn->name);
+        return false;
+      };
       vector<string> playersInGame;
       vector<string> playerLabels;
       if (room->gameInProgress) {
@@ -378,19 +380,23 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
           bool assigned[numPlayers];
           memset(assigned, 0, sizeof(assigned));
           PlayerId p = rand() % numPlayers, *p_p = &p;
-          mapForeach(room->connections, lambda (string connId, PlayerConn *conn) -> void {
-              while (assigned[*p_p]) {*p_p = rand() % numPlayers; }
-              assigned[*p_p] = true;
-              room->players[*p_p] = makeWebPlayer(roomId);
-              room->playerNames[*p_p] = conn->label + conn->name;
-              room->playerLabels[*p_p] = conn->label;
-              conn->inGame = true;
-              conn->id = *p_p;
-              *p_p = partner(numPlayers, *p_p);
-            });
-          mapForeach(room->droppedConnections, lambda (string connId, PlayerConn *conn) -> void {
-              conn->inGame = false;
-            });
+          query CS is (room->connections), mapContainsValue(CS, _, C) {
+            PlayerConn *conn = value(C);
+            while (assigned[*p_p]) {*p_p = rand() % numPlayers; }
+            assigned[*p_p] = true;
+            room->players[*p_p] = makeWebPlayer(roomId);
+            room->playerNames[*p_p] = conn->label + conn->name;
+            room->playerLabels[*p_p] = conn->label;
+            conn->inGame = true;
+            conn->id = *p_p;
+            *p_p = partner(numPlayers, *p_p);
+            return false;
+          };
+          query CS is (room->droppedConnections), mapContainsValue(CS, _, C) {
+            PlayerConn *conn = value(C);
+            conn->inGame = false;
+            return false;
+          };
           for (unsigned i = 0; i < room->numAI; i++) {
             while (assigned[p]) { p = rand() % numPlayers; }
             assigned[p] = true;
