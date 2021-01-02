@@ -22,6 +22,7 @@
 
 static struct mg_http_serve_opts s_http_server_opts = {
   .root_dir = "web/",
+  .ssi_pattern = "#.shtml",
 #ifdef SSL
   //.url_rewrites = "%80=https://carbles.net"
 #endif

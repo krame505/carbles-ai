@@ -64,7 +64,7 @@
         </div>
       </div>
     </div>
-
-    <!--#include "footer.html" -->
   </body>
+
+  <!--#include file="footer.html" -->
 </html>

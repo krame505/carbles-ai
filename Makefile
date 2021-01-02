@@ -84,6 +84,8 @@ LIBS=$(SRC_DIRS:src=libs)
 # All C and XC files used to build libraries, to be included as dependencies
 SRC_SOURCES=$(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.*c))
 
+override CPPFLAGS+=-DMG_ENABLE_SSI
+
 ifeq ($(CONF), rel)
   override CPPFLAGS+=-DNDEBUG
   override CFLAGS+=-O3

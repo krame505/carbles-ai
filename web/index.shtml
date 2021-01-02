@@ -46,7 +46,7 @@
               startTime.innerHTML = stats.startTime
           })
     </script>
-    
-    <!--#include "footer.html" -->
   </body>
+
+  <!--#include file="footer.html" -->
 </html>
