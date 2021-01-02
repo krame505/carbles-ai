@@ -15,13 +15,13 @@
   <body onload="connect()" onbeforeunload="disconnect()" onunload="disconnect()">
     <h1>Carbles Online</h1>
     <a href="/"><b>Home</b></a>
-    <a href="rules.shtml" target="_blank"><b>Rules</b></a>
+    <a href="rules.html" target="_blank"><b>Rules</b></a>
 
     <br>
 
     <input type="text" size="50" readonly id="joinLink"><script>initLink()</script>
     <button onclick="copyLink()">Copy room link</button>
-    <button onclick="location.href='index.shtml'">Create a new room</button>
+    <button onclick="location.href='index.html'">Create a new room</button>
     
     <br><br>
 
@@ -45,7 +45,7 @@
         <h2 id="turn"></h2>
         <h3 id="hand"></h3>
         <ul id="actions"></ul>
-        <a href="rules.shtml" target="_blank"><b>Rules</b></a>
+        <a href="rules.html" target="_blank"><b>Rules</b></a>
       </div>
       <div id="messages">
         <div id="messagesOut"></div><br>
@@ -64,7 +64,7 @@
         </div>
       </div>
     </div>
-
-    <!--#include "footer.html" -->
   </body>
+
+  <iframe src="footer.html" onload="this.before((this.contentDocument.body||this.contentDocument).children[0]);this.remove()"></iframe>
 </html>
