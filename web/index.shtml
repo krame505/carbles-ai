@@ -5,16 +5,17 @@
     <meta content='width=device-width, initial-scale=1' name='viewport'>
     <link rel="stylesheet" media="all" href="main.css">
     <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+
     <title>Carbles Online</title>
   </head>
 
   <body>
     <h1>Carbles Online</h1>
     Welcome!  Carbles is a game combining cards and marbles, with elements of strategy and chance.
-    <a href="rules.html" target="_blank"><b>Rules</b></a>
+    <a href="rules.shtml" target="_blank"><b>Rules</b></a>
     
     <h2>Create or Join a Room</h2>
-    <form action="/game.html" method="get">
+    <form action="/game.shtml" method="get">
       <label for="room">Pick a room name:</label>
       <input type="text" maxlength="30" pattern="[a-zA-Z0-9]+" required id="room" name="room"><br><br>
       <label for="name">Enter your name:</label>
@@ -45,7 +46,7 @@
               startTime.innerHTML = stats.startTime
           })
     </script>
+    
+    <!--#include "footer.html" -->
   </body>
-
-  <iframe src="footer.html" onload="this.before((this.contentDocument.body||this.contentDocument).children[0]);this.remove()"></iframe>
 </html>

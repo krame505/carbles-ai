@@ -838,7 +838,7 @@
     <p id="note1">
       <sup>1</sup>One player is designated as the dealer.  The person to the left of the dealer goes first, after which play moves to the left.  When the hand is depleted a new one is dealt, and play starts to the left of the person who started the last hand.  When the deck is depleted it is shuffled and the person to the left becomes the new dealer.  
     </p>
+    
+    <!--#include "footer.html" -->
   </body>
-
-  <iframe src="footer.html" onload="this.before((this.contentDocument.body||this.contentDocument).children[0]);this.remove()"></iframe>
 </html>

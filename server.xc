@@ -18,7 +18,7 @@
 #define MAX_LABEL 50
 #define MAX_MSG 10000
 
-#define GAME_TIMEOUT 2 * 24 * 60 * 60 // 2 days
+#define GAME_TIMEOUT 20 // 2 * 24 * 60 * 60 // 2 days
 
 static struct mg_http_serve_opts s_http_server_opts = {
   .root_dir = "web/",
