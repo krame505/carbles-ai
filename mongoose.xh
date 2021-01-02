@@ -1,4 +1,0 @@
-// Workaround to insert the transparent prefix as needed
-#define list id::list
-#include <mongoose.h>
-#undef list

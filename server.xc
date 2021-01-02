@@ -1,7 +1,7 @@
 #define GC_THREADS
 
 #include <server.xh>
-#include <mongoose.xh>
+#include <mongoose.h>
 #include <players.xh>
 #include <pthread.h>
 #include <assert.h>
@@ -19,6 +19,13 @@
 #define MAX_MSG 10000
 
 #define GAME_TIMEOUT 2 * 24 * 60 * 60 // 2 days
+
+static struct mg_http_serve_opts s_http_server_opts = {
+  .root_dir = "web/",
+#ifdef SSL
+  //.url_rewrites = "%80=https://carbles.net"
+#endif
+};
 
 static struct mg_mgr mgr;
 static bool running = false;
@@ -468,7 +475,7 @@ static void httpHandler(struct mg_connection *nc, int ev, struct mg_http_message
   } else if (mg_http_match_uri(hm, "/websocket")) {
     mg_ws_upgrade(nc, hm);
   } else {
-    mg_http_serve_dir(nc, hm, "web/");  // Serve static files
+    mg_http_serve_dir(nc, hm, &s_http_server_opts);  // Serve static files
   }
 }
 
@@ -698,6 +705,16 @@ static void handleUnregister(struct mg_connection *nc) {
 
 static void evHandler(struct mg_connection *nc, int ev, void *ev_data, void *fn_data) {
   switch (ev) {
+  case MG_EV_ACCEPT: {
+#ifdef SSL
+    if (mg_url_is_ssl((char *)fn_data)) {
+      struct mg_tls_opts opts = {.cert = SSL_CERT, .certkey = SSL_KEY};
+      mg_tls_init(nc, &opts);
+    }
+#endif
+    break;
+  }
+    
   case MG_EV_HTTP_MSG: {
     httpHandler(nc, ev, (struct mg_http_message *)ev_data);
     break;
@@ -754,14 +771,12 @@ void serve(const char *url_http, const char *url_https) {
   mg_mgr_init(&mgr);
   
   logmsg("Starting server at %s", url_http);
-  struct mg_connection *nc_http = mg_http_listen(&mgr, url_http, evHandler, NULL);
+  struct mg_connection *nc_http = mg_http_listen(&mgr, url_http, evHandler, (void *)url_http);
   
 #ifdef SSL
-  if (port_https) {
-    bind_opts.ssl_cert = SSL_CERT;
-    bind_opts.ssl_key = SSL_KEY;
-    logmsg("Starting server at %s", url_https);
-    struct mg_connection *nc_https = mg_bind_opt(&mgr, url_http, evHandler, bind_opts);
+  if (url_https) {
+    logmsg("Starting HTTPS server at %s", url_https);
+    struct mg_connection *nc_https = mg_http_listen(&mgr, url_https, evHandler, (void *)url_https);
   }
 #endif
 

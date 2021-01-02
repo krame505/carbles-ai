@@ -8,7 +8,7 @@
 
 #ifdef SSL
 #define DEFAULT_HTTP_URL "http://0.0.0.0:80"
-#define DEFAULT_HTTPS_URL "http://0.0.0.0:443"
+#define DEFAULT_HTTPS_URL "https://0.0.0.0:443"
 #else
 #define DEFAULT_HTTP_URL "http://0.0.0.0:8000"
 #define DEFAULT_HTTPS_URL NULL
