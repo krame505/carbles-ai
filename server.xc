@@ -18,18 +18,7 @@
 #define MAX_LABEL 50
 #define MAX_MSG 10000
 
-#define GAME_TIMEOUT 2 * 24 * 60 * 60 // 2 days
-
-#define STR2(x) # x
-#define STR(x) STR2(x)
-
-const static struct mg_serve_http_opts s_http_server_opts = {
-  .document_root = "web/",
-  .enable_directory_listing = "no",
-#ifdef SSL
-  .url_rewrites = "%80=https://carbles.net"
-#endif
-};
+#define GAME_TIMEOUT 20 // 2 * 24 * 60 * 60 // 2 days
 
 static struct mg_mgr mgr;
 static bool running = false;
@@ -67,6 +56,7 @@ struct Room {
   bool actionsReady;
   unsigned action;
   bool actionReady;
+  struct mg_timer timeoutTimer;
 
   bool threadRunning;
   pthread_t thread;
@@ -135,7 +125,7 @@ static void createRoom(string roomId) {
     emptyMap<string, PlayerConn *, compareString>(GC_malloc),
     emptyMap<SocketId, string, compareSocket>(GC_malloc),
     0, initialNumAIs, initialNumRandom, initialPartners, initialOpenHands, initialAITime,
-    {0}, vec<string>[], vec<string>[], false, 0, initialState(0, false), {0}, vec<Action>[], false, 0, false,
+    {0}, vec<string>[], vec<string>[], false, 0, initialState(0, false), {0}, vec<Action>[], false, 0, false, {0},
     false, 0, PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER
   };
   rooms = mapInsert(GC_malloc, rooms, roomId, room);
@@ -146,26 +136,9 @@ static void *runServerGame(void *roomId);
 
 static Player makeWebPlayer(string roomId);
 
-struct notification {
-  string roomId;
-  string msg;
-};
-
-static void notifyHandler(struct mg_connection *nc, int ev, void *ev_data) {
-  if (nc->flags & MG_F_IS_WEBSOCKET) {
-    string roomId = ((struct notification *)ev_data)->roomId;
-    string msg = ((struct notification *)ev_data)->msg;
-
-    query RID is roomId, RS is rooms, mapContains(RS, RID, R),
-          SP is (R->socketPlayers), NC is ((SocketId)nc), mapContains(SP, NC, _) {
-      mg_send_websocket_frame(nc, WEBSOCKET_OP_TEXT, msg.text, msg.length);
-    };
-  }
-}
-
 static void notify(
     string roomId, PlayerId p, string name, bool chat, bool reload,
-    string msg, bool mainThread) {
+    string msg) {
   string encoded =
       "{\"room\": " + show(roomId) +
       (p < MAX_PLAYERS? ", \"id\": " + show(p) : str("")) +
@@ -174,24 +147,12 @@ static void notify(
       ", \"reload\": " + show(reload) +
       ", \"content\": " + show(msg) +
       "}";
-  struct notification n = {roomId, encoded};
-  if (mainThread) {
-    for (struct mg_connection *nc = mg_next(&mgr, NULL); nc != NULL; nc = mg_next(&mgr, nc)) {
-      notifyHandler(nc, -1, &n);
-    }
-  } else {
-    mg_broadcast(&mgr, notifyHandler, &n, sizeof(n));
+  for (struct mg_connection *nc = mgr.conns; nc != NULL; nc = nc->next) {
+    query RID is roomId, RS is rooms, mapContains(RS, RID, R),
+      SP is (R->socketPlayers), NC is ((SocketId)nc), mapContains(SP, NC, _) {
+      mg_ws_send(nc, encoded.text, encoded.length, WEBSOCKET_OP_TEXT);
+    };
   }
-}
-
-static void sendError(struct mg_connection *nc) {
-  mg_printf(nc, "%s", "HTTP/1.1 400 Bad Request\r\n");
-  mg_send_http_chunk(nc, "", 0); // Send empty chunk, the end of response
-}
-
-static void sendEmpty(struct mg_connection *nc) {
-  mg_printf(nc, "%s", "HTTP/1.1 204 No Content\r\n");
-  mg_send_http_chunk(nc, "", 0); // Send empty chunk, the end of response
 }
 
 static string jsonList(vector<string> v) {
@@ -204,10 +165,7 @@ static string jsonList(vector<string> v) {
   return result;
 }
 
-static void handleStats(struct mg_connection *nc, struct http_message *hm) {
-  // Send headers
-  mg_printf(nc, "%s", "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n");
-
+static void handleStats(struct mg_connection *nc, struct mg_http_message *hm) {
   // Generate and send response
   unsigned long numUsers[1] = {0}, numActiveUsers[1] = {0};
   query US is users, mapContainsValue(US, _, _) { (*numUsers)++; return false; };
@@ -218,15 +176,14 @@ static void handleStats(struct mg_connection *nc, struct http_message *hm) {
     ", \"activeGames\": " + numActiveGames +
     ", \"users\": " + *numUsers +
     ", \"activeUsers\": " + *numActiveUsers + "}";
-  mg_printf_http_chunk(nc, "%s", result.text);
-  mg_send_http_chunk(nc, "", 0); // Send empty chunk, the end of response
+  mg_http_reply(nc, 200, "", "%s", result.text);
 }
 
-static void handleState(struct mg_connection *nc, struct http_message *hm) {
+static void handleState(struct mg_connection *nc, struct mg_http_message *hm) {
   // Get form variables
   char roomId_s[MAX_ROOM_ID + 1] = {0}, connId_s[MAX_CONN_ID + 1] = {0};
-  mg_get_http_var(&hm->query_string, "room", roomId_s, sizeof(roomId_s));
-  mg_get_http_var(&hm->query_string, "id", connId_s, sizeof(connId_s));
+  mg_http_get_var(&hm->query, "room", roomId_s, sizeof(roomId_s));
+  mg_http_get_var(&hm->query, "id", connId_s, sizeof(connId_s));
   string roomId = roomId_s, connId = connId_s;
 
   bool success = query
@@ -236,9 +193,6 @@ static void handleState(struct mg_connection *nc, struct http_message *hm) {
     CID is connId, CS is (R->connections), mapContains(CS, CID, C) {
       Room *room = value(R);
       PlayerConn *conn = value(C);
-
-      // Send headers
-      mg_printf(nc, "%s", "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n");
 
       // Generate and send response
       PlayerId partnerId = match(room->state)
@@ -294,26 +248,25 @@ static void handleState(struct mg_connection *nc, struct http_message *hm) {
       ", \"playerLabels\": " + jsonList(playerLabels) +
       ", \"id\": " + conn->id +
       ", \"actions\": " + jsonActions(actions, conn->id, partnerId) + "}";
-      mg_printf_http_chunk(nc, "%s", result.text);
-      mg_send_http_chunk(nc, "", 0); // Send empty chunk, the end of response
+      mg_http_reply(nc, 200, "", "%s", result.text);
       return true;
     };
 
   if (!success) {
     logmsg("Error sending state for %s in room %s", connId_s, roomId_s);
-    sendError(nc);
+    mg_http_reply(nc, 400, "", "");
   }
 }
 
-static void handleConfig(struct mg_connection *nc, struct http_message *hm) {
+static void handleConfig(struct mg_connection *nc, struct mg_http_message *hm) {
   // Get form variables
   char roomId_s[MAX_ROOM_ID + 1] = {0}, ai_s[10], random_s[10], partners_s[6], openHands_s[6], aiTime_s[10];
-  mg_get_http_var(&hm->query_string, "room", roomId_s, sizeof(roomId_s));
-  mg_get_http_var(&hm->query_string, "ai", ai_s, sizeof(ai_s));
-  mg_get_http_var(&hm->query_string, "random", random_s, sizeof(random_s));
-  mg_get_http_var(&hm->query_string, "partners", partners_s, sizeof(partners_s));
-  mg_get_http_var(&hm->query_string, "openhands", openHands_s, sizeof(openHands_s));
-  mg_get_http_var(&hm->query_string, "aitime", aiTime_s, sizeof(openHands_s));
+  mg_http_get_var(&hm->query, "room", roomId_s, sizeof(roomId_s));
+  mg_http_get_var(&hm->query, "ai", ai_s, sizeof(ai_s));
+  mg_http_get_var(&hm->query, "random", random_s, sizeof(random_s));
+  mg_http_get_var(&hm->query, "partners", partners_s, sizeof(partners_s));
+  mg_http_get_var(&hm->query, "openhands", openHands_s, sizeof(openHands_s));
+  mg_http_get_var(&hm->query, "aitime", aiTime_s, sizeof(openHands_s));
   string roomId = roomId_s;
   unsigned ai = atoi(ai_s), random = atoi(random_s), aiTime = atoi(aiTime_s);
   bool partners = !strcmp(partners_s, "true"), openHands = !strcmp(openHands_s, "true");
@@ -334,21 +287,43 @@ static void handleConfig(struct mg_connection *nc, struct http_message *hm) {
       }
 
       // Send empty response
-      sendEmpty(nc);
+      mg_http_reply(nc, 204, "", "");
 
-      notify(roomId, -1, str(""), false, true, str(""), true);
+      notify(roomId, -1, str(""), false, true, str(""));
       return true;
     };
 
   if (!success) {
-    sendError(nc);
+    mg_http_reply(nc, 400, "", "");
   }
 }
 
-static void handleStart(struct mg_connection *nc, struct http_message *hm) {
+static void handleTimeout(void *rid) {
+  string roomId = str((const char *)rid);
+  query RID is roomId, RS is rooms, mapContains(RS, RID, R) {
+    Room *room = value(R);
+    
+    if (room->gameInProgress) {
+      logmsg("Game in room %s timed out", roomId.text);
+      numGames--;  // Don't count canceled games towards stats
+      numActiveGames--;
+      
+      // Reset state
+      room->gameInProgress = false;
+      room->actionsReady = false;
+      
+      // Cancel the thread
+      pthread_cancel(room->thread);
+      
+      notify(roomId, -1, str(""), false, true, str("Game timed out due to inactivity."));
+    }
+  };
+}
+
+static void handleStart(struct mg_connection *nc, struct mg_http_message *hm) {
   // Get form variables
   char roomId_s[MAX_ROOM_ID + 1] = {0};
-  mg_get_http_var(&hm->query_string, "room", roomId_s, sizeof(roomId_s));
+  mg_http_get_var(&hm->query, "room", roomId_s, sizeof(roomId_s));
   string roomId = roomId_s;
 
   bool success = query
@@ -360,11 +335,11 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
       unsigned numPlayers = room->numWeb + room->numAI + room->numRandom;
       if (!room->gameInProgress && numPlayers) {
         if (numPlayers > MAX_PLAYERS) {
-          notify(roomId, -1, str(""), false, false, "Too many players! Limit is " + str(MAX_PLAYERS), true);
+          notify(roomId, -1, str(""), false, false, "Too many players! Limit is " + str(MAX_PLAYERS));
         } else if (room->partners && numPlayers < 4) {
-          notify(roomId, -1, str(""), false, false, str("Partner game requires at least 4 players; consider adding AI player(s)."), true);
+          notify(roomId, -1, str(""), false, false, str("Partner game requires at least 4 players; consider adding AI player(s)."));
         } else if (room->partners && numPlayers % 2 != 0) {
-          notify(roomId, -1, str(""), false, false, str("Partner game requires an even number of players; consider adding an AI player."), true);
+          notify(roomId, -1, str(""), false, false, str("Partner game requires an even number of players; consider adding an AI player."));
         } else {
           logmsg("Starting %s%sgame in room %s",
                  room->openHands? "open-hand " : "", room->partners? "partner " : "", roomId_s);
@@ -421,12 +396,12 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
           room->threadRunning = true;
 
           // Set the game timeout
-          mg_set_timer(nc, mg_time() + GAME_TIMEOUT);
+          mg_timer_init(&room->timeoutTimer, 1000 * GAME_TIMEOUT, 0, handleTimeout, (void *)roomId.text);
 
           // Send empty response
-          sendEmpty(nc);
+          mg_http_reply(nc, 204, "", "");
 
-          notify(roomId, -1, str(""), false, true, str("Game started!"), true);
+          notify(roomId, -1, str(""), false, true, str("Game started!"));
           return true;
         }
       }
@@ -434,14 +409,14 @@ static void handleStart(struct mg_connection *nc, struct http_message *hm) {
     };
 
   if (!success) {
-    sendError(nc);
+    mg_http_reply(nc, 400, "", "");
   }
 }
 
-static void handleEnd(struct mg_connection *nc, struct http_message *hm) {
+static void handleEnd(struct mg_connection *nc, struct mg_http_message *hm) {
   // Get form variables
   char roomId_s[MAX_ROOM_ID + 1] = {0};
-  mg_get_http_var(&hm->query_string, "room", roomId_s, sizeof(roomId_s));
+  mg_http_get_var(&hm->query, "room", roomId_s, sizeof(roomId_s));
   string roomId = roomId_s;
 
   bool success = query
@@ -459,45 +434,50 @@ static void handleEnd(struct mg_connection *nc, struct http_message *hm) {
         room->gameInProgress = false;
         room->actionsReady = false;
 
+        // Cancel the timeout timer
+        mg_timer_free(&room->timeoutTimer);
+
         // Cancel the thread
         pthread_cancel(room->thread);
 
         // Send empty response
-        sendEmpty(nc);
+        mg_http_reply(nc, 204, "", "");
 
-        notify(roomId, -1, str(""), false, true, str("Game ended."), true);
+        notify(roomId, -1, str(""), false, true, str("Game ended."));
         return true;
       }
       return false;
     };
 
   if (!success) {
-    sendError(nc);
+    mg_http_reply(nc, 400, "", "");
   }
 }
 
-static void httpHandler(struct mg_connection *nc, int ev, struct http_message *hm) {
-  if (mg_vcmp(&hm->uri, "/stats.json") == 0) {
+static void httpHandler(struct mg_connection *nc, int ev, struct mg_http_message *hm) {
+  if (mg_http_match_uri(hm, "/stats.json")) {
     handleStats(nc, hm);
-  } else if (mg_vcmp(&hm->uri, "/state.json") == 0) {
+  } else if (mg_http_match_uri(hm, "/state.json")) {
     handleState(nc, hm);
-  } else if (mg_vcmp(&hm->uri, "/config") == 0) {
+  } else if (mg_http_match_uri(hm, "/config")) {
     handleConfig(nc, hm);
-  } else if (mg_vcmp(&hm->uri, "/start") == 0) {
+  } else if (mg_http_match_uri(hm, "/start")) {
     handleStart(nc, hm);
-  } else if (mg_vcmp(&hm->uri, "/end") == 0) {
+  } else if (mg_http_match_uri(hm, "/end")) {
     handleEnd(nc, hm);
+  } else if (mg_http_match_uri(hm, "/websocket")) {
+    mg_ws_upgrade(nc, hm);
   } else {
-    mg_serve_http(nc, hm, s_http_server_opts);
+    mg_http_serve_dir(nc, hm, "web/");  // Serve static files
   }
 }
 
 static void handleRegister(struct mg_connection *nc, const char *data, size_t size) {
   char roomId_s[MAX_ROOM_ID + 1], connId_s[MAX_CONN_ID + 1], name_s[MAX_NAME + 1];
-  if (sscanf(data, "join:%"STR(MAX_ROOM_ID)"[^:]:%"STR(MAX_CONN_ID)"[^:]:%"STR(MAX_NAME)"[^\n]", roomId_s, connId_s, name_s) == 3) {
+  if (sscanf(data, "join:%"MG_STRINGIFY_MACRO(MAX_ROOM_ID)"[^:]:%"MG_STRINGIFY_MACRO(MAX_CONN_ID)"[^:]:%"MG_STRINGIFY_MACRO(MAX_NAME)"[^\n]", roomId_s, connId_s, name_s) == 3) {
     string roomId = roomId_s, connId = connId_s, name = name_s;
-    char addr[32];
-    mg_sock_addr_to_str(&nc->sa, addr, sizeof(addr), MG_SOCK_STRINGIFY_IP | MG_SOCK_STRINGIFY_PORT | MG_SOCK_STRINGIFY_REMOTE);
+    char addr[MAX_IP_ADDR];
+    mg_ntoa(&nc->peer, addr, sizeof(addr));
     logmsg("Registering %s (%s@%s) to %s", connId_s, name_s, addr, roomId_s);
 
     // Create the room if needed
@@ -521,7 +501,7 @@ static void handleRegister(struct mg_connection *nc, const char *data, size_t si
 
         // Send a notification to the current tab, but leave the socket open to avoid attempting to reconnect
         string disconnectMsg = "{\"disconnect\": true}";
-        mg_send_websocket_frame((struct mg_connection *)conn->socket, WEBSOCKET_OP_TEXT, disconnectMsg.text, disconnectMsg.length);
+        mg_ws_send((struct mg_connection *)conn->socket, disconnectMsg.text, disconnectMsg.length, WEBSOCKET_OP_TEXT);
 
         // Update the connection
         pthread_mutex_lock(&roomsMutex);
@@ -537,7 +517,7 @@ static void handleRegister(struct mg_connection *nc, const char *data, size_t si
       } else {
         logmsg("Player %s rejoined from the same socket", connId_s);
       }
-      notify(roomId, -1, str(""), false, true, str(""), true);
+      notify(roomId, -1, str(""), false, true, str(""));
     } else {
       // The player is initially joining, add them
       if (mapContains(room->droppedConnections, connId)) {
@@ -562,7 +542,7 @@ static void handleRegister(struct mg_connection *nc, const char *data, size_t si
       if (!room->gameInProgress) {
         room->state = initialState(room->numWeb + room->numAI + room->numRandom, room->partners);
       }
-      notify(roomId, -1, str(""), false, true, conn->name + " joined", true);
+      notify(roomId, -1, str(""), false, true, conn->name + " joined");
 
       if (!mapContains(users, connId)) {
         users = mapInsert(GC_malloc, users, connId, 1);
@@ -602,7 +582,7 @@ static void handleAction(struct mg_connection *nc, const char *data, size_t size
         pthread_cond_signal(&room->cv);
 
         // Update the game timeout
-        mg_set_timer(nc, mg_time() + GAME_TIMEOUT);
+        room->timeoutTimer.expire = mg_millis() + 1000 * GAME_TIMEOUT;
       }
     };
   }
@@ -620,14 +600,14 @@ static void handleChat(struct mg_connection *nc, const char *data, size_t size) 
           CS is (R->connections), mapContains(CS, CID, C) {
       string roomId = value(RID);
       PlayerConn *conn = value(C);
-      notify(roomId, conn->id, conn->label + conn->name, true, false, msg, true);
+      notify(roomId, conn->id, conn->label + conn->name, true, false, msg);
     };
   }
 }
 
 static void handleLabel(struct mg_connection *nc, const char *data, size_t size) {
   char label_s[MAX_LABEL + 1] = {0};
-  sscanf(data, "label:%"STR(MAX_LABEL)"[^\n]", label_s); // Unchecked since label can be empty
+  sscanf(data, "label:%"MG_STRINGIFY_MACRO(MAX_LABEL)"[^\n]", label_s); // Unchecked since label can be empty
   string label = label_s;
 
   query NC is ((SocketId)nc), SRS is socketRooms, mapContains(SRS, NC, RID),
@@ -645,59 +625,30 @@ static void handleLabel(struct mg_connection *nc, const char *data, size_t size)
       room->playerNames[conn->id] = conn->label + conn->name;
       room->playerLabels[conn->id] = conn->label;
     }
-    notify(roomId, -1, str(""), false, true, oldLabel + conn->name + " is now " + conn->label + conn->name, true);
+    notify(roomId, -1, str(""), false, true, oldLabel + conn->name + " is now " + conn->label + conn->name);
   };
 }
 
-static void websocketHandler(struct mg_connection *nc, int ev, struct websocket_message *wm) {
-  size_t size = wm->size < MAX_MSG? wm->size : MAX_MSG;
+static void websocketHandler(struct mg_connection *nc, int ev, struct mg_ws_message *wm) {
+  size_t size = wm->data.len < MAX_MSG? wm->data.len : MAX_MSG;
 
   // Ensure message data is null-terminated
   char data[size + 1];
-  memcpy(data, wm->data, size);
+  memcpy(data, wm->data.ptr, size);
   data[size] = 0;
 
   // Dispatch to the appropriate handler
-  if (!strncmp(data, "join", 4)) {
+  if (!strncmp(wm->data.ptr, "join", 4)) {
     handleRegister(nc, data, size);
-  } else if (!strncmp(data, "chat", 4)) {
+  } else if (!strncmp(wm->data.ptr, "chat", 4)) {
     handleChat(nc, data, size);
-  } else if (!strncmp(data, "label", 5)) {
+  } else if (!strncmp(wm->data.ptr, "label", 5)) {
     handleLabel(nc, data, size);
-  } else if (!strncmp(data, "action", 5)) {
+  } else if (!strncmp(wm->data.ptr, "action", 5)) {
     handleAction(nc, data, size);
   } else {
-    logmsg("Bad websocket message: %s\n", data);
+    logmsg("Bad websocket message: %s\n", wm->data.ptr);
   }
-}
-
-static void handleTimeout(struct mg_connection *nc) {
-  query NC is ((SocketId)nc), SRS is socketRooms, mapContains(SRS, NC, RID),
-        RS is rooms, mapContains(RS, RID, R),
-        initially { pthread_mutex_lock(&R->mutex); },
-        finally   { pthread_mutex_unlock(&R->mutex); },
-        SPS is (R->socketPlayers), mapContains(SPS, NC, CID),
-        CS is (R->connections), mapContains(CS, CID, C) {
-      string roomId = value(RID);
-      Room *room = value(R);
-
-      if (room->gameInProgress) {
-        logmsg("Game in room %s timed out", roomId.text);
-        numGames--;  // Don't count canceled games towards stats
-        numActiveGames--;
-
-        // Reset state
-        room->gameInProgress = false;
-        room->actionsReady = false;
-
-        // Cancel the thread
-        pthread_cancel(room->thread);
-
-        notify(roomId, -1, str(""), false, true, str("Game timed out due to inactivity."), true);
-        return true;
-      }
-      return false;
-    };
 }
 
 static void handleUnregister(struct mg_connection *nc) {
@@ -726,7 +677,7 @@ static void handleUnregister(struct mg_connection *nc) {
               room->state = initialState(room->numWeb + room->numAI + room->numRandom, room->partners);
             }
 
-            notify(roomId, -1, str(""), false, true, conn->name + " left", true);
+            notify(roomId, -1, str(""), false, true, conn->name + " left");
           }
         }
         if (mapContains(activeUsers, connId)) {
@@ -745,28 +696,20 @@ static void handleUnregister(struct mg_connection *nc) {
   pthread_mutex_unlock(&roomsMutex);
 }
 
-static void evHandler(struct mg_connection *nc, int ev, void *ev_data) {
+static void evHandler(struct mg_connection *nc, int ev, void *ev_data, void *fn_data) {
   switch (ev) {
-  case MG_EV_HTTP_REQUEST: {
-    httpHandler(nc, ev, (struct http_message *)ev_data);
+  case MG_EV_HTTP_MSG: {
+    httpHandler(nc, ev, (struct mg_http_message *)ev_data);
     break;
   }
 
-  case MG_EV_WEBSOCKET_HANDSHAKE_DONE:
-    break;
-
-  case MG_EV_WEBSOCKET_FRAME: {
-    websocketHandler(nc, ev, (struct websocket_message *)ev_data);
-    break;
-  }
-
-  case MG_EV_TIMER: {
-    handleTimeout(nc);
+  case MG_EV_WS_MSG: {
+    websocketHandler(nc, ev, (struct mg_ws_message *)ev_data);
     break;
   }
 
   case MG_EV_CLOSE: {
-    if (nc->flags & MG_F_IS_WEBSOCKET) {
+    if (nc->is_websocket) {
       handleUnregister(nc);
     }
     break;
@@ -781,7 +724,7 @@ static void signal_handler(int sig_num) {
   signal_received = sig_num;
 }
 
-void serve(const char *port_http, const char *port_https) {
+void serve(const char *url_http, const char *url_https) {
   // Record startup time
   time_t t = time(NULL);
   struct tm tm = *localtime(&t);
@@ -801,38 +744,24 @@ void serve(const char *port_http, const char *port_https) {
   }
   if (usersIn) {
     char connId[MAX_CONN_ID + 1] = {0};
-    while (fscanf(usersIn, "%"STR(MAX_CONN_ID)"[^:]:%*[^\n]\n", connId) > 0) {
+    while (fscanf(usersIn, "%"MG_STRINGIFY_MACRO(MAX_CONN_ID)"[^:]:%*[^\n]\n", connId) > 0) {
       users = mapInsert(GC_malloc, users, str(connId), 0);
     }
     fclose(usersIn);
   }
 
-  // Set HTTP server options
-  struct mg_bind_opts bind_opts;
-  memset(&bind_opts, 0, sizeof(bind_opts));
-  const char *err_str;
-  bind_opts.error_string = &err_str;
-  mg_mgr_init(&mgr, NULL);
+  // Initialize HTTP server
+  mg_mgr_init(&mgr);
   
-  logmsg("Starting server on port %s", port_http);
-  struct mg_connection *nc_http = mg_bind_opt(&mgr, port_http, evHandler, bind_opts);
-  if (nc_http == NULL) {
-    fprintf(stderr, "Error starting server on port %s: %s\n", port_http, *bind_opts.error_string);
-    exit(1);
-  }
-  mg_set_protocol_http_websocket(nc_http);
+  logmsg("Starting server at %s", url_http);
+  struct mg_connection *nc_http = mg_http_listen(&mgr, url_http, evHandler, NULL);
   
 #ifdef SSL
   if (port_https) {
     bind_opts.ssl_cert = SSL_CERT;
     bind_opts.ssl_key = SSL_KEY;
-    logmsg("Starting server on port %s", port_https);
-    struct mg_connection *nc_https = mg_bind_opt(&mgr, port_https, evHandler, bind_opts);
-    if (nc_https == NULL) {
-      fprintf(stderr, "Error starting server on port %s: %s\n", port_https, *bind_opts.error_string);
-      exit(1);
-    }
-    mg_set_protocol_http_websocket(nc_https);
+    logmsg("Starting server at %s", url_https);
+    struct mg_connection *nc_https = mg_bind_opt(&mgr, url_http, evHandler, bind_opts);
   }
 #endif
 
@@ -872,7 +801,7 @@ static void *runServerGame(void *arg) {
         // If this is not a web player, notify clients.
         // Web players will notify later when actions are ready.
         if (strcmp(room->players[p].name, "web")) {
-          notify(roomId, -1, str(""), false, true, str(""), false);
+          notify(roomId, -1, str(""), false, true, str(""));
         }
       },
       lambda (PlayerId p, Hand h) -> void {
@@ -887,21 +816,21 @@ static void *runServerGame(void *arg) {
       },
       lambda (PlayerId p, unsigned handNum) -> void {
         if (handNum == 0) {
-          notify(roomId, -1, str(""), false, false, room->playerNames[p] + "'s turn to deal", false);
+          notify(roomId, -1, str(""), false, false, room->playerNames[p] + "'s turn to deal");
         }
-        notify(roomId, -1, str(""), false, false, "Hand " + str(handNum + 1) +  " for dealer " + room->playerNames[p], false);
+        notify(roomId, -1, str(""), false, false, "Hand " + str(handNum + 1) +  " for dealer " + room->playerNames[p]);
       },
       lambda (PlayerId p, Action a) -> void {
-        notify(roomId, p, room->playerNames[p], false, false, showAction(a, p, partners? partner(numPlayers, p) : PLAYER_ID_NONE), false);
+        notify(roomId, p, room->playerNames[p], false, false, showAction(a, p, partners? partner(numPlayers, p) : PLAYER_ID_NONE));
       },
       lambda (PlayerId p) -> void {
         pthread_mutex_lock(&room->mutex);
         room->gameInProgress = false;
         pthread_mutex_unlock(&room->mutex);
         if (partners) {
-          notify(roomId, -1, str(""), false, true, room->playerNames[p] + " and " + room->playerNames[partner(numPlayers, p)] + " won!", false);
+          notify(roomId, -1, str(""), false, true, room->playerNames[p] + " and " + room->playerNames[partner(numPlayers, p)] + " won!");
         } else {
-          notify(roomId, -1, str(""), false, true, room->playerNames[p] + " won!", false);
+          notify(roomId, -1, str(""), false, true, room->playerNames[p] + " won!");
         }
       });
 
@@ -950,7 +879,7 @@ Player makeWebPlayer(string roomId) {
       room->actionReady = false;
 
       // Notify clients
-      notify(roomId, -1, str(""), false, true, str(""), false);
+      notify(roomId, -1, str(""), false, true, str(""));
 
       // Wait for response
       unsigned result;

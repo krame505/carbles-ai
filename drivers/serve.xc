@@ -7,18 +7,18 @@
 #include <stdbool.h>
 
 #ifdef SSL
-#define DEFAULT_HTTP_PORT "80"
-#define DEFAULT_HTTPS_PORT "443"
+#define DEFAULT_HTTP_URL "http://0.0.0.0:80"
+#define DEFAULT_HTTPS_URL "http://0.0.0.0:443"
 #else
-#define DEFAULT_HTTP_PORT "8000"
-#define DEFAULT_HTTPS_PORT NULL
+#define DEFAULT_HTTP_URL "http://0.0.0.0:8000"
+#define DEFAULT_HTTPS_URL NULL
 #endif
 
 int main(unsigned argc, char *argv[]) {
-  const char *http_port = DEFAULT_HTTP_PORT;
-  const char *https_port = DEFAULT_HTTPS_PORT;
+  const char *http_url = DEFAULT_HTTP_URL;
+  const char *https_url = DEFAULT_HTTPS_URL;
   if (argc == 2) {
-    http_port = argv[1];
+    http_url = argv[1];
   } else if (argc > 2) {
     printf("Usage: %s [port]\n", argv[0]);
     return 1;
@@ -27,5 +27,5 @@ int main(unsigned argc, char *argv[]) {
   GC_INIT();
   GC_allow_register_threads();
 
-  serve(http_port, https_port);
+  serve(http_url, https_url);
 }
