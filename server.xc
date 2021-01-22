@@ -8,8 +8,9 @@
 #include <stdbool.h>
 #include <time.h>
 
-#define SSL_CERT "/etc/letsencrypt/live/carbles.net/fullchain.pem"
-#define SSL_KEY "/etc/letsencrypt/live/carbles.net/privkey.pem"
+#define SSL_CERT "server.pem" // "/etc/letsencrypt/live/carbles.net/fullchain.pem"
+#define SSL_KEY "server.pem" // "/etc/letsencrypt/live/carbles.net/privkey.pem"
+#define HTTPS_URL "https://carbles.net"
 
 #define MAX_ROOM_ID 30
 #define MAX_CONN_ID 100
@@ -23,9 +24,6 @@
 static struct mg_http_serve_opts s_http_server_opts = {
   .root_dir = "web/",
   .ssi_pattern = "#.shtml",
-#ifdef SSL
-  //.url_rewrites = "%80=https://carbles.net"
-#endif
 };
 
 static struct mg_mgr mgr;
@@ -717,7 +715,19 @@ static void evHandler(struct mg_connection *nc, int ev, void *ev_data, void *fn_
   }
     
   case MG_EV_HTTP_MSG: {
-    httpHandler(nc, ev, (struct mg_http_message *)ev_data);
+    struct mg_http_message *msg = ev_data;
+#ifdef SSL
+    if (mg_url_is_ssl((char *)fn_data)) {
+#endif
+      httpHandler(nc, ev, msg);
+#ifdef SSL
+    } else {
+      char new_url[sizeof(HTTPS_URL) + msg->uri.len + 2];
+      strcpy(new_url, HTTPS_URL);
+      strncpy(new_url + strlen(HTTPS_URL), msg->uri.ptr, msg->uri.len);
+      mg_http_reply(nc, 301, "", new_url);
+    }
+#endif
     break;
   }
 
