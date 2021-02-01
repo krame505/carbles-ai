@@ -121,7 +121,7 @@ static const unsigned initialNumAIs = 2;
 static const unsigned initialNumRandom = 0;
 static const bool initialPartners = false;
 static const bool initialOpenHands = false;
-static const unsigned initialAITime = 5;
+static const unsigned initialAITime = 4;
 
 static void createRoom(string roomId) {
   logmsg("Creating room %s", roomId.text);
