@@ -84,6 +84,8 @@ string showMoves(list<Move ?> ?m, PlayerId p1, PlayerId p2);
 typedef unsigned Hand[CARD_MAX];
 
 string showHand(const Hand h);
+show Hand with showHand;
+show (const Hand) with showHand; // This is a different type since the qualifier attaches on the element type
 
 datatype Action {
   Play(Card, list<Move ?> ?);
