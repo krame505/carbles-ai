@@ -16,7 +16,7 @@
 // license, as set out in <https://www.cesanta.com/license>.
 
 #pragma once
-#define MG_VERSION "7.0"
+#define MG_VERSION "7.2"
 
 
 #define MG_ARCH_CUSTOM 0
@@ -121,6 +121,7 @@
 #include <dirent.h>
 #include <netdb.h>
 #define MG_DIRSEP '/'
+#define MG_INT64_FMT "%lld"
 
 #endif
 
@@ -133,6 +134,7 @@
 #include <stdbool.h>
 #include <sys/time.h>
 #define MG_DIRSEP '/'
+#define MG_INT64_FMT "%lld"
 
 #endif
 
@@ -146,6 +148,7 @@
 #include <FreeRTOS_Sockets.h>
 #include <stdbool.h>
 
+#define MG_INT64_FMT "%lld"
 #define MG_DIRSEP '/'
 #define IPPROTO_TCP FREERTOS_IPPROTO_TCP
 #define IPPROTO_UDP FREERTOS_IPPROTO_UDP
@@ -206,6 +209,7 @@ static inline int ff_vfprintf(FF_FILE *fp, const char *fmt, va_list ap) {
 
 #include <arpa/inet.h>
 #include <dirent.h>
+#include <inttypes.h>
 #include <netdb.h>
 #include <netinet/tcp.h>
 #include <signal.h>
@@ -217,6 +221,7 @@ static inline int ff_vfprintf(FF_FILE *fp, const char *fmt, va_list ap) {
 #include <unistd.h>
 #define MG_DIRSEP '/'
 #define MG_ENABLE_POSIX 1
+#define MG_INT64_FMT "%" PRId64
 
 #endif
 
@@ -228,10 +233,12 @@ static inline int ff_vfprintf(FF_FILE *fp, const char *fmt, va_list ap) {
 typedef __int64 int64_t;
 typedef unsigned __int64 uint64_t;
 typedef unsigned char uint8_t;
+typedef char int8_t;
 typedef unsigned short uint16_t;
+typedef short int16_t;
 typedef unsigned int uint32_t;
-typedef int bool;
-enum { false = 0, true = 1 };
+typedef int int32_t;
+typedef enum { false = 0, true = 1 } bool;
 #else
 #include <stdbool.h>
 #include <stdint.h>
@@ -271,6 +278,8 @@ typedef int socklen_t;
 #define S_ISDIR(x) (((x) &_S_IFMT) == _S_IFDIR)
 #endif
 
+#define MG_INT64_FMT "%I64d"
+
 #endif
 
 
@@ -280,7 +289,7 @@ typedef int socklen_t;
 
 #if MG_ENABLE_LWIP
 #define MG_ENABLE_SOCKET 0
-#else
+#elif !defined(MG_ENABLE_SOCKET)
 #define MG_ENABLE_SOCKET 1
 #endif
 
@@ -412,7 +421,8 @@ void mg_timer_poll(unsigned long uptime_ms);
 
 char *mg_file_read(const char *path);
 size_t mg_file_size(const char *path);
-int mg_file_write(const char *path, const char *fmt, ...);
+bool mg_file_write(const char *path, const void *buf, size_t len);
+bool mg_file_printf(const char *path, const char *fmt, ...);
 void mg_random(void *buf, size_t len);
 bool mg_globmatch(const char *pattern, int plen, const char *s, int n);
 bool mg_next_comma_entry(struct mg_str *s, struct mg_str *k, struct mg_str *v);
@@ -428,6 +438,16 @@ int64_t mg_to64(struct mg_str str);
 double mg_time(void);
 unsigned long mg_millis(void);
 void mg_usleep(unsigned long usecs);
+
+#if MG_ENABLE_FS
+#ifdef _WIN32
+typedef struct _stati64 mg_stat_t;
+#define mg_stat(a, b) _stati64((a), (b))
+#else
+typedef struct stat mg_stat_t;
+#define mg_stat(a, b) stat((a), (b))
+#endif
+#endif
 
 #define mg_htons(x) mg_ntohs(x)
 #define mg_htonl(x) mg_ntohl(x)
@@ -496,8 +516,8 @@ struct mg_iobuf {
   size_t size, len;
 };
 
-void mg_iobuf_init(struct mg_iobuf *, size_t);
-void mg_iobuf_resize(struct mg_iobuf *, size_t);
+int mg_iobuf_init(struct mg_iobuf *, size_t);
+int mg_iobuf_resize(struct mg_iobuf *, size_t);
 void mg_iobuf_free(struct mg_iobuf *);
 size_t mg_iobuf_append(struct mg_iobuf *, const void *, size_t, size_t);
 size_t mg_iobuf_delete(struct mg_iobuf *, size_t);
@@ -564,9 +584,9 @@ enum {
   MG_EV_WRITE,      // Data written to socket       int *num_bytes_written
   MG_EV_CLOSE,      // Connection closed            NULL
   MG_EV_HTTP_MSG,   // HTTP request/response        struct mg_http_message *
-  MG_EV_WS_OPEN,    // Websocket handshake done     NULL
-  MG_EV_WS_MSG,     // Websocket message received   struct mg_ws_message *
-  MG_EV_WS_CTL,     // Websocket control message    struct mg_ws_message *
+  MG_EV_WS_OPEN,    // Websocket handshake done     struct mg_http_message *
+  MG_EV_WS_MSG,     // Websocket msg, text or bin   struct mg_ws_message *
+  MG_EV_WS_CTL,     // Websocket control msg        struct mg_ws_message *
   MG_EV_MQTT_CMD,   // MQTT low-level command       struct mg_mqtt_message *
   MG_EV_MQTT_MSG,   // MQTT PUBLISH received        struct mg_mqtt_message *
   MG_EV_MQTT_OPEN,  // MQTT CONNACK received        int *connack_status_code
@@ -686,7 +706,7 @@ struct mg_connection *mg_http_connect(struct mg_mgr *, const char *url,
 void mg_http_serve_dir(struct mg_connection *, struct mg_http_message *hm,
                        struct mg_http_serve_opts *);
 void mg_http_serve_file(struct mg_connection *, struct mg_http_message *,
-                        const char *, const char *mime);
+                        const char *, const char *mime, const char *headers);
 void mg_http_reply(struct mg_connection *, int status_code, const char *headers,
                    const char *body_fmt, ...);
 struct mg_str *mg_http_get_header(struct mg_http_message *, const char *name);
@@ -706,11 +726,11 @@ void mg_http_serve_ssi(struct mg_connection *c, const char *root,
 
 
 struct mg_tls_opts {
-  const char *ca;        // CA certificate file. For both listeners and clients
-  const char *cert;      // Certificate
-  const char *certkey;   // Certificate key
-  const char *ciphers;   // Cipher list
-  const char *srvname;   // If not NULL, enables server name verification
+  const char *ca;         // CA certificate file. For both listeners and clients
+  const char *cert;       // Certificate
+  const char *certkey;    // Certificate key
+  const char *ciphers;    // Cipher list
+  struct mg_str srvname;  // If not empty, enables server name verification
 };
 
 int mg_tls_init(struct mg_connection *, struct mg_tls_opts *);
@@ -740,7 +760,8 @@ struct mg_ws_message {
 struct mg_connection *mg_ws_connect(struct mg_mgr *, const char *url,
                                     mg_event_handler_t fn, void *fn_data,
                                     const char *fmt, ...);
-void mg_ws_upgrade(struct mg_connection *, struct mg_http_message *);
+void mg_ws_upgrade(struct mg_connection *, struct mg_http_message *,
+                   const char *fmt, ...);
 size_t mg_ws_send(struct mg_connection *, const char *buf, size_t len, int op);
 
 

@@ -474,7 +474,7 @@ static void httpHandler(struct mg_connection *nc, int ev, struct mg_http_message
   } else if (mg_http_match_uri(hm, "/end")) {
     handleEnd(nc, hm);
   } else if (mg_http_match_uri(hm, "/websocket")) {
-    mg_ws_upgrade(nc, hm);
+    mg_ws_upgrade(nc, hm, NULL);
   } else {
     mg_http_serve_dir(nc, hm, &s_http_server_opts);  // Serve static files
   }
