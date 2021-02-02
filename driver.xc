@@ -67,6 +67,7 @@ PlayerId playGame(
     }
     s = applyAction(a, s, hands[turn.player], discard);
     updateHand(turn.player, hands[turn.player]);
+    handSizes[turn.player]--;
     bool redeal = false, newDeck = false;
     if (handSizes[(turn.player + 1) % numPlayers] == 0) {
       redeal = true;
