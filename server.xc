@@ -841,8 +841,14 @@ static void *runServerGame(void *arg) {
       },
       lambda (PlayerId p) -> void {
         pthread_mutex_lock(&room->mutex);
+        // Update room status
         room->gameInProgress = false;
+
+        // Cancel the timeout timer
+        mg_timer_free(&room->timeoutTimer);
+
         pthread_mutex_unlock(&room->mutex);
+
         if (partners) {
           notify(roomId, -1, str(""), false, true, room->playerNames[p] + " and " + room->playerNames[partner(numPlayers, p)] + " won!");
         } else {
