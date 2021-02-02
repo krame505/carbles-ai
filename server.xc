@@ -788,7 +788,7 @@ void serve(const char *url_http, const char *url_https) {
   // Start server
   running = true;
   while (signal_received == 0) {
-    mg_mgr_poll(&mgr, 1000);
+    mg_mgr_poll(&mgr, 100);
   }
   signal_received = 0;
   logmsg("Server shutting down");
