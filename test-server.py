@@ -83,12 +83,21 @@ def test():
         ]
         if 'turn' in state:
             actions.append(lambda: end(room))
-            turnUser = users[state['turn']]
-            if turnUser not in sockets[room]:
+            print(state['playersInGame'], state['turn'])
+            turnUser = state['playersInGame'][state['turn']]
+            if turnUser.startswith('AI') or turnUser.startswith('Random'):
+                # Waiting on an AI: try another room
+                continue
+            elif turnUser not in users:
+                # Game has a player that is not included by the test script, possibly from a previous run: end the game
+                end(room)
+                continue
+            elif turnUser not in sockets[room]:
+                # User isn't currently in the room: rejoin
                 join(room, turnUser)
             turnUserState = get_state(room, turnUser)
             moves = [lambda: action(room, turnUser, i) for i in range(0, len(turnUserState['actions']))]
-            actions.extend(moves * 5) # Higher probability of making a move
+            actions.extend(moves * 10)  # Higher probability of making a move
         else:
             actions.append(lambda: start(room))
         random.choice(actions)()
