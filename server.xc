@@ -276,7 +276,10 @@ static void handleConfig(struct mg_connection *nc, struct mg_http_message *hm) {
   mg_http_get_var(&hm->query, "openhands", openHands_s, sizeof(openHands_s));
   mg_http_get_var(&hm->query, "aitime", aiTime_s, sizeof(openHands_s));
   string roomId = roomId_s;
-  unsigned ai = atoi(ai_s), random = atoi(random_s), aiTime = atoi(aiTime_s);
+  int ai = atoi(ai_s), random = atoi(random_s), aiTime = atoi(aiTime_s);
+  if (ai < 0) ai = 0; else if (ai > MAX_PLAYERS) ai = MAX_PLAYERS;
+  if (random < 0) random = 0; else if (random > MAX_PLAYERS) random = MAX_PLAYERS;
+  if (aiTime < 1) aiTime = 1; else if (aiTime > 60) aiTime = 60;
   bool partners = !strcmp(partners_s, "true"), openHands = !strcmp(openHands_s, "true");
 
   bool success = query

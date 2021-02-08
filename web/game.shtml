@@ -26,11 +26,11 @@
     <br><br>
 
     <label>Players in room: </label><span id="playersInRoom"></span><br>
-    <label>AI players: </label><input type="number" min="0" id="aiPlayers" onchange="updateConfig()" class="numInput">&nbsp;
-    <label>Random players: </label><input type="number" min="0" id="randomPlayers" onchange="updateConfig()" class="numInput">&nbsp;
+    <label>AI players: </label><input type="number" min="0" max="12" id="aiPlayers" onchange="updateConfig()" class="numInput">&nbsp;
+    <label>Random players: </label><input type="number" min="0" max="12" id="randomPlayers" onchange="updateConfig()" class="numInput">&nbsp;
     <label>Partners</label><input type="checkbox" id="partners" onchange="updateConfig()">&nbsp;
     <label>Open hands</label><input type="checkbox" id="openHands" onchange="updateConfig()">&nbsp;
-    <label>AI turn length (seconds): </label><input type="number" min="0" max="60" id="aiTime" onchange="updateConfig()" class="numInput">&nbsp;
+    <label>AI turn length (seconds): </label><input type="number" min="1" max="60" id="aiTime" onchange="updateConfig()" class="numInput">&nbsp;
     <br>
 
     <button id="startEndGame" onclick="handleStartEndGame()">Start Game</button>
