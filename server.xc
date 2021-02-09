@@ -105,7 +105,6 @@ static void logmsg(const char *format, ...) {
   fclose(out);
 }
 
-static pthread_mutex_t serverMutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t roomsMutex = PTHREAD_MUTEX_INITIALIZER;
 static map<string, Room *, compareString> ?rooms;
 static map<SocketId, string, compareSocket> ?socketRooms;
@@ -146,6 +145,7 @@ static void *runServerGame(void *roomId);
 
 static Player makeWebPlayer(string roomId);
 
+// Push a notification from the main server thread
 static void notify(
     string roomId, PlayerId p, string name, bool chat, bool reload,
     string msg) {
@@ -163,6 +163,35 @@ static void notify(
       mg_ws_send(nc, encoded.text, encoded.length, WEBSOCKET_OP_TEXT);
     };
   }
+}
+
+struct notification {
+  string roomId;
+  PlayerId playerId;
+  string name;
+  bool chat, reload;
+  string msg;
+};
+static pthread_mutex_t notifyMutex = PTHREAD_MUTEX_INITIALIZER;
+static vector<struct notification> notifyQueue;
+
+// Push a notification from a worker thread
+static void workerNotify(
+    string roomId, PlayerId p, string name, bool chat, bool reload,
+    string msg) {
+  pthread_mutex_lock(&notifyMutex);
+  notifyQueue.append((struct notification){roomId, p, name, chat, reload, msg});
+  pthread_mutex_unlock(&notifyMutex);
+}
+
+// Called regularly from the main thread, push all notifications in the queue
+static void pollNotify(void) {
+  pthread_mutex_lock(&notifyMutex);
+  while (notifyQueue.size > 0) {
+    struct notification n = notifyQueue.pop();
+    notify(n.roomId, n.playerId, n.name, n.chat, n.reload, n.msg);
+  }
+  pthread_mutex_unlock(&notifyMutex);
 }
 
 static string jsonList(vector<string> v) {
@@ -405,11 +434,9 @@ static void handleStart(struct mg_connection *nc, struct mg_http_message *hm) {
           room->gameOpenHands = room->openHands;
           room->gameInProgress = true;
           if (room->threadRunning) {
-            pthread_mutex_unlock(&serverMutex);
             pthread_mutex_unlock(&room->mutex);
             pthread_join(room->thread, NULL);
             pthread_mutex_lock(&room->mutex);
-            pthread_mutex_lock(&serverMutex);
           }
           pthread_create(&room->thread, NULL, &runServerGame, (void *)roomId.text);
           room->threadRunning = true;
@@ -765,6 +792,7 @@ void serve(const char *url_http, const char *url_https) {
   socketRooms = emptyMap<SocketId, string, compareSocket>(GC_malloc);
   users = emptyMap<string, unsigned, compareString>(GC_malloc);
   activeUsers = emptyMap<string, unsigned, compareString>(GC_malloc);
+  notifyQueue = new vector<struct notification>();
 
   FILE *gamesIn = fopen(gamesFile, "r"), *usersIn = fopen(usersFile, "r");
   if (gamesIn) {
@@ -799,11 +827,16 @@ void serve(const char *url_http, const char *url_https) {
   // Start server
   running = true;
   while (signal_received == 0) {
-    pthread_mutex_lock(&serverMutex);
     mg_mgr_poll(&mgr, 100);
-    pthread_mutex_unlock(&serverMutex);
+    pollNotify();
   }
   signal_received = 0;
+  query RS is rooms, mapContainsValue(RS, RID, _) {
+    string roomId = value(RID);
+    logmsg("Notifying %s\n", roomId.text);
+    notify(roomId, -1, str(""), false, false, str("Server is shutting down for maintance now!  Please stand by..."));
+  };
+  mg_mgr_poll(&mgr, 100);  // Poll one more time so the notification gets broadcast
   logmsg("Server shutting down");
   running = false;
   mg_mgr_free(&mgr);
@@ -830,9 +863,7 @@ static void *runServerGame(void *arg) {
         // If this is not a web player, notify clients.
         // Web players will notify later when actions are ready.
         if (strcmp(room->players[p].name, "web")) {
-          pthread_mutex_lock(&serverMutex);
-          notify(roomId, -1, str(""), false, true, str(""));
-          pthread_mutex_unlock(&serverMutex);
+          workerNotify(roomId, -1, str(""), false, true, str(""));
         }
       },
       lambda (PlayerId p, Hand h) -> void {
@@ -846,35 +877,30 @@ static void *runServerGame(void *arg) {
         pthread_mutex_unlock(&room->mutex);
       },
       lambda (PlayerId p, unsigned handNum) -> void {
-        pthread_mutex_lock(&serverMutex);
         if (handNum == 0) {
-          notify(roomId, -1, str(""), false, false, room->playerNames[p] + "'s turn to deal");
+          workerNotify(roomId, -1, str(""), false, false, room->playerNames[p] + "'s turn to deal");
         }
-        notify(roomId, -1, str(""), false, false, "Hand " + str(handNum + 1) +  " for dealer " + room->playerNames[p]);
-        pthread_mutex_unlock(&serverMutex);
+        workerNotify(roomId, -1, str(""), false, false, "Hand " + str(handNum + 1) +  " for dealer " + room->playerNames[p]);
       },
       lambda (PlayerId p, Action a) -> void {
-        pthread_mutex_lock(&serverMutex);
-        notify(roomId, p, room->playerNames[p], false, false, showAction(a, p, partners? partner(numPlayers, p) : PLAYER_ID_NONE));
-        pthread_mutex_unlock(&serverMutex);
+        workerNotify(roomId, p, room->playerNames[p], false, false, showAction(a, p, partners? partner(numPlayers, p) : PLAYER_ID_NONE));
       },
       lambda (PlayerId p) -> void {
         pthread_mutex_lock(&room->mutex);
+        
         // Update room status
         room->gameInProgress = false;
-
-        pthread_mutex_unlock(&room->mutex);
-        pthread_mutex_lock(&serverMutex);
 
         // Cancel the timeout timer
         mg_timer_free(&room->timeoutTimer);
 
+        pthread_mutex_unlock(&room->mutex);
+
         if (partners) {
-          notify(roomId, -1, str(""), false, true, room->playerNames[p] + " and " + room->playerNames[partner(numPlayers, p)] + " won!");
+          workerNotify(roomId, -1, str(""), false, true, room->playerNames[p] + " and " + room->playerNames[partner(numPlayers, p)] + " won!");
         } else {
-          notify(roomId, -1, str(""), false, true, room->playerNames[p] + " won!");
+          workerNotify(roomId, -1, str(""), false, true, room->playerNames[p] + " won!");
         }
-        pthread_mutex_unlock(&serverMutex);
       });
 
   logmsg("Finished game in room %s", roomId.text);
@@ -922,9 +948,7 @@ Player makeWebPlayer(string roomId) {
       room->actionReady = false;
 
       // Notify clients
-      pthread_mutex_lock(&serverMutex);
-      notify(roomId, -1, str(""), false, true, str(""));
-      pthread_mutex_unlock(&serverMutex);
+      workerNotify(roomId, -1, str(""), false, true, str(""));
 
       // Wait for response
       unsigned result;
