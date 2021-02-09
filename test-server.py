@@ -2,10 +2,12 @@
 
 import json, random, string, websocket, http.client, sys, time, lorem
 
-rooms = [str(i) for i in range(5)]
-users = [''.join(random.choices(string.ascii_letters + string.digits, k=8)) for i in range(10)]
+rooms = [str(i) for i in range(10)]
+users = [''.join(random.choices(string.ascii_letters + string.digits, k=10)) for i in range(20)]
 
 sockets = {room: {} for room in rooms}
+
+labels = "🍏,🍎,🍐,🍊,🍋,🍌,🍉,🍇,🍓,🍈,🍒,🍑,🍍,🥝,🥑,🍅,🍆,🥒,🥕,🌽,🌶,🥔,🍠,🌰,🥜,🍯,🥐,🍞,🥖,🧀,🥚,🍳,🥓,🥞,🍤,🍗,🍖,🍕,🌭,🍔,🍟,🥙,🌮,🌯,🥗,🥘,🍝,🍜,🍲,🍥,🍣,🍱,🍛,🍚,🍙,🍘,🍢,🍡,🍧,🍨,🍦,🍰,🎂,🍮,🍭,🍬,🍫,🍿,🍩,🍪,🥛,🍼,☕️,🍵,🍶,🍺,🍻,🥂,🍷,🥃,🍸,🍹,🍾,🥄,🍴,🍽,⚽️,🏀,🏈,⚾️,🎾,🏐,🏉,🎱,🏓,🏸,🥅,🏒,🏑,🏏,⛳️,🏹,🎣,🥊,🥋,⛸,🎿,⛷,🏂,🏋️‍♀️,🏋️,🤺,🤼‍♀️,🤼‍♂️,🤸‍♀️,🤸‍♂️,⛹️‍♀️,⛹️,🤾‍♀️,🤾‍♂️,🏌️‍♀️,🏌️,🏄‍♀️,🏄,🏊‍♀️,🏊,🤽‍♀️,🤽‍♂️,🚣‍♀️,🚣,🏇,🚴‍♀️,🚴,🚵‍♀️,🚵,🎽,🏅,🎖,🥇,🥈,🥉,🏆,🏵,🎗,🎫,🎟,🎪,🤹‍♀️,🤹‍♂️,🎭,🎨,🎬,🎤,🎧,🎼,🎹,🥁,🎷,🎺,🎸,🎻,🎲,🎯,🎳,🎮,🎰".split(",")
 
 host = 'localhost:8000' if len(sys.argv) < 2 else sys.argv[1]
 
@@ -42,7 +44,7 @@ def start(room):
     connection.request('GET', '/start?room=' + room)
 
 def end(room):
-    print("Ending")
+    print("Ending", room)
     connection = http.client.HTTPConnection(host)
     connection.request('GET', '/end?room=' + room)
 
@@ -51,7 +53,7 @@ def chat(room, user):
     sockets[room][user].send("chat:" + lorem.sentence())
 
 def label(room, user):
-    label = str(random.randint(0, 100))
+    label = random.choice(labels)
     print("Label in", room, "for", user, ":", label)
     sockets[room][user].send("label:" + label)
 
@@ -61,43 +63,47 @@ def action(room, user, i):
 
 def test():
     while True:
-        #time.sleep(1)
+        time.sleep(0.01)
         room = random.choice(rooms)
         if len(sockets[room]) == 0:
             join(room, random.choice(users))
         user = random.choice(list(sockets[room].keys()))
         state = get_state(room, user)
         actions = [
-            lambda: set_config(room, state['aiPlayers'] + 1, state['randomPlayers'], state['partners'], state['openHands'], state['aiTime']),
+            lambda: set_config(room, min(state['aiPlayers'] + 1, 4), state['randomPlayers'], state['partners'], state['openHands'], state['aiTime']),
             lambda: set_config(room, state['aiPlayers'] - 1, state['randomPlayers'], state['partners'], state['openHands'], state['aiTime']),
-            lambda: set_config(room, state['aiPlayers'], state['randomPlayers'] + 1, state['partners'], state['openHands'], state['aiTime']),
+            lambda: set_config(room, state['aiPlayers'], min(state['randomPlayers'] + 1, 4), state['partners'], state['openHands'], state['aiTime']),
             lambda: set_config(room, state['aiPlayers'], state['randomPlayers'] - 1, state['partners'], state['openHands'], state['aiTime']),
-            lambda: set_config(room, state['aiPlayers'], state['randomPlayers'], not state['partners'], state['openHands'], state['aiTime']),
-            lambda: set_config(room, state['aiPlayers'], state['randomPlayers'], state['partners'], not state['openHands'], state['aiTime']),
-            lambda: set_config(room, state['aiPlayers'], state['randomPlayers'], state['partners'], state['openHands'], state['aiTime'] + 1),
+            lambda: set_config(room, state['aiPlayers'], state['randomPlayers'], 'false' if state['partners'] == 'true' else 'true', state['openHands'], state['aiTime']),
+            lambda: set_config(room, state['aiPlayers'], state['randomPlayers'], state['partners'], 'false' if state['openHands'] == 'true' else 'true', state['aiTime']),
+            lambda: set_config(room, state['aiPlayers'], state['randomPlayers'], state['partners'], state['openHands'], min(state['aiTime'] + 1, 5)),
             lambda: set_config(room, state['aiPlayers'], state['randomPlayers'], state['partners'], state['openHands'], state['aiTime'] - 1),
             lambda: chat(room, user),
             lambda: label(room, user),
-            lambda: join(room, user),
-            lambda: leave(room, user)
         ]
+        for u in users:
+            if u in sockets[room]:
+                if random.random() < 0.5:
+                    actions.append(lambda u=u: leave(room, u))
+            else:
+                if random.random() < 0.1:
+                    actions.append(lambda u=u: join(room, u))
         if 'turn' in state:
-            actions.append(lambda: end(room))
-            print(state['playersInGame'], state['turn'])
+            if random.random() < 0.001:
+                actions.append(lambda: end(room))
             turnUser = state['playersInGame'][state['turn']]
-            if turnUser.startswith('AI') or turnUser.startswith('Random'):
-                # Waiting on an AI: try another room
-                continue
-            elif turnUser not in users:
-                # Game has a player that is not included by the test script, possibly from a previous run: end the game
-                end(room)
-                continue
-            elif turnUser not in sockets[room]:
-                # User isn't currently in the room: rejoin
-                join(room, turnUser)
-            turnUserState = get_state(room, turnUser)
-            moves = [lambda: action(room, turnUser, i) for i in range(0, len(turnUserState['actions']))]
-            actions.extend(moves * 10)  # Higher probability of making a move
+            if not turnUser.startswith('AI') and not turnUser.startswith('Random'):
+                turnUser = turnUser[len(turnUser) - 10:]  # Strip the label
+                if turnUser not in users:
+                    # Game has a player that is not included by the test script, possibly from a previous run: end the game
+                    end(room)
+                    continue
+                elif turnUser not in sockets[room]:
+                    # User isn't currently in the room: rejoin
+                    join(room, turnUser)
+                turnUserState = get_state(room, turnUser)
+                moves = [lambda: action(room, turnUser, i) for i in range(0, len(turnUserState['actions']))]
+                actions.extend(moves)
         else:
             actions.append(lambda: start(room))
         random.choice(actions)()

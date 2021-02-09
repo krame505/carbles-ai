@@ -400,6 +400,7 @@ static void handleStart(struct mg_connection *nc, struct mg_http_message *hm) {
             room->playerLabels[p] = "";
             p = partner(numPlayers, p);
           }
+          room->turn = 0;  // Will be overridden, but avoid starting with an out-of-bounds turn
           room->gameInProgress = true;
           if (room->threadRunning) {
             pthread_mutex_unlock(&serverMutex);
