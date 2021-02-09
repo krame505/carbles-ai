@@ -57,6 +57,7 @@ struct Room {
   Player players[MAX_PLAYERS];
   vector<string> playerNames, playerLabels;
   bool gameInProgress;
+  bool gameOpenHands;
   PlayerId turn;
   State state;
   Hand hands[MAX_PLAYERS];
@@ -134,7 +135,7 @@ static void createRoom(string roomId) {
     emptyMap<string, PlayerConn *, compareString>(GC_malloc),
     emptyMap<SocketId, string, compareSocket>(GC_malloc),
     0, initialNumAIs, initialNumRandom, initialPartners, initialOpenHands, initialAITime,
-    {0}, vec<string>[], vec<string>[], false, 0, initialState(0, false), {0}, vec<Action>[], false, 0, false, {0},
+    {0}, vec<string>[], vec<string>[], false, false, 0, initialState(0, false), {0}, vec<Action>[], false, 0, false, {0},
     false, 0, PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER
   };
   rooms = mapInsert(GC_malloc, rooms, roomId, room);
@@ -241,7 +242,7 @@ static void handleState(struct mg_connection *nc, struct mg_http_message *hm) {
        (conn->inGame?
         ", \"hand\": " + jsonHand(room->hands[conn->id])
         : str("")) +
-       (room->openHands?
+       (room->gameOpenHands?
         ", \"hands\": " + jsonHands(playersInGame.size, room->hands)
         : str("")) +
        ", "
@@ -401,6 +402,7 @@ static void handleStart(struct mg_connection *nc, struct mg_http_message *hm) {
             p = partner(numPlayers, p);
           }
           room->turn = 0;  // Will be overridden, but avoid starting with an out-of-bounds turn
+          room->gameOpenHands = room->openHands;
           room->gameInProgress = true;
           if (room->threadRunning) {
             pthread_mutex_unlock(&serverMutex);
