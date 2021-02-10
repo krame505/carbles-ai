@@ -3,7 +3,7 @@
 import json, random, string, websocket, http.client, sys, time, lorem
 
 rooms = [str(i) for i in range(20)]
-users = [''.join(random.choices(string.ascii_letters + string.digits, k=10)) for i in range(20)]
+users = [''.join(random.choice(string.ascii_letters + string.digits) for k in range(10)) for i in range(20)]
 
 sockets = {room: {} for room in rooms}
 
