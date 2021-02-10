@@ -30,7 +30,7 @@ def get_state(room, user):
         connection.request('GET', "/state.json?room={room}&id={user}".format(room=room, user=user))
         response = connection.getresponse()
         status = response.status
-    content = response.read()
+    content = response.read().decode()
     return json.loads(content)
 
 def set_config(room, ai, random, partners, openhands, aitime):
