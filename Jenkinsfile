@@ -40,6 +40,7 @@ melt.trynode(extension_name) {
     withEnv(newenv) {
       dir("extensions/carbles-ai") {
         sh "./bin/rel/play random heuristic random rule"
+        sh './bin/rel/serve & serve_pid=$!; ./test-server.py localhost:8000 30; kill $serve_pid'
       }
     }
   }

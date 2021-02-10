@@ -61,8 +61,9 @@ def action(room, user, i):
     print("Action", i, "in", room, "for", user)
     sockets[room][user].send("action:" + str(i))
 
-def test():
-    while True:
+def test(timeout=None):
+    startTime = time.time()
+    while timeout is None or time.time() < startTime + timeout:
         time.sleep(0.01)
         room = random.choice(rooms)
         if len(sockets[room]) == 0:
@@ -110,4 +111,5 @@ def test():
 
 if __name__ == '__main__':
     print("Testing on", host)
-    test()
+    timeout = float(sys.argv[2]) if len(sys.argv) >= 3 else None
+    test(timeout)
