@@ -34,9 +34,10 @@ def get_state(room, user):
     return json.loads(content)
 
 def set_config(room, ai, random, partners, openhands, aitime):
-    print("Setting config for", room, ":", "ai={}&random={}&partners={}&openhands={}&aitime={}".format(ai, random, partners, openhands, aitime))
+    config = "room={room}&ai={}&random={}&partners={}&openhands={}&aitime={}".format(ai, random, "true" if partners else "false", "true" if openhands else "false", aitime, room=room)
+    print("Setting config for", room, ":", config)
     connection = http.client.HTTPConnection(host)
-    connection.request('GET', "/config?room={room}&ai={}&random={}&partners={}&openhands={}&aitime={}".format(ai, random, partners, openhands, aitime, room=room))
+    connection.request('GET', "/config?" + config)
 
 def start(room):
     print("Starting", room)
@@ -75,8 +76,8 @@ def test(timeout=None):
             lambda: set_config(room, state['aiPlayers'] - 1, state['randomPlayers'], state['partners'], state['openHands'], state['aiTime']),
             lambda: set_config(room, state['aiPlayers'], min(state['randomPlayers'] + 1, 4), state['partners'], state['openHands'], state['aiTime']),
             lambda: set_config(room, state['aiPlayers'], state['randomPlayers'] - 1, state['partners'], state['openHands'], state['aiTime']),
-            lambda: set_config(room, state['aiPlayers'], state['randomPlayers'], 'false' if state['partners'] == 'true' else 'true', state['openHands'], state['aiTime']),
-            lambda: set_config(room, state['aiPlayers'], state['randomPlayers'], state['partners'], 'false' if state['openHands'] == 'true' else 'true', state['aiTime']),
+            lambda: set_config(room, state['aiPlayers'], state['randomPlayers'], state['partners'] == 'true', state['openHands'], state['aiTime']),
+            lambda: set_config(room, state['aiPlayers'], state['randomPlayers'], state['partners'], state['openHands'] == 'true', state['aiTime']),
             lambda: set_config(room, state['aiPlayers'], state['randomPlayers'], state['partners'], state['openHands'], min(state['aiTime'] + 1, 5)),
             lambda: set_config(room, state['aiPlayers'], state['randomPlayers'], state['partners'], state['openHands'], state['aiTime'] - 1),
             lambda: chat(room, user),
