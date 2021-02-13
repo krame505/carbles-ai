@@ -828,7 +828,7 @@ void serve(const char *url_http, const char *url_https) {
   // Start server
   running = true;
   while (signal_received == 0) {
-    mg_mgr_poll(&mgr, 100);
+    mg_mgr_poll(&mgr, 50);
     pollNotify();
   }
   signal_received = 0;
@@ -837,7 +837,7 @@ void serve(const char *url_http, const char *url_https) {
     logmsg("Notifying %s\n", roomId.text);
     notify(roomId, -1, str(""), false, false, str("Server is shutting down for maintance now!  Please stand by..."));
   };
-  mg_mgr_poll(&mgr, 100);  // Poll one more time so the notification gets broadcast
+  mg_mgr_poll(&mgr, 50);  // Poll one more time so the notification gets broadcast
   logmsg("Server shutting down");
   running = false;
   mg_mgr_free(&mgr);
