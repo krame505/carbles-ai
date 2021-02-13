@@ -187,10 +187,11 @@ static void workerNotify(
 // Called regularly from the main thread, push all notifications in the queue
 static void pollNotify(void) {
   pthread_mutex_lock(&notifyMutex);
-  while (notifyQueue.size > 0) {
-    struct notification n = notifyQueue.pop();
+  for (size_t i = 0; i < notifyQueue.size; i++) {
+    struct notification n = notifyQueue[i];
     notify(n.roomId, n.playerId, n.name, n.chat, n.reload, n.msg);
   }
+  resize_vector(notifyQueue, 0);
   pthread_mutex_unlock(&notifyMutex);
 }
 
