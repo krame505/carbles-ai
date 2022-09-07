@@ -20,6 +20,12 @@
 
 #define GAME_TIMEOUT 2 * 24 * 60 * 60 // 2 days
 
+// Expands to a string representation of its argument, which can be a macro:
+// #define FOO 123
+// STRINGIFY_MACRO(FOO)  // Expands to "123"
+#define STRINGIFY_MACRO(x) STRINGIFY_LITERAL(x)
+#define STRINGIFY_LITERAL(x) #x
+
 static struct mg_http_serve_opts s_http_server_opts = {
   .root_dir = "web/",
   .ssi_pattern = "#.shtml",
@@ -443,7 +449,7 @@ static void handleStart(struct mg_connection *nc, struct mg_http_message *hm) {
           room->threadRunning = true;
 
           // Set the game timeout
-          mg_timer_init(&room->timeoutTimer, 1000 * GAME_TIMEOUT, 0, handleTimeout, (void *)roomId.text);
+          mg_timer_init(&mgr.timers, &room->timeoutTimer, 1000 * GAME_TIMEOUT, 0, handleTimeout, (void *)roomId.text);
 
           // Send empty response
           mg_http_reply(nc, 204, "", "");
@@ -482,7 +488,7 @@ static void handleEnd(struct mg_connection *nc, struct mg_http_message *hm) {
         room->actionsReady = false;
 
         // Cancel the timeout timer
-        mg_timer_free(&room->timeoutTimer);
+        mg_timer_free(&mgr.timers, &room->timeoutTimer);
 
         // Cancel the thread
         pthread_cancel(room->thread);
@@ -521,10 +527,10 @@ static void httpHandler(struct mg_connection *nc, int ev, struct mg_http_message
 
 static void handleRegister(struct mg_connection *nc, const char *data, size_t size) {
   char roomId_s[MAX_ROOM_ID + 1], connId_s[MAX_CONN_ID + 1], name_s[MAX_NAME + 1];
-  if (sscanf(data, "join:%"MG_STRINGIFY_MACRO(MAX_ROOM_ID)"[^:]:%"MG_STRINGIFY_MACRO(MAX_CONN_ID)"[^:]:%"MG_STRINGIFY_MACRO(MAX_NAME)"[^\n]", roomId_s, connId_s, name_s) == 3) {
+  if (sscanf(data, "join:%"STRINGIFY_MACRO(MAX_ROOM_ID)"[^:]:%"STRINGIFY_MACRO(MAX_CONN_ID)"[^:]:%"STRINGIFY_MACRO(MAX_NAME)"[^\n]", roomId_s, connId_s, name_s) == 3) {
     string roomId = roomId_s, connId = connId_s, name = name_s;
     char addr[MAX_IP_ADDR];
-    mg_ntoa(&nc->peer, addr, sizeof(addr));
+    mg_ntoa(&nc->rem, addr, sizeof(addr));
     logmsg("Registering %s (%s@%s) to %s", connId_s, name_s, addr, roomId_s);
 
     // Create the room if needed
@@ -654,7 +660,7 @@ static void handleChat(struct mg_connection *nc, const char *data, size_t size) 
 
 static void handleLabel(struct mg_connection *nc, const char *data, size_t size) {
   char label_s[MAX_LABEL + 1] = {0};
-  sscanf(data, "label:%"MG_STRINGIFY_MACRO(MAX_LABEL)"[^\n]", label_s); // Unchecked since label can be empty
+  sscanf(data, "label:%"STRINGIFY_MACRO(MAX_LABEL)"[^\n]", label_s); // Unchecked since label can be empty
   string label = label_s;
 
   query NC is ((SocketId)nc), SRS is socketRooms, mapContains(SRS, NC, RID),
@@ -802,7 +808,7 @@ void serve(const char *url_http, const char *url_https) {
   }
   if (usersIn) {
     char connId[MAX_CONN_ID + 1] = {0};
-    while (fscanf(usersIn, "%"MG_STRINGIFY_MACRO(MAX_CONN_ID)"[^:]:%*[^\n]\n", connId) > 0) {
+    while (fscanf(usersIn, "%"STRINGIFY_MACRO(MAX_CONN_ID)"[^:]:%*[^\n]\n", connId) > 0) {
       users = mapInsert(GC_malloc, users, str(connId), 0);
     }
     fclose(usersIn);
@@ -893,7 +899,7 @@ static void *runServerGame(void *arg) {
         room->gameInProgress = false;
 
         // Cancel the timeout timer
-        mg_timer_free(&room->timeoutTimer);
+        mg_timer_free(&mgr.timers, &room->timeoutTimer);
 
         pthread_mutex_unlock(&room->mutex);
 
