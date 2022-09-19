@@ -98,7 +98,12 @@ else ifeq ($(CONF), ssl)
 else ifeq ($(CONF), dbg)
   override CPPFLAGS+=-DDEBUG
   override CFLAGS+=-O0 -g
-  override LDFLAGS+=-O3
+  override LDFLAGS+=-O0
+else ifeq ($(CONF), dbg_ssl)
+  override CPPFLAGS+=-DDEBUG -DSSL -DMG_ENABLE_MBEDTLS
+  override CFLAGS+=-O0 -g
+  override LDFLAGS+=-O0
+  override LDLIBS+=-lmbedtls -lmbedx509 -lmbedcrypto
 else
   $(error Invalid build configuration $(CONF))
 endif
