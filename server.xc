@@ -813,6 +813,10 @@ void serve(const char *url_http, const char *url_https) {
     }
     fclose(usersIn);
   }
+ 
+  // Ignore SIGPIPE signal, so if client cancels the request, it
+  // won't kill the whole process.
+  signal(SIGPIPE, SIG_IGN);
 
   // Initialize HTTP server
   mg_mgr_init(&mgr);
