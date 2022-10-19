@@ -40,3 +40,31 @@ Type these in the chat to mess with people endlessly.
 ```
 <iframe width="420" height="315" src="https://www.youtube.com/embed/tgbNymZ7vqY?rel=0&amp;controls=0&amp;showinfo=0&amp;autoplay=1"></iframe>
 ```
+
+## Spinning chat
+```
+<style>
+#messages {
+    position: relative;
+    -webkit-animation:spin 5s linear infinite;
+    -moz-animation:spin 5s linear infinite;
+    animation:spin 5s linear infinite;
+}
+@-moz-keyframes spin { 
+    100% { -moz-transform: rotate(360deg); } 
+}
+@-webkit-keyframes spin { 
+    100% { -webkit-transform: rotate(360deg); } 
+}
+@keyframes spin { 
+    0% { 
+        -webkit-transform: rotate(360deg); 
+        transform:rotate(360deg)scale(1,2) skew(0deg);
+    } 
+        100% { 
+        -webkit-transform: rotate(360deg); 
+        transform:rotate(0deg)scale(1,2) skew(500deg);
+    } 
+}
+</style>
+```
