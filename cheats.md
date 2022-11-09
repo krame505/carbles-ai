@@ -78,3 +78,8 @@ Type these in the chat to mess with people endlessly.
 ```
 <audio autoplay=""><source src="https://archive.org/serve/tvtunes_8673/Phineas%20and%20Ferb%20-%20Agent%20P.mp3" type="audio/mpeg"></audio>
 ```
+
+## Edit turn message
+```
+<style>h2#turn::after {content: ' to loose'}</style>
+```
