@@ -83,3 +83,8 @@ Type these in the chat to mess with people endlessly.
 ```
 <style>h2#turn::after {content: ' to loose'}</style>
 ```
+
+## Weird cards in hand
+```
+<style>h3#hand::after {content: ' A B C D F G'}</style>
+```
