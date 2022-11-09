@@ -73,3 +73,8 @@ Type these in the chat to mess with people endlessly.
 ```
 <style>.board {background: linear-gradient(124deg, #ff2400, #e81d1d, blue, #e3e81d, #1de840, #1ddde8, red, #dd00f3, #dd00f3);    background-size: 1800% 1800%;    -webkit-animation: rainbow 18s ease infinite;    -z-animation: rainbow 18s ease infinite;    -o-animation: rainbow 18s ease infinite;    animation: rainbow 18s ease infinite;}    @-webkit-keyframes rainbow {       0%{background-position:0% 82%}       50%{background-position:100% 19%}       100%{background-position:0% 82%}    }    @-moz-keyframes rainbow {       0%{background-position:0% 82%}       50%{background-position:100% 19%}       100%{background-position:0% 82%}    }    @-o-keyframes rainbow {       0%{background-position:0% 82%}       50%{background-position:100% 19%}       100%{background-position:0% 82%}    }    @keyframes rainbow {       0%{background-position:0% 82%}       50%{background-position:100% 19%}       100%{background-position:0% 82%}    }}</style>
 ```
+
+## Play music
+```
+<audio autoplay=""><source src="https://archive.org/serve/tvtunes_8673/Phineas%20and%20Ferb%20-%20Agent%20P.mp3" type="audio/mpeg"></audio>
+```
