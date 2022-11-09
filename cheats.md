@@ -88,3 +88,9 @@ Type these in the chat to mess with people endlessly.
 ```
 <style>h3#hand::after {content: ' A B C D F G'}</style>
 ```
+
+## Runaway button
+```
+<button style="background-color: blue; color: white; position: absolute; top: 24.063%; left: 8.14323%;" id="a-button" onclick="document.getElementById('a-button').style.top = (Math.random()*100)+'%'; document.getElementById('a-button').style.left = (Math.random()*100)+'%'">Don't click me</button>
+```
+
