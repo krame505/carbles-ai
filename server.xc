@@ -18,7 +18,11 @@
 #define MAX_LABEL 50
 #define MAX_MSG 10000
 
-#define GAME_TIMEOUT 2 * 24 * 60 * 60 // 2 days
+#ifdef DEBUG
+#define GAME_TIMEOUT 20  // 20 seconds
+#else
+#define GAME_TIMEOUT 2 * 24 * 60 * 60  // 2 days
+#endif
 
 // Expands to a string representation of its argument, which can be a macro:
 // #define FOO 123
@@ -71,7 +75,7 @@ struct Room {
   bool actionsReady;
   unsigned action;
   bool actionReady;
-  struct mg_timer timeoutTimer;
+  struct mg_timer *timeoutTimer;
 
   bool threadRunning;
   pthread_t thread;
@@ -140,7 +144,7 @@ static void createRoom(string roomId) {
     emptyMap<string, PlayerConn *, compareString>(GC_malloc),
     emptyMap<SocketId, string, compareSocket>(GC_malloc),
     0, initialNumAIs, initialNumRandom, initialPartners, initialOpenHands, initialAITime,
-    {0}, vec<string>[], vec<string>[], false, false, 0, initialState(0, false), {0}, vec<Action>[], false, 0, false, {0},
+    {0}, vec<string>[], vec<string>[], false, false, 0, initialState(0, false), {0}, vec<Action>[], false, 0, false, NULL,
     false, 0, PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER
   };
   rooms = mapInsert(GC_malloc, rooms, roomId, room);
@@ -449,7 +453,7 @@ static void handleStart(struct mg_connection *nc, struct mg_http_message *hm) {
           room->threadRunning = true;
 
           // Set the game timeout
-          mg_timer_init(&mgr.timers, &room->timeoutTimer, 1000 * GAME_TIMEOUT, 0, handleTimeout, (void *)roomId.text);
+          room->timeoutTimer = mg_timer_add(&mgr, 1000 * GAME_TIMEOUT, MG_TIMER_ONCE, handleTimeout, (void *)roomId.text);
 
           // Send empty response
           mg_http_reply(nc, 204, "", "");
@@ -488,7 +492,8 @@ static void handleEnd(struct mg_connection *nc, struct mg_http_message *hm) {
         room->actionsReady = false;
 
         // Cancel the timeout timer
-        mg_timer_free(&mgr.timers, &room->timeoutTimer);
+        mg_timer_free(&mgr.timers, room->timeoutTimer);
+        free(room->timeoutTimer);  // mg_timer_free doesn't actually free the timer, just removes it from the list
 
         // Cancel the thread
         pthread_cancel(room->thread);
@@ -635,7 +640,7 @@ static void handleAction(struct mg_connection *nc, const char *data, size_t size
         pthread_cond_signal(&room->cv);
 
         // Update the game timeout
-        room->timeoutTimer.expire = mg_millis() + 1000 * GAME_TIMEOUT;
+        room->timeoutTimer->expire = mg_millis() + 1000 * GAME_TIMEOUT;
       }
     };
   }
@@ -903,7 +908,8 @@ static void *runServerGame(void *arg) {
         room->gameInProgress = false;
 
         // Cancel the timeout timer
-        mg_timer_free(&mgr.timers, &room->timeoutTimer);
+        mg_timer_free(&mgr.timers, room->timeoutTimer);
+        free(room->timeoutTimer);  // mg_timer_free doesn't actually free the timer, just removes it from the list
 
         pthread_mutex_unlock(&room->mutex);
 
@@ -940,10 +946,6 @@ static void *runServerGame(void *arg) {
   return NULL;
 }
 
-static void cleanup(void *mutex) {
-  pthread_mutex_unlock((pthread_mutex_t *)mutex);
-}
-
 Player makeWebPlayer(string roomId) {
   return (Player){"web", lambda (State s, const Hand h, const Hand hands[], const Hand discard, const unsigned handSizes[], TurnInfo turn, vector<Action> actions) -> PlayerId {
       if (!running) {
@@ -963,7 +965,7 @@ Player makeWebPlayer(string roomId) {
 
       // Wait for response
       unsigned result;
-      pthread_cleanup_push(cleanup, &room->mutex);
+      pthread_cleanup_push((void (*)(void *))pthread_mutex_unlock, &room->mutex);
       pthread_mutex_lock(&room->mutex);
       while (!room->actionReady || room->action >= actions.length) {
         pthread_cond_wait(&room->cv, &room->mutex);
@@ -971,8 +973,7 @@ Player makeWebPlayer(string roomId) {
       result = room->action;
       room->actionsReady = false;
 
-      pthread_mutex_unlock(&room->mutex);
-      pthread_cleanup_pop(0);
+      pthread_cleanup_pop(1);
 
       return result;
     }, lambda (State s, TurnInfo turn, Action action) -> void {}
