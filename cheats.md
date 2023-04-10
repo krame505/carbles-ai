@@ -68,3 +68,29 @@ Type these in the chat to mess with people endlessly.
 }
 </style>
 ```
+
+## Rainbow board
+```
+<style>.board {background: linear-gradient(124deg, #ff2400, #e81d1d, blue, #e3e81d, #1de840, #1ddde8, red, #dd00f3, #dd00f3);    background-size: 1800% 1800%;    -webkit-animation: rainbow 18s ease infinite;    -z-animation: rainbow 18s ease infinite;    -o-animation: rainbow 18s ease infinite;    animation: rainbow 18s ease infinite;}    @-webkit-keyframes rainbow {       0%{background-position:0% 82%}       50%{background-position:100% 19%}       100%{background-position:0% 82%}    }    @-moz-keyframes rainbow {       0%{background-position:0% 82%}       50%{background-position:100% 19%}       100%{background-position:0% 82%}    }    @-o-keyframes rainbow {       0%{background-position:0% 82%}       50%{background-position:100% 19%}       100%{background-position:0% 82%}    }    @keyframes rainbow {       0%{background-position:0% 82%}       50%{background-position:100% 19%}       100%{background-position:0% 82%}    }}</style>
+```
+
+## Play music
+```
+<audio autoplay=""><source src="https://archive.org/serve/tvtunes_8673/Phineas%20and%20Ferb%20-%20Agent%20P.mp3" type="audio/mpeg"></audio>
+```
+
+## Edit turn message
+```
+<style>h2#turn::after {content: ' to loose'}</style>
+```
+
+## Weird cards in hand
+```
+<style>h3#hand::after {content: ' A B C D F G'}</style>
+```
+
+## Runaway button
+```
+<button style="background-color: blue; color: white; position: absolute; top: 24.063%; left: 8.14323%;" id="a-button" onclick="document.getElementById('a-button').style.top = (Math.random()*100)+'%'; document.getElementById('a-button').style.left = (Math.random()*100)+'%'">Don't click me</button>
+```
+
