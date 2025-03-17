@@ -22,7 +22,7 @@ void printGameTree(GameTree tree, unsigned depth) {
 #ifndef PRINT_UNEXPANDED
     if (tree.status.tag != NodeStatus_Unexpanded)
 #endif
-      printf("%s", (str("  ") * depth).text);
+    printf("%s", (str("  ") * depth).text);
     char *parentAction = match (tree.parent)
         (!NULL@&{.status=ExpandedBurn(_)} -> "burn *";
         !NULL@_ -> (char *)showAction(tree.action, PLAYER_ID_NONE, PLAYER_ID_NONE, ar).text;
@@ -74,6 +74,7 @@ void printGameTree(GameTree tree, unsigned depth) {
 void heuristicScore(float scores[], State s) {
   match (s) {
     St(?&numPlayers, ?&partners, _, _) -> {
+      memset(scores, 0, numPlayers * sizeof(float));
       if (isWon(s)) {
         PlayerId winner = getWinner(s);
         scores[winner] = 1;
@@ -315,18 +316,14 @@ void expand(PlayoutFn playoutHand, unsigned depth, GameTree *t,
         }
       }
 #endif
-      printf("Finding max weight child\n");
-      printGameTree(*t, 0);
       float maxWeight = -INFINITY;
       GameTree *maxChild = NULL;
       // Compute max weight child that corresponds to playing a card
       for (unsigned i = 0; i < children.size; i++) {
         GameTree *child = &children[i];
-        printf("Child %s\n", show(child->action).text);
         match (child->action) {
           Play(c, _) @when (hands[p][c]) -> {
             float w = weight(child);
-            printf("Child %s weight: %f\n", show(child->action).text, w);
             if (w >= maxWeight) {
               maxWeight = w;
               maxChild = child;
