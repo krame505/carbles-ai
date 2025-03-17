@@ -28,21 +28,29 @@ prolog {
 #undef between
 }
 
-vector<list<Move ?> ?> getCardMoves(State s, PlayerId p, Card c) {
+bool cardHasMoves(State s, PlayerId p, Card c) {
+  return query S is s, P is p, C is c, cardMoves(S, P, C, _) {
+    return true;
+  };
+}
+
+vector<list<Move ?> ?> getCardMoves(State s, PlayerId p, Card c, arena_t ar) {
+  allocate_using arena ar;
   vector<list<Move ?> ?> result = new vector<list<Move ?> ?>();
   query S is s, P is p, C is c, cardMoves(S, P, C, MS) {
-    result.append(copyMoves(MS));
+    result.append(copyMoves(MS, ar));
     return false;
   };
   return result;
 }
 
-vector<Action> getActions(State s, PlayerId p, const Hand h) {
+vector<Action> getActions(State s, PlayerId p, const Hand h, arena_t ar) {
+  allocate_using arena ar;
   vector<Action> result = new vector<Action>();
   for (Card c = 0; c < CARD_MAX; c++) {
     if (h[c]) {
       query S is s, P is p, C is c, cardMoves(S, P, C, MS) {
-        result.append(Play(c, copyMoves(MS)));
+        result.append(Play(c, copyMoves(MS, ar)));
         return false;
       };
     }

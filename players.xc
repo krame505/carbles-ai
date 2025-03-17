@@ -1,14 +1,14 @@
 #include <players.xh>
 #include <stdlib.h>
 
-Player getPlayer(const char *name, unsigned numPlayers) {
+Player getPlayer(arena_t ar, const char *name, unsigned numPlayers) {
   return match (name)
-      ("random" -> makeRandomPlayer();
-       "human" -> makeHumanPlayer();
-       "rule" -> makeRulePlayer();
-       "heuristic" -> makeHeuristicPlayer();
-       "search" -> makeHeuristicSearchPlayer(numPlayers);
-       "deep_search" -> makeDeepSearchPlayer(numPlayers);
-       "rule_search" -> makeRuleSearchPlayer(numPlayers);
+      ("random" -> makeRandomPlayer(ar);
+       "human" -> makeHumanPlayer(ar);
+       "rule" -> makeRulePlayer(ar);
+       "heuristic" -> makeHeuristicPlayer(ar);
+       "search" -> makeHeuristicSearchPlayer(ar, numPlayers);
+       "deep_search" -> makeDeepSearchPlayer(ar, numPlayers);
+       "rule_search" -> makeRuleSearchPlayer(ar, numPlayers);
      _ -> errorPlayer;);
 }

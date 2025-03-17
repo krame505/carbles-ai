@@ -16,3 +16,4 @@ stats.csv
 # Other files
 generated/
 bin/
+*.i

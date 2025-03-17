@@ -19,8 +19,4 @@ parser extendedParser :: cst:Root {
   edu:umn:cs:melt:exts:ableC:vector;
 } 
 
-function main
-IOVal<Integer> ::= args::[String] io_in::IOToken
-{
-  return driver(args, io_in, extendedParser);
-}
+fun main IO<Integer> ::= args::[String] = driver(args, extendedParser);

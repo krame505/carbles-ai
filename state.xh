@@ -19,7 +19,7 @@
 
 typedef unsigned PlayerId;
 
-string showPlayerId(PlayerId p);
+string showPlayerId(PlayerId p, arena_t ar);
 
 #define PLAYER_ID_NONE ((PlayerId)-1)
 
@@ -30,10 +30,10 @@ datatype Position {
   Finish(PlayerId ?, unsigned ?);
 };
 typedef datatype Position Position;
-var_reference datatype Position with GC_malloc prefix gc;
 
-string showPosition(Position p);
-show datatype Position with showPosition;
+size_t showPositionMaxLen(Position p);
+size_t showPosition(char buf[], Position p);
+show datatype Position with showPositionMaxLen, showPosition;
 
 static inline int comparePosition(Position p1, Position p2) {
   return match (p1, p2)
@@ -57,8 +57,8 @@ datatype State {
 };
 typedef datatype State State;
 
-string showState(State s);
-show datatype State with showState;
+string showState(State s, arena_t ar);
+State copyState(State s, arena_t ar);
 
 unsigned numPlayers(State);
 _Bool partners(State);
@@ -76,16 +76,16 @@ datatype Move {
   Swap(Position ?, Position ?);
 };
 typedef datatype Move Move;
-var_reference datatype Move with GC_malloc prefix gc;
 
-string showMove(Move m, PlayerId p1, PlayerId p2);
-string showMoves(list<Move ?> ?m, PlayerId p1, PlayerId p2);
+string showMove(Move m, PlayerId p1, PlayerId p2, arena_t ar);
+string showMoves(list<Move ?> ?m, PlayerId p1, PlayerId p2, arena_t ar);
 
 typedef unsigned Hand[CARD_MAX];
 
-string showHand(const Hand h);
-show Hand with showHand;
-show (const Hand) with showHand; // This is a different type since the qualifier attaches on the element type
+size_t showHandMaxLen(const Hand h);
+size_t showHand(char buf[], const Hand h);
+show Hand with showHandMaxLen, showHand;
+show (const Hand) with showHandMaxLen, showHand; // This is a different type since the qualifier attaches on the element type
 
 datatype Action {
   Play(Card, list<Move ?> ?);
@@ -93,34 +93,35 @@ datatype Action {
 };
 typedef datatype Action Action;
 
-string showAction(Action a, PlayerId p1, PlayerId p2);
-string showActions(vector<Action> a, PlayerId p1, PlayerId p2);
+string showAction(Action a, PlayerId p1, PlayerId p2, arena_t ar);
+string showActions(vector<Action> a, PlayerId p1, PlayerId p2, arena_t ar);
 
 Card getActionCard(Action);
 list<Move ?> ?getActionMoves(Action);
 
-string jsonPosition(Position ?p);
-string jsonState(State s);
-string jsonHand(const Hand h);
-string jsonHands(unsigned numPlayers, const Hand hands[numPlayers]);
-string jsonActions(vector<Action> a, PlayerId p1, PlayerId p2);
+string jsonPosition(Position ?p, arena_t);
+string jsonState(State s, arena_t);
+string jsonHand(const Hand h, arena_t);
+string jsonHands(unsigned numPlayers, const Hand hands[numPlayers], arena_t);
+string jsonActions(vector<Action> a, PlayerId p1, PlayerId p2, arena_t);
 
-PlayerId ?copyPlayerId(PlayerId ?);
-Position ?copyPosition(Position ?);
-Move ?copyMoveDirect(Move ?);
-list<Move ?> ?copyMoves(list<Move ?> ?);
+PlayerId ?copyPlayerId(PlayerId ?, arena_t);
+Position ?copyPosition(Position ?, arena_t);
+Move ?copyMoveDirect(Move ?, arena_t);
+list<Move ?> ?copyMoves(list<Move ?> ?, arena_t);
 
 void initializeDeck(Hand);
 unsigned getDeckSize(const Hand);
 unsigned deal(unsigned min, unsigned max, Hand deck, unsigned numPlayers, Hand hands[numPlayers]);
 
-State initialState(unsigned numPlayers, _Bool partners);
-State applyMove(Move, State);
-State applyMoves(list<Move ?> ?, State);
-State applyAction(Action, State, Hand, Hand discard);
+State initialState(unsigned numPlayers, _Bool partners, arena_t ar);
+State applyMove(Move, State, arena_t ar);
+State applyMoves(list<Move ?> ?, State, arena_t ar);
+State applyAction(Action, State, Hand, Hand discard, arena_t ar);
 
-vector<list<Move ?> ?> getCardMoves(State s, PlayerId p, Card c);
-vector<Action> getActions(State s, PlayerId p, const Hand h);
+_Bool cardHasMoves(State s, PlayerId p, Card c);
+vector<list<Move ?> ?> getCardMoves(State s, PlayerId p, Card c, arena_t);
+vector<Action> getActions(State s, PlayerId p, const Hand h, arena_t);
 _Bool actionPossible(State s, PlayerId p, const Hand h, const Hand partnerHand);
 _Bool isWon(State s);
 PlayerId getWinner(State s);

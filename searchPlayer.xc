@@ -18,61 +18,62 @@
 //#define PRINT_UNEXPANDED
 
 void printGameTree(GameTree tree, unsigned depth) {
+  with_arena ar {
 #ifndef PRINT_UNEXPANDED
-  if (tree.status.tag != NodeStatus_Unexpanded)
+    if (tree.status.tag != NodeStatus_Unexpanded)
 #endif
-    printf("%s", (str("  ") * depth).text);
-  char *parentAction = match (tree.parent)
-      (!NULL@&{.status=ExpandedBurn(_)} -> "burn *";
-       !NULL@_ -> (char *)showAction(tree.action, PLAYER_ID_NONE, PLAYER_ID_NONE).text;
-       _ -> "";);
-  match (tree) {
-    {.status=Expanded(children, trials, wins), .parent=parent} -> {
-      printf("%d", trials);
-      match (parent) {
-        !NULL@&{{parentPlayer}} -> {
-          printf(" %f", wins[parentPlayer] / trials);
+      printf("%s", (str("  ") * depth).text);
+    char *parentAction = match (tree.parent)
+        (!NULL@&{.status=ExpandedBurn(_)} -> "burn *";
+        !NULL@_ -> (char *)showAction(tree.action, PLAYER_ID_NONE, PLAYER_ID_NONE, ar).text;
+        _ -> "";);
+    match (tree) {
+      {.status=Expanded(children, trials, wins), .parent=parent} -> {
+        printf("%d", trials);
+        match (parent) {
+          !NULL@&{{parentPlayer}} -> {
+            printf(" %f", wins[parentPlayer] / trials);
+          }
+        }
+        if (depth > 0) {
+          printf(" : %s", parentAction);
+        }
+        printf("   %s\n", show(tree.turn).text);
+        for (unsigned i = 0; i < children.size; i++) {
+          printGameTree(children[i], depth + 1);
         }
       }
-      if (depth > 0) {
-        printf(" : %s", parentAction);
+      {.status=ExpandedBurn(&child)} -> {
+        printf("?");
+        if (depth > 0) {
+          printf(" : %s", parentAction);
+        }
+        printf("\n");
+        printGameTree(child, depth + 1);
       }
-      printf("   %s\n", show(tree.turn).text);
-      for (unsigned i = 0; i < children.size; i++) {
-        printGameTree(children[i], depth + 1);
-      }
-    }
-    {.status=ExpandedBurn(&child)} -> {
-      printf("?");
-      if (depth > 0) {
-        printf(" : %s", parentAction);
-      }
-      printf("\n");
-      printGameTree(child, depth + 1);
-    }
-    {.status=Unexpanded()} -> {
+      {.status=Unexpanded()} -> {
 #ifdef PRINT_UNEXPANDED
-      printf("0 : %s\n", parentAction);
+        printf("0 : %s\n", parentAction);
 #endif
-    }
-    {.status=Leaf(winner), .state=St(?&numPlayers, ?&partners, _, _), .parent=parent} -> {
-      match (parent) {
-        !NULL@&{{parentPlayer}} -> {
-          printf("leaf %d", winner == parentPlayer || (partners && winner == partner(numPlayers, parentPlayer)));
+      }
+      {.status=Leaf(winner), .state=St(?&numPlayers, ?&partners, _, _), .parent=parent} -> {
+        match (parent) {
+          !NULL@&{{parentPlayer}} -> {
+            printf("leaf %d", winner == parentPlayer || (partners && winner == partner(numPlayers, parentPlayer)));
+          }
         }
+        if (depth > 0) {
+          printf(" : %s", parentAction);
+        }
+        printf("\n");
       }
-      if (depth > 0) {
-        printf(" : %s", parentAction);
-      }
-      printf("\n");
     }
   }
 }
 
-vector<float> heuristicScore(State s) {
+void heuristicScore(float scores[], State s) {
   match (s) {
     St(?&numPlayers, ?&partners, _, _) -> {
-      vector<float> scores = new vector<float>(numPlayers, 0);
       if (isWon(s)) {
         PlayerId winner = getWinner(s);
         scores[winner] = 1;
@@ -95,90 +96,91 @@ vector<float> heuristicScore(State s) {
           }
         }
       }
-      return scores;
     }
   }
 }
 
-vector<float> playout(State s, PlayerId p, unsigned depth) {
+void playout(float scores[], State s, PlayerId p, unsigned depth) {
   if (depth == 0 || isWon(s)) {
-    return heuristicScore(s);
+    heuristicScore(scores, s);
   } else {
     Card c = rand() % CARD_MAX;
     Hand h = {0};
     h[c] = 1;
-    vector<Action> actions = getActions(s, p, h);
-    Action a = actions[rand() % actions.size];
-    vector<float> result[1];
-    bool success = query S1 is s, MS is (getActionMoves(a)), moves(S1, MS, S2) {
-      *result = playout(value(S2), (p + 1) % numPlayers(s), depth - 1);
-    };
-    assert(success);
-    return *result;
-  }
-}
-
-vector<float> playoutHand(State s, PlayerId p, Hand hands[], unsigned depth) {
-  if (depth == 0 || isWon(s)) {
-    return heuristicScore(s);
-  } else {
-    vector<Action> actions = getActions(s, p, hands[p]);
-    if (actions.size) {
+    with_arena ar {
+      vector<Action> actions = getActions(s, p, h, ar);
+      assert(actions.size > 0);
       Action a = actions[rand() % actions.size];
-      Card c = getActionCard(a);
-      hands[p][c]--;
-      vector<float> result[1];
       bool success = query S1 is s, MS is (getActionMoves(a)), moves(S1, MS, S2) {
-        *result = playoutHand(value(S2), (p + 1) % numPlayers(s), hands, depth - 1);
+        playout(scores, value(S2), (p + 1) % numPlayers(s), depth - 1);
       };
       assert(success);
-      return *result;
-    } else {
-      return playout(s, p, depth);
     }
   }
 }
 
-vector<float> rulePlayout(State s, PlayerId p, unsigned depth) {
+void playoutHand(float scores[], State s, PlayerId p, Hand hands[], unsigned depth) {
   if (depth == 0 || isWon(s)) {
-    return heuristicScore(s);
+    heuristicScore(scores, s);
+  } else {
+    with_arena ar {
+      vector<Action> actions = getActions(s, p, hands[p], ar);
+      if (actions.size) {
+        Action a = actions[rand() % actions.size];
+        Card c = getActionCard(a);
+        hands[p][c]--;
+        bool success = query S1 is s, MS is (getActionMoves(a)), moves(S1, MS, S2) {
+          playoutHand(scores, value(S2), (p + 1) % numPlayers(s), hands, depth - 1);
+        };
+        assert(success);
+      } else {
+        playout(scores, s, p, depth);
+      }
+    }
+  }
+}
+
+void rulePlayout(float scores[], State s, PlayerId p, unsigned depth) {
+  if (depth == 0 || isWon(s)) {
+    heuristicScore(scores, s);
   } else {
     Card c = rand() % CARD_MAX;
     Hand h = {0};
     h[c] = 1;
-    vector<Action> actions = getActions(s, p, h);
-    Action a = actions[makeRulePlayer().getAction(s, h, NULL, NULL, NULL, (TurnInfo){p}, actions)];
-    vector<float> result[1];
-    bool success = query S1 is s, MS is (getActionMoves(a)), moves(S1, MS, S2) {
-      *result = rulePlayout(value(S2), (p + 1) % numPlayers(s), depth - 1);
-    };
-    assert(success);
-    return *result;
-  }
-}
-
-vector<float> rulePlayoutHand(State s, PlayerId p, Hand hands[], unsigned depth) {
-  if (depth == 0 || isWon(s)) {
-    return heuristicScore(s);
-  } else {
-    vector<Action> actions = getActions(s, p, hands[p]);
-    if (actions.size) {
-      Action a = actions[makeRulePlayer().getAction(s, hands[p], hands, NULL, NULL, (TurnInfo){p}, actions)];
-      Card c = getActionCard(a);
-      hands[p][c]--;
-      vector<float> result[1];
+    with_arena ar {
+      vector<Action> actions = getActions(s, p, h, ar);
+      assert(actions.size > 0);
+      Action a = actions[getRuleAction(s, h, NULL, NULL, NULL, (TurnInfo){p}, actions)];
       bool success = query S1 is s, MS is (getActionMoves(a)), moves(S1, MS, S2) {
-        *result = rulePlayoutHand(value(S2), (p + 1) % numPlayers(s), hands, depth - 1);
+        rulePlayout(scores, value(S2), (p + 1) % numPlayers(s), depth - 1);
       };
       assert(success);
-      return *result;
-    } else {
-      return rulePlayout(s, p, depth);
     }
   }
 }
 
-void backpropagate(GameTree *t, vector<float> scores) {
+void rulePlayoutHand(float scores[], State s, PlayerId p, Hand hands[], unsigned depth) {
+  if (depth == 0 || isWon(s)) {
+    heuristicScore(scores, s);
+  } else {
+    with_arena ar {
+      vector<Action> actions = getActions(s, p, hands[p], ar);
+      if (actions.size) {
+        Action a = actions[getRuleAction(s, hands[p], hands, NULL, NULL, (TurnInfo){p}, actions)];
+        Card c = getActionCard(a);
+        hands[p][c]--;
+        bool success = query S1 is s, MS is (getActionMoves(a)), moves(S1, MS, S2) {
+          rulePlayoutHand(scores, value(S2), (p + 1) % numPlayers(s), hands, depth - 1);
+        };
+        assert(success);
+      } else {
+        rulePlayout(scores, s, p, depth);
+      }
+    }
+  }
+}
+
+void backpropagate(GameTree *t, const float scores[]) {
   match (t) {
     !NULL@&{.status=status, .state=St(?&numPlayers, _, _, _), .parent=parent} -> {
       match (status) {
@@ -206,11 +208,12 @@ float weight(GameTree *t) {
      Expanded(_, trials, wins), &{.status=Expanded(_, parentTrials, _), .turn={p}} ->
        (float)wins[p] / trials + sqrtf(2 * logf((float)parentTrials) / trials);
      Leaf(winner), &{.turn={p}} ->
-     p == winner || (partners(t->state) && winner == partner(numPlayers(t->state), p)););
+       p == winner || (partners(t->state) && winner == partner(numPlayers(t->state), p)););
 }
 
 void expand(PlayoutFn playoutHand, unsigned depth, GameTree *t,
-            Hand possibleDeck, Hand deck, Hand possibleHands[], Hand hands[]) {
+            Hand possibleDeck, Hand deck, Hand possibleHands[], Hand hands[], arena_t ar) {
+  allocate_using arena ar;
   match (t) {
     &{{p}, .state=St(?&numPlayers, _, _, _)} -> {
       // Re-deal from deck if the hand is empty
@@ -240,10 +243,12 @@ void expand(PlayoutFn playoutHand, unsigned depth, GameTree *t,
       
       if (isWon(s)) {
         t->status = Leaf(getWinner(s));
-        backpropagate(t, heuristicScore(s));
+        float scores[numPlayers];
+        heuristicScore(scores, s);
+        backpropagate(t, scores);
       } else if (!actionPossible(s, p, possibleHands[p], partners? possibleHands[partner(numPlayers, p)] : NULL)) {
         // All moves for the player will be burns, collapse children to a single node
-        GameTree *child = GC_malloc(sizeof(GameTree));
+        GameTree *child = allocate(sizeof(GameTree));
         *child = (GameTree){newTurn, Burn(CARD_MAX), s, t, Unexpanded()};
         t->status = ExpandedBurn(child);
 
@@ -254,10 +259,10 @@ void expand(PlayoutFn playoutHand, unsigned depth, GameTree *t,
             break;
           }
         }
-        expand(playoutHand, depth, child, possibleDeck, deck, possibleHands, hands);
+        expand(playoutHand, depth, child, possibleDeck, deck, possibleHands, hands, ar);
       } else {
         // Compute valid actions
-        vector<Action> actions = getActions(s, p, possibleHands[p]);
+        vector<Action> actions = getActions(s, p, possibleHands[p], ar);
         assert(actions.size > 0);
 
         // Include actions for burning cards with no valid move
@@ -275,14 +280,15 @@ void expand(PlayoutFn playoutHand, unsigned depth, GameTree *t,
         vector<GameTree> children = new vector<GameTree>(actions.size);
         for (unsigned i = 0; i < actions.size; i++) {
           Action a = actions[i];
-          State newState = applyAction(a, s, NULL, NULL);
+          State newState = applyAction(a, s, NULL, NULL, ar);
           children[i] = (GameTree){newTurn, a, newState, t, Unexpanded()};
         }
 
         // Expand the node
         vector<float> wins = new vector<float>(numPlayers, 0);
         t->status = Expanded(children, 0, wins);
-        vector<float> scores = playoutHand(s, p, hands, depth);
+        float scores[numPlayers];
+        playoutHand(scores, s, p, hands, depth);
         backpropagate(t, scores);
       }
     }
@@ -294,13 +300,13 @@ void expand(PlayoutFn playoutHand, unsigned depth, GameTree *t,
           break;
         }
       }
-      expand(playoutHand, depth, child, possibleDeck, deck, possibleHands, hands);
+      expand(playoutHand, depth, child, possibleDeck, deck, possibleHands, hands, ar);
     }
     &{{p}, .state=s, .status=Expanded(children, trials, wins)} -> {
       assert(children.size > 0);
 #ifdef DEBUG
       for (Card c = Joker; c < CARD_MAX; c++) {
-        if (hands[p][c] && getCardMoves(s, p, c).size > 0) {
+        if (hands[p][c] && cardHasMoves(s, p, c)) {
           bool inChildren = false;
           for (unsigned i = 0; i < children.size; i++) {
             inChildren |= getActionCard(children[i].action) == c;
@@ -309,14 +315,18 @@ void expand(PlayoutFn playoutHand, unsigned depth, GameTree *t,
         }
       }
 #endif
+      printf("Finding max weight child\n");
+      printGameTree(*t, 0);
       float maxWeight = -INFINITY;
       GameTree *maxChild = NULL;
       // Compute max weight child that corresponds to playing a card
       for (unsigned i = 0; i < children.size; i++) {
         GameTree *child = &children[i];
+        printf("Child %s\n", show(child->action).text);
         match (child->action) {
           Play(c, _) @when (hands[p][c]) -> {
             float w = weight(child);
+            printf("Child %s weight: %f\n", show(child->action).text, w);
             if (w >= maxWeight) {
               maxWeight = w;
               maxChild = child;
@@ -345,202 +355,224 @@ void expand(PlayoutFn playoutHand, unsigned depth, GameTree *t,
       assert(hands[p][c]);
       possibleHands[p][c]--;
       hands[p][c]--;
-      expand(playoutHand, depth, maxChild, possibleDeck, deck, possibleHands, hands);
+      expand(playoutHand, depth, maxChild, possibleDeck, deck, possibleHands, hands, ar);
     }
     &{.state=s, .status=Leaf(_)} -> {
-      backpropagate(t, heuristicScore(s));
+      float scores[numPlayers(s)];
+      heuristicScore(scores, s);
+      backpropagate(t, scores);
     }
   }
 }
 
-Player makeSearchPlayer(unsigned numPlayers, unsigned timeout, PlayoutFn playoutHand, unsigned depth) {
-  Hand *possibleHands = GC_malloc(sizeof(Hand[numPlayers]));
-  return (Player){"search", lambda (State s, const Hand h, const Hand hands[], const Hand discard, const unsigned handSizes[],
-                                    TurnInfo turn, vector<Action> actions) -> unsigned {
-      PlayerId p = turn.player;
+unsigned getSearchMove(State s, const Hand h, const Hand hands[], const Hand discard, const unsigned handSizes[],
+                       TurnInfo turn, vector<Action> actions,
+                       unsigned numPlayers, unsigned timeout, PlayoutFn playoutHand, unsigned depth,
+                       Hand possibleHands[numPlayers]) {
+  allocate_using stack;
+  PlayerId p = turn.player;
+
 #ifdef DEBUG
-      printf("%s\n", show(h).text);
+  printf("%s\n", show(h).text);
 #endif
 
-      // If there is only one possible action, choose it immediately
-      if (actions.size <= 1) {
-        return 0;
+  // If there is only one possible action, choose it immediately
+  if (actions.size <= 1) {
+    return 0;
+  }
+
+  struct timespec start, finish;
+  clock_gettime(CLOCK_MONOTONIC, &start);
+
+  match (s) {
+    St(?&stateNumPlayers, ?&partners, board, _) -> {
+      assert(numPlayers == stateNumPlayers);
+
+      // If no moves will be possible with this hand, choose a random action immediately
+      if (!actionPossible(s, p, h, hands && partners? hands[partner(numPlayers, p)] : NULL)) {
+        return rand() % actions.size;
       }
 
-      struct timespec start, finish;
-      clock_gettime(CLOCK_MONOTONIC, &start);
-
-      match (s) {
-        St(?&stateNumPlayers, ?&partners, board, _) -> {
-          assert(numPlayers == stateNumPlayers);
-
-          // If no moves will be possible with this hand, choose a random action immediately
-          if (!actionPossible(s, p, h, hands && partners? hands[partner(numPlayers, p)] : NULL)) {
-            return rand() % actions.size;
+      // Construct the deck of remaining cards that may be held by another player
+      Hand remaining;
+      initializeDeck(remaining);
+      for (Card c = 0; c < CARD_MAX; c++) {
+        remaining[c] -= discard[c];
+        if (hands) {
+          for (PlayerId p1 = 0; p1 < numPlayers; p1++) {
+            remaining[c] -= hands[p1][c];
           }
-
-          // Construct the deck of remaining cards that may be held by another player
-          Hand remaining;
-          initializeDeck(remaining);
-          for (Card c = 0; c < CARD_MAX; c++) {
-            remaining[c] -= discard[c];
-            if (hands) {
-              for (PlayerId p1 = 0; p1 < numPlayers; p1++) {
-                remaining[c] -= hands[p1][c];
-              }
-            } else {
-              remaining[c] -= h[c];
-            }
-          }
-
-          // Update the possible hands held by each player
-          if (turn.turnNum == 0) {
-            // This is the first turn in a hand, reset the possible hands
-            for (PlayerId p1 = 0; p1 < numPlayers; p1++) {
-              initializeDeck(possibleHands[p1]);
-            }
-          }
-          if (hands) {
-            // The possible hands are known exactly
-            memcpy(possibleHands, hands, sizeof(Hand[numPlayers]));
-          } else {
-            // Update the possible hands based on the remaining cards
-            for (Card c = 0; c < CARD_MAX; c++) {
-              for (PlayerId p1 = 0; p1 < numPlayers; p1++) {
-                if (p != p1 && possibleHands[p1][c] > remaining[c]) {
-                  possibleHands[p1][c] = remaining[c];
-                }
-              }
-            }
-            memcpy(possibleHands[p], h, sizeof(Hand));
-          }
-
-          // Construct the initial children
-          TurnInfo newTurn =
-            nextTurn(turn, numPlayers, handSizes[(p + 1) % numPlayers] == 0,
-                     DECK_SIZE - getDeckSize(discard) < numPlayers * MIN_HAND);
-          GameTree t;
-          vector<GameTree> children = new vector<GameTree>(actions.size);
-          for (unsigned i = 0; i < actions.size; i++) {
-            Action a = actions[i];
-            State newState = applyAction(a, s, NULL, NULL);
-            children[i] = (GameTree){
-              newTurn, a, newState, &t, Unexpanded()
-            };
-          }
-          t = (GameTree){turn, {0}, s, NULL, Expanded(children, 0, new vector<float>(numPlayers, 0))};
-
-          // Perform playouts
-          unsigned numPlayouts = 0;
-          do {
-            Hand trialPossibleDeck, trialDeck, trialPossibleHands[numPlayers], trialHands[numPlayers];
-            memcpy(trialPossibleDeck, remaining, sizeof(Hand));
-            bool validHands;
-            do {
-              initializeDeck(trialDeck);
-              for (Card c = 0; c < CARD_MAX; c++) {
-                trialDeck[c] -= discard[c];
-              }
-              validHands = true;
-              for (PlayerId p1 = 0; p1 < numPlayers; p1++) {
-                Hand possibleHand;
-                memcpy(possibleHand, possibleHands[p1], sizeof(Hand));
-                unsigned handSize = handSizes[p1];
-                unsigned dealt = deal(handSize, handSize, possibleHand, 1, trialHands + p1);
-                assert(dealt == handSize);
-                for (Card c = 0; c < CARD_MAX; c++) {
-                  if (trialDeck[c] < trialHands[p1][c]) {
-                    validHands = false;
-                    break;
-                  }
-                  trialDeck[c] -= trialHands[p1][c];
-                }
-                if (!validHands) {
-                  break;
-                }
-                memcpy(trialPossibleHands[p1], possibleHands[p1], sizeof(Hand));
-              }
-            } while (!validHands);
-            expand(playoutHand, depth, &t, trialPossibleDeck, trialDeck, trialPossibleHands, trialHands);
-            numPlayouts++;
-            clock_gettime(CLOCK_MONOTONIC, &finish);
-            pthread_testcancel(); // This is a long-running task, allow cancellation at this point
-          } while (finish.tv_sec - start.tv_sec < timeout);
-#ifdef DEBUG
-          printf("Finished %d playouts\n", numPlayouts);
-#endif
-
-          // Find the child with the highest ration of wins for p / trials
-          match (t) {
-            {.status=Expanded(children, trials, wins)} -> {
-#ifdef DEBUG
-              printf("Win confidence: %f\n", (float)wins[p] / trials);
-              printGameTree(t, 0);
-#endif
-              float maxScore = -INFINITY;
-              unsigned maxAction;
-              for (unsigned i = 0; i < actions.size; i++) {
-                float w = match (expandedChild(children[i]).status)
-                  (Expanded(_, trials, wins) -> (float)wins[p] / trials;
-                   Leaf(winner) -> winner == p || (partners && winner == partner(numPlayers, p));
-                   Unexpanded() -> -INFINITY;);
-                if (w > maxScore) {
-                  maxScore = w;
-                  maxAction = i;
-                }
-              }
-              return maxAction;
-            }
-            _ -> { assert(false); }
-          }
+        } else {
+          remaining[c] -= h[c];
         }
-        _ -> { assert(false); }
       }
-    }, lambda (State s, TurnInfo turn, Action action) -> void {
-      PlayerId p = turn.player;
 
+      // Update the possible hands held by each player
       if (turn.turnNum == 0) {
         // This is the first turn in a hand, reset the possible hands
         for (PlayerId p1 = 0; p1 < numPlayers; p1++) {
           initializeDeck(possibleHands[p1]);
         }
       }
-
-      match (action) {
-        Burn(_) -> {
-          // Remove all cards from the player's hand that could have enabled a move
-          for (Card c = 0; c < CARD_MAX; c++) {
-            if (possibleHands[p][c] && getCardMoves(s, p, c).size > 0) {
-              possibleHands[p][c] = 0;
+      if (hands) {
+        // The possible hands are known exactly
+        memcpy(possibleHands, hands, sizeof(Hand[numPlayers]));
+      } else {
+        // Update the possible hands based on the remaining cards
+        for (Card c = 0; c < CARD_MAX; c++) {
+          for (PlayerId p1 = 0; p1 < numPlayers; p1++) {
+            if (p != p1 && possibleHands[p1][c] > remaining[c]) {
+              possibleHands[p1][c] = remaining[c];
             }
           }
         }
+        memcpy(possibleHands[p], h, sizeof(Hand));
       }
 
-#ifdef DEBUG
-      printf("\nPossible hands\n");
-      for (PlayerId p = 0; p < numPlayers; p++) {
-        printf("Player %d: %s\n", p, show(possibleHands[p]).text);
+      unsigned maxAction;
+      with_arena ar {
+        // Construct the initial children
+        TurnInfo newTurn =
+          nextTurn(turn, numPlayers, handSizes[(p + 1) % numPlayers] == 0,
+                    DECK_SIZE - getDeckSize(discard) < numPlayers * MIN_HAND);
+        GameTree t;
+        vector<GameTree> children = new vector<GameTree>(actions.size);
+        for (unsigned i = 0; i < actions.size; i++) {
+          Action a = actions[i];
+          State newState = applyAction(a, s, NULL, NULL, ar);
+          children[i] = (GameTree){
+            newTurn, a, newState, &t, Unexpanded()
+          };
+        }
+        t = (GameTree){turn, {0}, s, NULL, Expanded(children, 0, new vector<float>(numPlayers, 0))};
+
+        // Perform playouts
+        unsigned numPlayouts = 0;
+        do {
+          Hand trialPossibleDeck, trialDeck, trialPossibleHands[numPlayers], trialHands[numPlayers];
+          memcpy(trialPossibleDeck, remaining, sizeof(Hand));
+          bool validHands;
+          do {
+            initializeDeck(trialDeck);
+            for (Card c = 0; c < CARD_MAX; c++) {
+              trialDeck[c] -= discard[c];
+            }
+            validHands = true;
+            for (PlayerId p1 = 0; p1 < numPlayers; p1++) {
+              Hand possibleHand;
+              memcpy(possibleHand, possibleHands[p1], sizeof(Hand));
+              unsigned handSize = handSizes[p1];
+              unsigned dealt = deal(handSize, handSize, possibleHand, 1, trialHands + p1);
+              assert(dealt == handSize);
+              for (Card c = 0; c < CARD_MAX; c++) {
+                if (trialDeck[c] < trialHands[p1][c]) {
+                  validHands = false;
+                  break;
+                }
+                trialDeck[c] -= trialHands[p1][c];
+              }
+              if (!validHands) {
+                break;
+              }
+              memcpy(trialPossibleHands[p1], possibleHands[p1], sizeof(Hand));
+            }
+          } while (!validHands);
+          expand(playoutHand, depth, &t, trialPossibleDeck, trialDeck, trialPossibleHands, trialHands, ar);
+          numPlayouts++;
+          clock_gettime(CLOCK_MONOTONIC, &finish);
+          pthread_testcancel(); // This is a long-running task, allow cancellation at this point
+        } while (finish.tv_sec - start.tv_sec < timeout);
+  #ifdef DEBUG
+        printf("Finished %d playouts\n", numPlayouts);
+  #endif
+
+        // Find the child with the highest ration of wins for p / trials
+        match (t) {
+          {.status=Expanded(children, trials, wins)} -> {
+  #ifdef DEBUG
+            printf("Win confidence: %f\n", (float)wins[p] / trials);
+            printGameTree(t, 0);
+  #endif
+            float maxScore = -INFINITY;
+            for (unsigned i = 0; i < actions.size; i++) {
+              float w = match (expandedChild(children[i]).status)
+                (Expanded(_, trials, wins) -> (float)wins[p] / trials;
+                  Leaf(winner) -> winner == p || (partners && winner == partner(numPlayers, p));
+                  Unexpanded() -> -INFINITY;);
+              if (w > maxScore) {
+                maxScore = w;
+                maxAction = i;
+              }
+            }
+          }
+          _ -> { assert(false); }
+        }
       }
-#endif
+      return maxAction;
     }
+    _ -> { assert(false); }
+  }
+}
+
+void inferPossibleHands(State s, TurnInfo turn, Action action, unsigned numPlayers, Hand possibleHands[numPlayers]) {
+  allocate_using stack;
+  PlayerId p = turn.player;
+
+  if (turn.turnNum == 0) {
+    // This is the first turn in a hand, reset the possible hands
+    for (PlayerId p1 = 0; p1 < numPlayers; p1++) {
+      initializeDeck(possibleHands[p1]);
+    }
+  }
+
+  match (action) {
+    Burn(_) -> {
+      // Remove all cards from the player's hand that could have enabled a move
+      for (Card c = 0; c < CARD_MAX; c++) {
+        if (possibleHands[p][c] && cardHasMoves(s, p, c)) {
+          possibleHands[p][c] = 0;
+        }
+      }
+    }
+  }
+
+#ifdef DEBUG
+  printf("\nPossible hands\n");
+  for (PlayerId p = 0; p < numPlayers; p++) {
+    printf("Player %d: %s\n", p, show(possibleHands[p]).text);
+  }
+#endif
+}
+
+Player makeSearchPlayer(arena_t ar, unsigned numPlayers, unsigned timeout, PlayoutFn playoutHand, unsigned depth) {
+  allocate_using arena ar;
+  Hand *possibleHands = allocate(sizeof(Hand[numPlayers]));
+  return (Player){"search",
+    lambda (State s, const Hand h, const Hand hands[], const Hand discard, const unsigned handSizes[],
+            TurnInfo turn, vector<Action> actions) ->
+      getSearchMove(s, h, hands, discard, handSizes, turn, actions, numPlayers, timeout, playoutHand, depth, possibleHands),
+    lambda (State s, TurnInfo turn, Action action) ->
+      inferPossibleHands(s, turn, action, numPlayers, possibleHands),
   };
 }
 
-Player makeHeuristicSearchPlayer(unsigned numPlayers) {
-  Player result = makeSearchPlayer(numPlayers, TIMEOUT, playoutHand, PLAYOUT_DEPTH);
+Player makeHeuristicSearchPlayer(arena_t ar, unsigned numPlayers) {
+  allocate_using arena ar;
+  Player result = makeSearchPlayer(ar, numPlayers, TIMEOUT, playoutHand, PLAYOUT_DEPTH);
   result.name = "search";
   return result;
 }
 
-Player makeDeepSearchPlayer(unsigned numPlayers) {
-  Player result = makeSearchPlayer(numPlayers, TIMEOUT, playoutHand, 15);
+Player makeDeepSearchPlayer(arena_t ar, unsigned numPlayers) {
+  allocate_using arena ar;
+  Player result = makeSearchPlayer(ar, numPlayers, TIMEOUT, playoutHand, 15);
   result.name = "deep_search";
   return result;
 }
 
-Player makeRuleSearchPlayer(unsigned numPlayers) {
-  Player result = makeSearchPlayer(numPlayers, TIMEOUT, rulePlayoutHand, PLAYOUT_DEPTH);
+Player makeRuleSearchPlayer(arena_t ar, unsigned numPlayers) {
+  allocate_using arena ar;
+  Player result = makeSearchPlayer(ar, numPlayers, TIMEOUT, rulePlayoutHand, PLAYOUT_DEPTH);
   result.name = "rule_search";
   return result;
 }

@@ -5,12 +5,13 @@
 #include <heuristicPlayer.xh>
 #include <searchPlayer.xh>
 #include <server.xh>
+#include <arena.h>
 
 #ifndef _PLAYERS_XH
 #define _PLAYERS_XH
 
 static Player errorPlayer = {0};
 
-Player getPlayer(const char *name, unsigned numPlayers);
+Player getPlayer(arena_t ar, const char *name, unsigned numPlayers);
 
 #endif

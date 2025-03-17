@@ -1,5 +1,3 @@
-#define GC_THREADS
-
 #include <driver.xh>
 #include <server.xh>
 #include <players.xh>
@@ -23,9 +21,6 @@ int main(unsigned argc, char *argv[]) {
     printf("Usage: %s [port]\n", argv[0]);
     return 1;
   }
-
-  GC_INIT();
-  GC_allow_register_threads();
 
   serve(http_url, https_url);
 }

@@ -3,7 +3,8 @@
 #include <players.xh>
 #include <stdlib.h>
 
-Player makeRandomPlayer() {
+Player makeRandomPlayer(arena_t ar) {
+  allocate_using arena ar;
   return (Player){"random", lambda (State s, const Hand h, const Hand hands[], const Hand discard, const unsigned handSizes[], TurnInfo turn, vector<Action> actions) ->
       (unsigned)(rand() % actions.size),
       lambda (State s, TurnInfo turn, Action action) -> void {}};

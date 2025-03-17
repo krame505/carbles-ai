@@ -15,13 +15,15 @@ int main(unsigned argc, char *argv[]) {
   if (openHands) { argc--; argv++; }
   unsigned numPlayers = argc - 1;
 
-  Player players[numPlayers];
-  for (unsigned i = 0; i < numPlayers; i++) {
-    players[i] = getPlayer(argv[i + 1], numPlayers);
-    if (!players[i].name) {
-      printf("Invalid player %s\n", argv[i + 1]);
-      return 1;
+  with_arena ar {
+    Player players[numPlayers];
+    for (unsigned i = 0; i < numPlayers; i++) {
+      players[i] = getPlayer(ar, argv[i + 1], numPlayers);
+      if (!players[i].name) {
+        printf("Invalid player %s\n", argv[i + 1]);
+        return 1;
+      }
     }
+    playConsoleGame(numPlayers, partners, openHands, players, stdout);
   }
-  playConsoleGame(numPlayers, partners, openHands, players, stdout);
 }
