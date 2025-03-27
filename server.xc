@@ -17,7 +17,7 @@
 #define MAX_MSG 10000
 
 #ifdef DEBUG
-#define GAME_TIMEOUT 20  // 20 seconds
+#define GAME_TIMEOUT 60  // 20 seconds
 #else
 #define GAME_TIMEOUT 2 * 24 * 60 * 60  // 2 days
 #endif
@@ -43,7 +43,7 @@ static sig_atomic_t signal_received = 0;
 // Uniquely identify connections by the memory address of the struct mg_connection
 typedef unsigned long SocketId;
 static int compareSocket(SocketId a, SocketId b) {
-  return (int)a - (int)b;
+  return a > b? 1 : a < b? -1 : 0;
 }
 
 static int compareString(string a, string b) {
@@ -54,6 +54,7 @@ typedef struct Room Room;
 typedef struct PlayerConn PlayerConn;
 
 struct Room {
+  string id;
   map<string, PlayerConn *, compareString> ?connections, ?droppedConnections;
   map<SocketId, string, compareSocket> ?socketPlayers;
   unsigned numWeb;
@@ -68,7 +69,6 @@ struct Room {
   bool gameInProgress;
   bool gameOpenHands;
   PlayerId turn;
-  arena_t stateArena;
   State state;
   Hand hands[MAX_PLAYERS];
   vector<Action> actions;
@@ -84,10 +84,11 @@ struct Room {
 };
 
 struct PlayerConn {
+  string id;
   bool inGame;
   SocketId socket;
   double activeTime;
-  PlayerId id;
+  PlayerId player;
   string name;
   string label;
 };
@@ -115,7 +116,9 @@ static void logmsg(const char *format, ...) {
   fclose(out);
 }
 
-static pthread_mutex_t roomsMutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t globalMutex = PTHREAD_MUTEX_INITIALIZER;
+static arena_t globalArena;
+
 static map<string, Room *, compareString> ?rooms;
 static map<SocketId, string, compareSocket> ?socketRooms;
 
@@ -137,25 +140,25 @@ static const unsigned initialAITime = 4;
 static void createRoom(string roomId) {
   logmsg("Creating room %s", roomId.text);
 
-  // Room is allocated for the life of the process
-  arena_t ar = arena_create();
-  allocate_using arena ar;
+  // Room is allocated for the life of the server
+  allocate_using arena globalArena;
 
-  pthread_mutex_lock(&roomsMutex);
+  pthread_mutex_lock(&globalMutex);
 
-  arena_t stateArena = arena_create();
+  arena_t gameArena = arena_create();
   Room *room = allocate(sizeof(Room));
   *room = (Room){
+    roomId.copy(),
     newMap<string, PlayerConn *, compareString>(),
     newMap<string, PlayerConn *, compareString>(),
     newMap<SocketId, string, compareSocket>(),
     0, initialNumAIs, initialNumRandom, initialPartners, initialOpenHands, initialAITime,
-    NULL, {0}, vec<string>[], vec<string>[], false, false, 0, stateArena, initialState(0, false, stateArena),
+    gameArena, {0}, vec<string>[], vec<string>[], false, false, 0, initialState(0, false, gameArena),
     {0}, vec<Action>[], false, 0, false, NULL,
     false, 0, PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER
   };
-  mapInsertMut(rooms, roomId, room);
-  pthread_mutex_unlock(&roomsMutex);
+  mapInsertMut(rooms, room->id, room);
+  pthread_mutex_unlock(&globalMutex);
 }
 
 static void *runServerGame(void *roomId);
@@ -175,10 +178,12 @@ static void notify(
       ", \"reload\": " + show(reload) +
       ", \"content\": " + show(msg) +
       "}";
+  // logmsg("Sending notification to room %s: %s", roomId.text, encoded.text);
   for (struct mg_connection *nc = mgr.conns; nc != NULL; nc = nc->next) {
     query RID is roomId, RS is rooms, mapContains(RS, RID, R),
       SP is (R->socketPlayers), NC is ((SocketId)nc), mapContains(SP, NC, _) {
       mg_ws_send(nc, encoded.text, encoded.length, WEBSOCKET_OP_TEXT);
+      return false;
     };
   }
 }
@@ -197,17 +202,24 @@ static vector<struct notification> notifyQueue;
 static void workerNotify(
     string roomId, PlayerId p, string name, bool chat, bool reload,
     string msg) {
+  allocate_using heap;
   pthread_mutex_lock(&notifyMutex);
-  notifyQueue.append((struct notification){roomId, p, name, chat, reload, msg});
+  int oldstate;
+  pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &oldstate);
+  struct notification n = {roomId, p, name, chat, reload, msg.copy()};
+  notifyQueue.append(n);
+  pthread_setcancelstate(oldstate, NULL);
   pthread_mutex_unlock(&notifyMutex);
 }
 
 // Called regularly from the main thread, push all notifications in the queue
 static void pollNotify(void) {
+  allocate_using heap;
   pthread_mutex_lock(&notifyMutex);
   for (size_t i = 0; i < notifyQueue.size; i++) {
     struct notification n = notifyQueue[i];
     notify(n.roomId, n.playerId, n.name, n.chat, n.reload, n.msg);
+    delete n.msg;
   }
   resize_vector(notifyQueue, 0);
   pthread_mutex_unlock(&notifyMutex);
@@ -224,18 +236,22 @@ static string jsonList(vector<string> v, arena_t ar) {
   return result;
 }
 
+static void initializeState(Room *room) {
+  if (!room->gameInProgress) {
+    room->state = initialState(room->numWeb + room->numAI + room->numRandom, room->partners, room->gameArena);
+  }
+}
+
 static void handleStats(struct mg_connection *nc, struct mg_http_message *hm) {
   allocate_using stack;
   // Generate and send response
-  unsigned long numUsers[1] = {0}, numActiveUsers[1] = {0};
-  query US is users, mapContainsValue(US, _, _) { (*numUsers)++; return false; };
-  query US is activeUsers, mapContainsValue(US, _, _) { (*numActiveUsers)++; return false; };
+  size_t numUsers = mapSize(users), numActiveUsers = mapSize(activeUsers);
   string result = str("{") +
-    "\"startTime\": " + show(startTime) +
+    "\"startTime\": " + show(str(startTime)) +
     ", \"games\": " + numGames +
     ", \"activeGames\": " + numActiveGames +
-    ", \"users\": " + *numUsers +
-    ", \"activeUsers\": " + *numActiveUsers + "}";
+    ", \"users\": " + numUsers +
+    ", \"activeUsers\": " + numActiveUsers + "}";
   mg_http_reply(nc, 200, "", "%s", result.text);
 }
 
@@ -256,12 +272,14 @@ static void handleState(struct mg_connection *nc, struct mg_http_message *hm) {
       PlayerConn *conn = value(C);
 
       with_arena ar {
+        // logmsg("Sending state for %s", show(*conn).text);
         // Generate and send response
         PlayerId partnerId = match(room->state)
-          (St(?&numPlayers, ?&true, _, _) -> partner(numPlayers, conn->id);
+          (St(?&numPlayers, ?&true, _, _) -> partner(numPlayers, conn->player);
           _ -> PLAYER_ID_NONE;);
         vector<string> playersInRoom = {};
         query CS is (room->connections), mapContainsValue(CS, _, C) {
+          allocate_using arena ar;
           PlayerConn *otherConn = value(C);
           playersInRoom.append(otherConn->label + otherConn->name);
           return false;
@@ -285,31 +303,31 @@ static void handleState(struct mg_connection *nc, struct mg_http_message *hm) {
         }
 
         vector<Action> actions =
-          room->actionsReady && conn->inGame && conn->id == room->turn?
+          room->actionsReady && conn->inGame && conn->player == room->turn?
           room->actions : vec<Action>[];
 
         string result = "{" +
-        (room->gameInProgress?
-        "\"turn\": " + str(room->turn) +
-        (conn->inGame?
-          ", \"hand\": " + jsonHand(room->hands[conn->id], ar)
+          (room->gameInProgress?
+          "\"turn\": " + str(room->turn) +
+          (conn->inGame?
+            ", \"hand\": " + jsonHand(room->hands[conn->player], ar)
+            : str("")) +
+          (room->gameOpenHands?
+            ", \"hands\": " + jsonHands(playersInGame.size, room->hands, ar)
+            : str("")) +
+          ", "
           : str("")) +
-        (room->gameOpenHands?
-          ", \"hands\": " + jsonHands(playersInGame.size, room->hands, ar)
-          : str("")) +
-        ", "
-        : str("")) +
-        "\"board\": " + jsonState(room->state, ar) +
-        ", \"playersInRoom\": " + jsonList(playersInRoom, ar) +
-        ", \"aiPlayers\": " + str(room->numAI) +
-        ", \"randomPlayers\": " + str(room->numRandom) +
-        ", \"partners\": " + show(room->partners) +
-        ", \"openHands\": " + show(room->openHands) +
-        ", \"aiTime\": " + show(room->aiTime) +
-        ", \"playersInGame\": " + jsonList(playersInGame, ar) +
-        ", \"playerLabels\": " + jsonList(playerLabels, ar) +
-        ", \"id\": " + conn->id +
-        ", \"actions\": " + jsonActions(actions, conn->id, partnerId, ar) + "}";
+          "\"board\": " + jsonState(room->state, ar) +
+          ", \"playersInRoom\": " + jsonList(playersInRoom, ar) +
+          ", \"aiPlayers\": " + str(room->numAI) +
+          ", \"randomPlayers\": " + str(room->numRandom) +
+          ", \"partners\": " + show(room->partners) +
+          ", \"openHands\": " + show(room->openHands) +
+          ", \"aiTime\": " + show(room->aiTime) +
+          ", \"playersInGame\": " + jsonList(playersInGame, ar) +
+          ", \"playerLabels\": " + jsonList(playerLabels, ar) +
+          ", \"id\": " + conn->player +
+          ", \"actions\": " + jsonActions(actions, conn->player, partnerId, ar) + "}";
         mg_http_reply(nc, 200, "", "%s", result.text);
       }
       return true;
@@ -349,9 +367,7 @@ static void handleConfig(struct mg_connection *nc, struct mg_http_message *hm) {
       room->partners = partners;
       room->openHands = openHands;
       room->aiTime = aiTime;
-      if (!room->gameInProgress) {
-        room->state = initialState(room->numWeb + room->numAI + room->numRandom, partners, room->stateArena);
-      }
+      initializeState(room);
 
       // Send empty response
       mg_http_reply(nc, 204, "", "");
@@ -376,12 +392,16 @@ static void handleTimeout(void *rid) {
       numGames--;  // Don't count canceled games towards stats
       numActiveGames--;
       
+      // Cancel the thread
+      pthread_cancel(room->thread);
+      pthread_join(room->thread, NULL);
+      room->threadRunning = false;
+      
       // Reset state
       room->gameInProgress = false;
       room->actionsReady = false;
-      
-      // Cancel the thread
-      pthread_cancel(room->thread);
+
+      initializeState(room);
       
       notify(roomId, -1, str(""), false, true, str("Game timed out due to inactivity."));
     }
@@ -418,7 +438,13 @@ static void handleStart(struct mg_connection *nc, struct mg_http_message *hm) {
           fprintf(gamesOut, "%lu\n", numGames);
           fclose(gamesOut);
 
-          room->gameArena = arena_create();
+          // Initialize a new arena for the game state and players
+          arena_t gameArena = arena_create();
+          allocate_using arena gameArena;
+          initializeState(room);
+          arena_destroy(room->gameArena);
+          room->gameArena = gameArena;
+
           resize_vector(room->playerNames, numPlayers);
           resize_vector(room->playerLabels, numPlayers);
           // Assign all players currently in the room
@@ -426,14 +452,15 @@ static void handleStart(struct mg_connection *nc, struct mg_http_message *hm) {
           memset(assigned, 0, sizeof(assigned));
           PlayerId p = rand() % numPlayers, *p_p = &p;
           query CS is (room->connections), mapContainsValue(CS, _, C) {
+            allocate_using arena gameArena;
             PlayerConn *conn = value(C);
             while (assigned[*p_p]) {*p_p = rand() % numPlayers; }
             assigned[*p_p] = true;
-            room->players[*p_p] = makeWebPlayer(roomId, room->gameArena);
+            room->players[*p_p] = makeWebPlayer(room->id, gameArena);
             room->playerNames[*p_p] = conn->label + conn->name;
             room->playerLabels[*p_p] = conn->label;
             conn->inGame = true;
-            conn->id = *p_p;
+            conn->player = *p_p;
             *p_p = partner(numPlayers, *p_p);
             return false;
           };
@@ -445,7 +472,7 @@ static void handleStart(struct mg_connection *nc, struct mg_http_message *hm) {
           for (unsigned i = 0; i < room->numAI; i++) {
             while (assigned[p]) { p = rand() % numPlayers; }
             assigned[p] = true;
-            room->players[p] = makeSearchPlayer(room->gameArena, numPlayers, room->aiTime, playoutHand, 10);
+            room->players[p] = makeSearchPlayer(gameArena, numPlayers, room->aiTime, playoutHand, 10);
             room->playerNames[p] = "AI " + str(i + 1);
             room->playerLabels[p] = "";
             p = partner(numPlayers, p);
@@ -453,7 +480,7 @@ static void handleStart(struct mg_connection *nc, struct mg_http_message *hm) {
           for (unsigned i = 0; i < room->numRandom; i++) {
             while (assigned[p]) { p = rand() % numPlayers; }
             assigned[p] = true;
-            room->players[p] = makeRandomPlayer(room->gameArena);
+            room->players[p] = makeRandomPlayer(gameArena);
             room->playerNames[p] = "Random " + str(i + 1);
             room->playerLabels[p] = "";
             p = partner(numPlayers, p);
@@ -466,11 +493,11 @@ static void handleStart(struct mg_connection *nc, struct mg_http_message *hm) {
             pthread_join(room->thread, NULL);
             pthread_mutex_lock(&room->mutex);
           }
-          pthread_create(&room->thread, NULL, &runServerGame, (void *)roomId.text);
+          pthread_create(&room->thread, NULL, &runServerGame, (void *)room->id.text);
           room->threadRunning = true;
 
           // Set the game timeout
-          room->timeoutTimer = mg_timer_add(&mgr, 1000 * GAME_TIMEOUT, MG_TIMER_ONCE, handleTimeout, (void *)roomId.text);
+          room->timeoutTimer = mg_timer_add(&mgr, 1000 * GAME_TIMEOUT, MG_TIMER_ONCE, handleTimeout, (void *)room->id.text);
 
           // Send empty response
           mg_http_reply(nc, 204, "", "");
@@ -505,19 +532,21 @@ static void handleEnd(struct mg_connection *nc, struct mg_http_message *hm) {
         numGames--;  // Don't count canceled games towards stats
         numActiveGames--;
 
-        // Reset state
-        room->gameInProgress = false;
-        room->actionsReady = false;
-
         // Cancel the timeout timer
         mg_timer_free(&mgr.timers, room->timeoutTimer);
         free(room->timeoutTimer);  // mg_timer_free doesn't actually free the timer, just removes it from the list
 
         // Cancel the thread
         pthread_cancel(room->thread);
+        pthread_mutex_unlock(&room->mutex);
+        pthread_join(room->thread, NULL);
+        pthread_mutex_lock(&room->mutex);
+        room->threadRunning = false;
 
-        // Free the arena
-        arena_destroy(room->gameArena);
+        // Reset the state
+        room->gameInProgress = false;
+        room->actionsReady = false;
+        initializeState(room);
 
         // Send empty response
         mg_http_reply(nc, 204, "", "");
@@ -568,75 +597,82 @@ static void handleRegister(struct mg_connection *nc, const char *data, size_t si
     pthread_mutex_lock(&room->mutex);
 
     // Add the connection to the global map
-    pthread_mutex_lock(&roomsMutex);
-    mapInsertMut(socketRooms, (SocketId)nc, roomId);
-    pthread_mutex_unlock(&roomsMutex);
+    mapInsertMut(socketRooms, (SocketId)nc, room->id);
 
     PlayerConn *conn = NULL;
     if (mapContains(room->connections, connId)) {
-      // The player has already joined
+      // The player is already in the room
       conn = mapGet(room->connections, connId);
       if (conn->socket != (SocketId)nc) {
-        logmsg("Player %s rejoined from a different socket", connId_s);
+        logmsg("Player %s already in room, rejoined from a different socket", connId_s);
 
         // Send a notification to the current tab, but leave the socket open to avoid attempting to reconnect
         string disconnectMsg = "{\"disconnect\": true}";
         mg_ws_send((struct mg_connection *)conn->socket, disconnectMsg.text, disconnectMsg.length, WEBSOCKET_OP_TEXT);
 
         // Update the connection
-        pthread_mutex_lock(&roomsMutex);
         if (mapContains(socketRooms, conn->socket)) {
           mapDeleteMut(socketRooms, conn->socket);
         }
-        pthread_mutex_unlock(&roomsMutex);
         if (mapContains(room->socketPlayers, conn->socket)) {
           mapDeleteMut(room->socketPlayers, conn->socket);
         }
-        mapInsertMut(room->socketPlayers, (SocketId)nc, connId);
+        mapInsertMut(room->socketPlayers, (SocketId)nc, conn->id);
         conn->socket = (SocketId)nc;
       } else {
-        logmsg("Player %s rejoined from the same socket", connId_s);
+        logmsg("Player %s already in room, rejoined from the same socket", connId_s);
       }
       notify(roomId, -1, str(""), false, true, str(""));
     } else {
-      // The player is initially joining, add them
       if (mapContains(room->droppedConnections, connId)) {
+        // The player is rejoining after having dropped
+        logmsg("Player %s rejoined after leaving", connId_s);
         conn = mapGet(room->droppedConnections, connId);
         mapDeleteMut(room->droppedConnections, connId);
         conn->socket = (SocketId)nc;
-      } else {
-        conn = malloc(sizeof(PlayerConn));
-        *conn = (PlayerConn){false, (SocketId)nc, 0, 0, connId, str("")};
-      }
-      if (name.length) {
-        conn->name = name;
-        if (room->gameInProgress && conn->inGame) {
-          room->playerNames[conn->id] = conn->label + conn->name;
+        if (name.length && name != conn->name) {
+          allocate_using arena globalArena;
+          conn->name = name.copy();
         }
+      } else {
+        // The player is initially joining, add them
+        logmsg("Player %s newly joined", connId_s);
+        allocate_using arena globalArena;
+        string connId = connId_s;
+        conn = allocate(sizeof(PlayerConn));
+        *conn = (PlayerConn){
+          connId, false, (SocketId)nc, 0, 0,
+          name.length? name.copy() : connId,
+          str("")
+        };
       }
-      mapInsertMut(room->connections, connId, conn);
-      mapInsertMut(room->socketPlayers, (SocketId)nc, connId);
+      if (name.length && room->gameInProgress && conn->inGame) {
+        allocate_using arena room->gameArena;
+        room->playerNames[conn->player] = conn->label + conn->name;
+      }
+      mapInsertMut(room->connections, conn->id, conn);
+      mapInsertMut(room->socketPlayers, (SocketId)nc, conn->id);
       room->numWeb++;
       logmsg("Room has %d players", room->numWeb);
 
-      if (!room->gameInProgress) {
-        room->state = initialState(room->numWeb + room->numAI + room->numRandom, room->partners, room->stateArena);
-      }
-      notify(roomId, -1, str(""), false, true, conn->name + " joined");
+      initializeState(room);
+      notify(roomId, -1, str(""), false, true, name + " joined");
 
+      pthread_mutex_lock(&globalMutex);
       if (!mapContains(users, connId)) {
-        mapInsertMut(users, connId, 1);
+        mapInsertMut(users, conn->id, 1);
         FILE *usersOut = fopen(usersFile, "a");
         fprintf(usersOut, "%s: %s\n", connId_s, name_s);
         fclose(usersOut);
       } else {
-        mapInsertMut(users, connId, mapGet(users, connId) + 1);
+        mapInsertMut(users, conn->id, mapGet(users, connId) + 1);
       }
       if (!mapContains(activeUsers, connId)) {
-        mapInsertMut(activeUsers, connId, 1);
+        mapInsertMut(activeUsers, conn->id, 1);
       } else {
-        mapInsertMut(activeUsers, connId, mapGet(activeUsers, connId) + 1);
+        mapInsertMut(activeUsers, conn->id, mapGet(activeUsers, connId) + 1);
       }
+      pthread_mutex_unlock(&globalMutex);
     }
 
     pthread_mutex_unlock(&room->mutex);
@@ -655,7 +691,7 @@ static void handleAction(struct mg_connection *nc, const char *data, size_t size
           CS is (R->connections), mapContains(CS, CID, C) {
       Room *room = value(R);
       PlayerConn *conn = value(C);
-      if (room->gameInProgress && conn->id == room->turn) {
+      if (room->gameInProgress && conn->player == room->turn) {
         // Record the action and wake up the driver thread
         room->action = a;
         room->actionReady = true;
@@ -681,16 +717,14 @@ static void handleChat(struct mg_connection *nc, const char *data, size_t size) 
           CS is (R->connections), mapContains(CS, CID, C) {
       string roomId = value(RID);
       PlayerConn *conn = value(C);
-      notify(roomId, conn->id, conn->label + conn->name, true, false, msg);
+      notify(roomId, conn->player, conn->label + conn->name, true, false, msg);
     };
   }
 }
 
 static void handleLabel(struct mg_connection *nc, const char *data, size_t size) {
-  allocate_using stack;
   char label_s[MAX_LABEL + 1] = {0};
   sscanf(data, "label:%"STRINGIFY_MACRO(MAX_LABEL)"[^\n]", label_s); // Unchecked since label can be empty
-  string label = label_s;
 
   query NC is ((SocketId)nc), SRS is socketRooms, mapContains(SRS, NC, RID),
         RS is rooms, mapContains(RS, RID, R),
@@ -702,10 +736,14 @@ static void handleLabel(struct mg_connection *nc, const char *data, size_t size)
     Room *room = value(R);
     PlayerConn *conn = value(C);
     string oldLabel = conn->label;
-    conn->label = label;
+    {
+      allocate_using arena globalArena;
+      conn->label = str(label_s);
+    }
     if (room->gameInProgress && conn->inGame) {
-      room->playerNames[conn->id] = conn->label + conn->name;
-      room->playerLabels[conn->id] = conn->label;
+      allocate_using arena room->gameArena;
+      room->playerNames[conn->player] = conn->label + conn->name;
+      room->playerLabels[conn->player] = conn->label;
     }
     notify(roomId, -1, str(""), false, true, oldLabel + conn->name + " is now " + conn->label + conn->name);
   };
@@ -735,7 +773,6 @@ static void websocketHandler(struct mg_connection *nc, int ev, struct mg_ws_mess
 
 static void handleUnregister(struct mg_connection *nc) {
   allocate_using stack;
-  pthread_mutex_lock(&roomsMutex);
   if (mapContains(socketRooms, (SocketId)nc)) {
     string roomId = mapGet(socketRooms, (SocketId)nc);
 
@@ -756,9 +793,7 @@ static void handleUnregister(struct mg_connection *nc) {
             room->numWeb--;
             logmsg("Room has %d players", room->numWeb);
 
-            if (!room->gameInProgress) {
-              room->state = initialState(room->numWeb + room->numAI + room->numRandom, room->partners, room->stateArena);
-            }
+            initializeState(room);
 
             notify(roomId, -1, str(""), false, true, conn->name + " left");
           }
@@ -776,7 +811,6 @@ static void handleUnregister(struct mg_connection *nc) {
     }
     mapDeleteMut(socketRooms, (SocketId)nc);
   }
-  pthread_mutex_unlock(&roomsMutex);
 }
 
 static void evHandler(struct mg_connection *nc, int ev, void *ev_data, void *fn_data) {
@@ -826,6 +860,7 @@ void serve(const char *url_http, const char *url_https) {
 
   with_arena ar {
     // Initialize global variables
+    globalArena = ar;
     rooms = newMap<string, Room *, compareString>();
     socketRooms = newMap<SocketId, string, compareSocket>();
     users = newMap<string, unsigned, compareString>();
@@ -876,7 +911,8 @@ void serve(const char *url_http, const char *url_https) {
     query RS is rooms, mapContainsValue(RS, RID, _) {
       string roomId = value(RID);
       logmsg("Notifying %s\n", roomId.text);
-      notify(roomId, -1, str(""), false, false, str("Server is shutting down for maintance now!  Please stand by..."));
+      notify(roomId, -1, str(""), false, false, str("Server is shutting down for maintenance now!  Please stand by..."));
+      return false;
     };
     mg_mgr_poll(&mgr, 50);  // Poll one more time so the notification gets broadcast
     logmsg("Server shutting down");
@@ -884,6 +920,19 @@ void serve(const char *url_http, const char *url_https) {
     mg_mgr_free(&mgr);
 
     // Free global variables
+    query RS is rooms, mapContainsValue(RS, _, R) {
+      Room *room = value(R);
+      logmsg("Deleting room %s", room->id.text);
+      if (room->threadRunning) {
+        pthread_cancel(room->thread);
+        pthread_join(room->thread, NULL);
+      }
+      freeMap(room->connections);
+      freeMap(room->droppedConnections);
+      freeMap(room->socketPlayers);
+      arena_destroy(room->gameArena);
+      return false;
+    };
     freeMap(rooms);
     freeMap(socketRooms);
     freeMap(users);
@@ -893,8 +942,11 @@ void serve(const char *url_http, const char *url_https) {
 
 static void *runServerGame(void *arg) {
   allocate_using stack;
-  string roomId = (const char *)arg;
-  Room *room = mapGet(rooms, roomId);
+  Room *room;
+  pthread_mutex_lock(&globalMutex);
+  room = mapGet(rooms, str((const char *)arg));
+  pthread_mutex_unlock(&globalMutex);
+  string roomId = room->id;
 
   unsigned numWeb = room->numWeb, numAI = room->numAI, numRandom = room->numRandom,
     numPlayers = numWeb + numAI + numRandom, aiTime = room->aiTime;
@@ -903,8 +955,10 @@ static void *runServerGame(void *arg) {
       numPlayers, partners, openHands, room->players,
       lambda (PlayerId p) -> void {
         pthread_mutex_lock(&room->mutex);
+        pthread_cleanup_push((void (*)(void *))pthread_mutex_unlock, &room->mutex);
+        pthread_testcancel();
         room->turn = p;
-        pthread_mutex_unlock(&room->mutex);
+        pthread_cleanup_pop(1);
 
         // If this is not a web player, notify clients.
         // Web players will notify later when actions are ready.
@@ -914,13 +968,17 @@ static void *runServerGame(void *arg) {
       },
       lambda (PlayerId p, Hand h) -> void {
         pthread_mutex_lock(&room->mutex);
+        pthread_cleanup_push((void (*)(void *))pthread_mutex_unlock, &room->mutex);
+        pthread_testcancel();
         memcpy(room->hands[p], h, sizeof(Hand));
-        pthread_mutex_unlock(&room->mutex);
+        pthread_cleanup_pop(1);
       },
       lambda (State s) -> void {
         pthread_mutex_lock(&room->mutex);
-        room->state = s;
-        pthread_mutex_unlock(&room->mutex);
+        pthread_cleanup_push((void (*)(void *))pthread_mutex_unlock, &room->mutex);
+        pthread_testcancel();
+        room->state = copyState(s, room->gameArena);
+        pthread_cleanup_pop(1);
       },
       lambda (PlayerId p, unsigned handNum) -> void {
         if (handNum == 0) {
@@ -930,30 +988,13 @@ static void *runServerGame(void *arg) {
       },
       lambda (PlayerId p, Action a) -> void {
         with_arena ar {
+          pthread_cleanup_push(arena_destroy_cb, ar);
           string actionStr = showAction(a, p, partners? partner(numPlayers, p) : PLAYER_ID_NONE, ar);
           workerNotify(roomId, p, room->playerNames[p], false, false, actionStr);
+          pthread_cleanup_pop(0);
         }
       },
       lambda (PlayerId p) -> void {
-        pthread_mutex_lock(&room->mutex);
-
-        // Update room status
-        room->gameInProgress = false;
-
-        // Cancel the timeout timer
-        mg_timer_free(&mgr.timers, room->timeoutTimer);
-        free(room->timeoutTimer);  // mg_timer_free doesn't actually free the timer, just removes it from the list
-
-        // Make a local copy of the state
-        arena_destroy(room->stateArena);
-        room->stateArena = arena_create();
-        room->state = copyState(room->state, room->stateArena);
-
-        // Free the arena
-        arena_destroy(room->gameArena);
-
-        pthread_mutex_unlock(&room->mutex);
-
         if (partners) {
           workerNotify(roomId, -1, str(""), false, true, room->playerNames[p] + " and " + room->playerNames[partner(numPlayers, p)] + " won!");
         } else {
@@ -961,10 +1002,13 @@ static void *runServerGame(void *arg) {
         }
       });
 
+  pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
+
   logmsg("Finished game in room %s", roomId.text);
   numActiveGames--;
-  
-  pthread_mutex_lock(&roomsMutex);
+
+  pthread_mutex_lock(&globalMutex);
+
   bool statsExists = false;
   FILE *statsIn = fopen(statsFile, "r");
   if (statsIn) {
@@ -981,7 +1025,19 @@ static void *runServerGame(void *arg) {
   }
   fprintf(statsOut, "%d, %d, %d, %d, %d, %d, %d, %s, %s\n", numPlayers, numWeb, numAI, numRandom, partners, openHands, aiTime, room->players[winner].name, winnerName.text);
   fclose(statsOut);
-  pthread_mutex_unlock(&roomsMutex);
+
+  pthread_mutex_unlock(&globalMutex);
+
+  pthread_mutex_lock(&room->mutex);
+
+  // Update room status
+  room->gameInProgress = false;
+
+  // Cancel the timeout timer
+  mg_timer_free(&mgr.timers, room->timeoutTimer);
+  free(room->timeoutTimer);  // mg_timer_free doesn't actually free the timer, just removes it from the list
+
+  pthread_mutex_unlock(&room->mutex);
 
   return NULL;
 }
@@ -989,12 +1045,16 @@ static void *runServerGame(void *arg) {
 Player makeWebPlayer(string roomId, arena_t ar) {
   allocate_using arena ar;
   return (Player){"web", lambda (State s, const Hand h, const Hand hands[], const Hand discard, const unsigned handSizes[], TurnInfo turn, vector<Action> actions) -> PlayerId {
+      pthread_testcancel();
       if (!running) {
         fprintf(stderr, "Web server isn't running!\n");
-        exit(1);
+        abort();
       }
 
-      Room *room = mapGet(rooms, roomId);
+      Room *room;
+      pthread_mutex_lock(&globalMutex);
+      room = mapGet(rooms, roomId);
+      pthread_mutex_unlock(&globalMutex);
 
       // Update server state
       room->actions = actions;

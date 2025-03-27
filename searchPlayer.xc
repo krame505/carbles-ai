@@ -19,6 +19,7 @@
 
 void printGameTree(GameTree tree, unsigned depth) {
   with_arena ar {
+    pthread_cleanup_push(arena_destroy_cb, ar);
 #ifndef PRINT_UNEXPANDED
     if (tree.status.tag != NodeStatus_Unexpanded)
 #endif
@@ -68,6 +69,7 @@ void printGameTree(GameTree tree, unsigned depth) {
         printf("\n");
       }
     }
+    pthread_cleanup_pop(0);
   }
 }
 
@@ -109,6 +111,7 @@ void playout(float scores[], State s, PlayerId p, unsigned depth) {
     Hand h = {0};
     h[c] = 1;
     with_arena ar {
+      pthread_cleanup_push(arena_destroy_cb, ar);
       vector<Action> actions = getActions(s, p, h, ar);
       assert(actions.size > 0);
       Action a = actions[rand() % actions.size];
@@ -116,6 +119,7 @@ void playout(float scores[], State s, PlayerId p, unsigned depth) {
         playout(scores, value(S2), (p + 1) % numPlayers(s), depth - 1);
       };
       assert(success);
+      pthread_cleanup_pop(0);
     }
   }
 }
@@ -125,6 +129,7 @@ void playoutHand(float scores[], State s, PlayerId p, Hand hands[], unsigned dep
     heuristicScore(scores, s);
   } else {
     with_arena ar {
+      pthread_cleanup_push(arena_destroy_cb, ar);
       vector<Action> actions = getActions(s, p, hands[p], ar);
       if (actions.size) {
         Action a = actions[rand() % actions.size];
@@ -137,6 +142,7 @@ void playoutHand(float scores[], State s, PlayerId p, Hand hands[], unsigned dep
       } else {
         playout(scores, s, p, depth);
       }
+      pthread_cleanup_pop(0);
     }
   }
 }
@@ -149,6 +155,7 @@ void rulePlayout(float scores[], State s, PlayerId p, unsigned depth) {
     Hand h = {0};
     h[c] = 1;
     with_arena ar {
+      pthread_cleanup_push(arena_destroy_cb, ar);
       vector<Action> actions = getActions(s, p, h, ar);
       assert(actions.size > 0);
       Action a = actions[getRuleAction(s, h, NULL, NULL, NULL, (TurnInfo){p}, actions)];
@@ -156,6 +163,7 @@ void rulePlayout(float scores[], State s, PlayerId p, unsigned depth) {
         rulePlayout(scores, value(S2), (p + 1) % numPlayers(s), depth - 1);
       };
       assert(success);
+      pthread_cleanup_pop(0);
     }
   }
 }
@@ -165,6 +173,7 @@ void rulePlayoutHand(float scores[], State s, PlayerId p, Hand hands[], unsigned
     heuristicScore(scores, s);
   } else {
     with_arena ar {
+      pthread_cleanup_push(arena_destroy_cb, ar);
       vector<Action> actions = getActions(s, p, hands[p], ar);
       if (actions.size) {
         Action a = actions[getRuleAction(s, hands[p], hands, NULL, NULL, (TurnInfo){p}, actions)];
@@ -177,6 +186,7 @@ void rulePlayoutHand(float scores[], State s, PlayerId p, Hand hands[], unsigned
       } else {
         rulePlayout(scores, s, p, depth);
       }
+      pthread_cleanup_pop(0);
     }
   }
 }
@@ -428,6 +438,7 @@ unsigned getSearchMove(State s, const Hand h, const Hand hands[], const Hand dis
 
       unsigned maxAction;
       with_arena ar {
+        pthread_cleanup_push(arena_destroy_cb, ar);
         // Construct the initial children
         TurnInfo newTurn =
           nextTurn(turn, numPlayers, handSizes[(p + 1) % numPlayers] == 0,
@@ -446,6 +457,7 @@ unsigned getSearchMove(State s, const Hand h, const Hand hands[], const Hand dis
         // Perform playouts
         unsigned numPlayouts = 0;
         do {
+          // TODO: This is potentially inefficient, as it may take many tries to find a valid set of hands
           Hand trialPossibleDeck, trialDeck, trialPossibleHands[numPlayers], trialHands[numPlayers];
           memcpy(trialPossibleDeck, remaining, sizeof(Hand));
           bool validHands;
@@ -473,6 +485,7 @@ unsigned getSearchMove(State s, const Hand h, const Hand hands[], const Hand dis
               }
               memcpy(trialPossibleHands[p1], possibleHands[p1], sizeof(Hand));
             }
+            pthread_testcancel(); // This is a long-running task, allow cancellation at this point
           } while (!validHands);
           expand(playoutHand, depth, &t, trialPossibleDeck, trialDeck, trialPossibleHands, trialHands, ar);
           numPlayouts++;
@@ -504,6 +517,7 @@ unsigned getSearchMove(State s, const Hand h, const Hand hands[], const Hand dis
           }
           _ -> { assert(false); }
         }
+        pthread_cleanup_pop(0);
       }
       return maxAction;
     }

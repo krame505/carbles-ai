@@ -1,5 +1,6 @@
 #include <state.xh>
 #include <driver.xh>
+#include <pthread.h>
 #include <stdbool.h>
 #include <assert.h>
 
@@ -37,6 +38,7 @@ PlayerId playGame(
   PlayerId winner;
 
   with_arena ar {
+    pthread_cleanup_push(arena_destroy_cb, ar);
     State s = initialState(numPlayers, partners, ar);
     Hand deck = {0}, discard = {0};
     Hand hands[numPlayers];
@@ -92,6 +94,7 @@ PlayerId playGame(
     winner = getWinner(s);
     updateState(s);
     handleWin(winner);
+    pthread_cleanup_pop(0);
   }
   return winner;
 }

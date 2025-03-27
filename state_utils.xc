@@ -161,7 +161,10 @@ State copyState(State s, arena_t ar) {
   allocate_using arena ar;
   return match (s)
       (St(?&numPlayers, ?&partners, board, lot) ->
-       St(new var(numPlayers), new var(partners), copyMap(board, ar), copyMap(lot, ar));
+       St(
+        new var(numPlayers), new var(partners),
+        copyMap(board, copyPosition, NULL, ar),
+        copyMap(lot, NULL, NULL, ar));
       );
 }
 
@@ -332,29 +335,26 @@ unsigned deal(unsigned min, unsigned max, Hand deck, unsigned numPlayers, Hand h
   return handSize;
 }
 
-PlayerId ?copyPlayerId(PlayerId ?p, arena_t ar) {
-  allocate_using arena ar;
-  return new var(value(p));
-}
-
-Position ?copyPosition(Position ?p, arena_t ar) {
+Position copyPosition(Position p, arena_t ar) {
   allocate_using arena ar;
   return match (p)
-    (?&Out(?&i) -> new var(Out(new var(i)));
-     ?&Finish(p, ?&i) -> new var(Finish(copyPlayerId(p, ar), new var(i))););
+    (Out(?&i) -> Out(new var(i));
+     Finish(?&p, ?&i) -> Finish(new var(p), new var(i)););
 }
 
-Move ?copyMoveDirect(Move ?m, arena_t ar) {
+Move copyMove(Move m, arena_t ar) {
   allocate_using arena ar;
   return match (m)
-    (?&MoveOut(?&p) -> new var(MoveOut(new var(p)));
-     ?&MoveDirect(from, to) -> new var(MoveDirect(copyPosition(from, ar), copyPosition(to, ar)));
-     ?&Swap(a, b) -> new var(Swap(copyPosition(a, ar), copyPosition(b, ar))););
+    (MoveOut(?&p) -> MoveOut(new var(p));
+     MoveDirect(?&from, ?&to) ->
+      MoveDirect(new var(copyPosition(from, ar)), new var(copyPosition(to, ar)));
+     Swap(?&a, ?&b) -> Swap(new var(copyPosition(a, ar)), new var(copyPosition(b, ar))););
 }
 
 list<Move ?> ?copyMoves(list<Move ?> ?ms, arena_t ar) {
+  allocate_using arena ar;
   return match (ms)
-    (?&[h | t] -> cons(copyMoveDirect(h, ar), copyMoves(t, ar), ar);
+    (?&[?&h | t] -> cons(new var(copyMove(h, ar)), copyMoves(t, ar), ar);
      ?&[] -> nil<Move ?>(ar););
 }
 
