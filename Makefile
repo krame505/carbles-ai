@@ -19,8 +19,7 @@ VPATH=$(DRIVER_DIR):$(TARGET_DIR)
 # Flags to pass to the Silver compiler
 SVFLAGS?=
 # Extensions to depend on
-EXT_DEPS=ableC-allocation ableC-closure ableC-string ableC-templating ableC-constructor ableC-template-constructor\
-  ableC-vector ableC-algebraic-data-types ableC-template-algebraic-data-types ableC-unification ableC-prolog
+EXT_DEPS=ableC-allocation ableC-closure ableC-string ableC-templating ableC-constructor ableC-template-constructor ableC-vector ableC-algebraic-data-types ableC-template-algebraic-data-types ableC-unification ableC-prolog
 
 # The name of the jar file to build
 COMPILER_JAR_NAME=compiler.jar
