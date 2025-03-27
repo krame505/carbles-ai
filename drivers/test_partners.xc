@@ -2,7 +2,7 @@
 # ifdef DEBUG
 #  define NUM_THREADS 1
 # else
-#  define NUM_THREADS 8
+#  define NUM_THREADS 16
 # endif
 #endif
 
