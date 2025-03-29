@@ -204,9 +204,14 @@ string showActions(vector<Action> a, PlayerId p1, PlayerId p2, arena_t ar) {
 }
 
 size_t showHandMaxLen(const Hand h) {
-  size_t len = h[Joker] * 6;
-  for (Card c = A; c < CARD_MAX; c++) {
-    len += h[c] * 2;
+  size_t len = 0;
+  for (Card c = 0; c < CARD_MAX; c++) {
+    size_t cardStrLen = match (c) (
+      Joker -> 5;
+      10 -> 2;
+      _ -> 1;
+    );
+    len += h[c] * (cardStrLen + 1);
   }
   return len;
 }
@@ -214,16 +219,14 @@ size_t showHandMaxLen(const Hand h) {
 size_t showHand(char buf[], const Hand h) {
   size_t len = 0;
   for (Card c = 0; c < CARD_MAX; c++) {
-    for (unsigned i = 0; i < h[c]; i++) {
-      len += buildStr(buf + len, str(c) + " ");
-    }
+    len += buildStr(buf + len, (str(c) + " ") * h[c]);
   }
   return len;
 }
 
 string jsonPosition(Position ?p, arena_t ar) {
   allocate_using arena ar;
-  return show(show(value(p)));
+  return "\"" + show(value(p)) + "\"";
 }
 
 string jsonStatePosition(State s, Position pos, arena_t ar) {
@@ -270,7 +273,7 @@ string jsonState(State s, arena_t ar) {
 
 string jsonHand(const Hand h, arena_t ar) {
   allocate_using arena ar;
-  return show(show(h));
+  return "\"" + show(h) + "\"";
 }
 
 string jsonHands(unsigned numPlayers, const Hand hands[numPlayers], arena_t ar) {
