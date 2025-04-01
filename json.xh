@@ -1,0 +1,30 @@
+#include <string.xh>
+#include <vector.xh>
+#include <stdlib.h>
+
+#ifndef _JSON_XH
+#define _JSON_XH
+
+typedef datatype Json Json;
+typedef struct JsonItem JsonItem;
+
+datatype Json {
+  JsonNull();
+  JsonBool(_Bool b);
+  JsonInteger(long i);
+  JsonNumber(double f);
+  JsonString(string s);
+  JsonArray(vector<Json> a);
+  JsonObject(vector<JsonItem> o);
+};
+
+struct JsonItem {
+  string key;
+  Json value;
+};
+
+size_t showJsonMaxLen(Json j);
+size_t showJson(char buf[], Json j);
+show datatype Json with showJsonMaxLen, showJson;
+
+#endif

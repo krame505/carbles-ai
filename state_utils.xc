@@ -224,78 +224,60 @@ size_t showHand(char buf[], const Hand h) {
   return len;
 }
 
-string jsonPosition(Position ?p, arena_t ar) {
+JsonItem jsonStatePosition(State s, Position pos, arena_t ar) {
   allocate_using arena ar;
-  return "\"" + show(value(p)) + "\"";
+  return match (s) (
+    St(?&numPlayers, _, board, _) -> (JsonItem){
+      show(pos),
+      mapContains(board, pos)? JsonString(str(mapGet(board, pos))) : JsonNull()
+    };
+  );
 }
 
-string jsonStatePosition(State s, Position pos, arena_t ar) {
-  allocate_using arena ar;
-  match (s) {
-    St(?&numPlayers, _, board, _) -> {
-      if (mapContains(board, pos)) {
-        return jsonPosition(new var(pos), ar) + ": " + str(mapGet(board, pos));
-      } else {
-        return jsonPosition(new var(pos), ar) + ": null";
-      }
-    }
-  }
-}
-
-string jsonState(State s, arena_t ar) {
+Json jsonState(State s, arena_t ar) {
   allocate_using arena ar;
   match (s) {
     St(?&numPlayers, ?&partners, board, lot) -> {
-      string result =
-          "{\"numPlayers\": " + str(numPlayers) +
-          ", \"partners\": " + str(partners) +
-          ", \"board\": {";
+      vector<JsonItem> boardItems = {};
       for (PlayerId p = 0; p < numPlayers; p++) {
         for (unsigned i = 0; i < SECTOR_SIZE; i++) {
-          if (p || i) result += ", ";
-          result += jsonStatePosition(s, Out(new var(i + p * SECTOR_SIZE)), ar);
+          boardItems.append(jsonStatePosition(s, Out(new var(i + p * SECTOR_SIZE)), ar));
         }
         for (unsigned i = 0; i < NUM_PIECES; i++) {
-          result += ", ";
-          result += jsonStatePosition(s, Finish(new var(p), new var(i)), ar);
+          boardItems.append(jsonStatePosition(s, Finish(new var(p), new var(i)), ar));
         }
       }
-      result += "}, \"lot\": [";
+      vector<Json> lotItems = new vector<Json>(numPlayers);
       for (PlayerId p = 0; p < numPlayers; p++) {
-        if (p) result += ", ";
-        result += str(mapGet(lot, p));
+        lotItems[p] = JsonInteger(mapGet(lot, p));
       }
-      result += "]}";
-      return result;
+      vector<JsonItem> items = {
+        {"numPlayers", JsonInteger(numPlayers)},
+        {"partners", JsonBool(partners)},
+        {"board", JsonObject(boardItems)},
+        {"lot", JsonArray(lotItems)}
+      };
+      return JsonObject(items);
     }
   }
 }
 
-string jsonHand(const Hand h, arena_t ar) {
+Json jsonHands(unsigned numPlayers, const Hand hands[numPlayers], arena_t ar) {
   allocate_using arena ar;
-  return "\"" + show(h) + "\"";
-}
-
-string jsonHands(unsigned numPlayers, const Hand hands[numPlayers], arena_t ar) {
-  allocate_using arena ar;
-  string result = "[";
+  vector<Json> items = {};
   for (unsigned i = 0; i < numPlayers; i++) {
-    if (i) result += ", ";
-    result += jsonHand(hands[i], ar);
+    items.append(JsonString(show(hands[i])));
   }
-  result += "]";
-  return result;
+  return JsonArray(items);
 }
 
-string jsonActions(vector<Action> a, PlayerId p1, PlayerId p2, arena_t ar) {
+Json jsonActions(vector<Action> a, PlayerId p1, PlayerId p2, arena_t ar) {
   allocate_using arena ar;
-  string result = "[";
+  vector<Json> items = {};
   for (unsigned i = 0; i < a.size; i++) {
-    if (i) result += ", ";
-    result += show(showAction(a[i], p1, p2, ar));
+    items.append(JsonString(showAction(a[i], p1, p2, ar)));
   }
-  result += "]";
-  return result;
+  return JsonArray(items);
 }
 
 void initializeDeck(Hand h) {

@@ -4,6 +4,7 @@
 #include <prolog_utils.xh>
 #include <string.xh>
 #include <vector.xh>
+#include <json.xh>
 #include <stdlib.h>
 
 #ifndef _STATE_XH
@@ -99,11 +100,9 @@ string showActions(vector<Action> a, PlayerId p1, PlayerId p2, arena_t ar);
 Card getActionCard(Action);
 list<Move ?> ?getActionMoves(Action);
 
-string jsonPosition(Position ?p, arena_t);
-string jsonState(State s, arena_t);
-string jsonHand(const Hand h, arena_t);
-string jsonHands(unsigned numPlayers, const Hand hands[numPlayers], arena_t);
-string jsonActions(vector<Action> a, PlayerId p1, PlayerId p2, arena_t);
+Json jsonState(State s, arena_t);
+Json jsonHands(unsigned numPlayers, const Hand hands[numPlayers], arena_t);
+Json jsonActions(vector<Action> a, PlayerId p1, PlayerId p2, arena_t);
 
 Position copyPosition(Position, arena_t);
 Move copyMove(Move, arena_t);

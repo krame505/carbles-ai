@@ -225,17 +225,6 @@ static void pollNotify(void) {
   pthread_mutex_unlock(&notifyMutex);
 }
 
-static string jsonList(vector<string> v, arena_t ar) {
-  allocate_using arena ar;
-  string result = "[";
-  for (unsigned i = 0; i < v.size; i++) {
-    if (i) result += ", ";
-    result += show(v[i]);
-  }
-  result += "]";
-  return result;
-}
-
 static void initializeState(Room *room) {
   if (!room->gameInProgress) {
     room->state = initialState(room->numWeb + room->numAI + room->numRandom, room->partners, room->gameArena);
@@ -277,57 +266,50 @@ static void handleState(struct mg_connection *nc, struct mg_http_message *hm) {
         PlayerId partnerId = match(room->state)
           (St(?&numPlayers, ?&true, _, _) -> partner(numPlayers, conn->player);
           _ -> PLAYER_ID_NONE;);
-        vector<string> playersInRoom = {};
+        vector<Json> playersInRoom = {};
         query CS is (room->connections), mapContainsValue(CS, _, C) {
           allocate_using arena ar;
           PlayerConn *otherConn = value(C);
-          playersInRoom.append(otherConn->label + otherConn->name);
+          playersInRoom.append(JsonString(otherConn->label + otherConn->name));
           return false;
         };
-        vector<string> playersInGame;
-        vector<string> playerLabels;
-        if (room->gameInProgress) {
-          playersInGame = room->playerNames;
-          playerLabels = room->playerLabels;
-        } else {
-          match (room->state) {
-            St(?&numPlayers, _, _, _) -> {
-              playersInGame = new vector<string>(numPlayers);
-              playerLabels = new vector<string>(numPlayers);
-              for (PlayerId p = 0; p < numPlayers; p++) {
-                playersInGame[p] = "Player " + str(p + 1);
-                playerLabels[p] = "";
-              }
-            }
-          }
+        vector<Json> playersInGame = new vector<Json>(numPlayers(room->state));
+        vector<Json> playerLabels = new vector<Json>(numPlayers(room->state));
+        for (PlayerId p = 0; p < numPlayers(room->state); p++) {
+          playersInGame[p] = JsonString(
+            room->gameInProgress? room->playerNames[p] : "Player " + str(p + 1));
+          playerLabels[p] = JsonString(
+            room->gameInProgress? room->playerLabels[p] : str(""));
         }
 
         vector<Action> actions =
           room->actionsReady && conn->inGame && conn->player == room->turn?
           room->actions : vec<Action>[];
 
-        string result = "{" +
-          (room->gameInProgress?
-          "\"turn\": " + str(room->turn) +
-          (conn->inGame?
-            ", \"hand\": " + jsonHand(room->hands[conn->player], ar)
-            : str("")) +
-          (room->gameOpenHands?
-            ", \"hands\": " + jsonHands(playersInGame.size, room->hands, ar)
-            : str("")) +
-          ", "
-          : str("")) +
-          "\"board\": " + jsonState(room->state, ar) +
-          ", \"playersInRoom\": " + jsonList(playersInRoom, ar) +
-          ", \"aiPlayers\": " + str(room->numAI) +
-          ", \"randomPlayers\": " + str(room->numRandom) +
-          ", \"partners\": " + show(room->partners) +
-          ", \"openHands\": " + show(room->openHands) +
-          ", \"aiTime\": " + show(room->aiTime) +
-          ", \"playersInGame\": " + jsonList(playersInGame, ar) +
-          ", \"playerLabels\": " + jsonList(playerLabels, ar) +
-          ", \"id\": " + conn->player +
-          ", \"actions\": " + jsonActions(actions, conn->player, partnerId, ar) + "}";
+        vector<JsonItem> items = {
+          {"board", jsonState(room->state, ar)},
+          {"playersInRoom", JsonArray(playersInRoom)},
+          {"aiPlayers", JsonInteger(room->numAI)},
+          {"randomPlayers", JsonInteger(room->numRandom)},
+          {"partners", JsonBool(room->partners)},
+          {"openHands", JsonBool(room->openHands)},
+          {"aiTime", JsonInteger(room->aiTime)},
+          {"playersInGame", JsonArray(playersInGame)},
+          {"playerLabels", JsonArray(playerLabels)},
+          {"id", JsonInteger(conn->player)},
+          {"actions", jsonActions(actions, conn->player, partnerId, ar)}
+        };
+        if (room->gameInProgress) {
+          items.append((JsonItem){"turn", JsonInteger(room->turn)});
+          if (conn->inGame) {
+            items.append((JsonItem){"hand", JsonString(show(room->hands[conn->player]))});
+          }
+          if (room->gameOpenHands) {
+            items.append((JsonItem){"hands", jsonHands(playersInGame.size, room->hands, ar)});
+          }
+        }
+
+        string result = show(JsonObject(items));
         mg_http_reply(nc, 200, "", "%s", result.text);
       }
       return true;
