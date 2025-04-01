@@ -61,8 +61,12 @@ typedef datatype State State;
 string showState(State s, arena_t ar);
 State copyState(State s, arena_t ar);
 
-unsigned numPlayers(State);
-_Bool partners(State);
+static inline unsigned numPlayers(State s) {
+  return match (s) (St(?&n, _, _, _) -> n;);
+}
+static inline _Bool partners(State s) {
+  return match (s) (St(_, ?&p, _, _) -> p;);
+}
 
 enum Card {
   Joker, A,

@@ -7,14 +7,6 @@ PlayerId partner(unsigned numPlayers, PlayerId p) {
   return (p + numPlayers / 2) % numPlayers;
 }
 
-unsigned numPlayers(State s) {
-  return match (s) (St(?&n, _, _, _) -> n;);
-}
-
-bool partners(State s) {
-  return match (s) (St(_, ?&p, _, _) -> p;);
-}
-
 Card getActionCard(Action a) {
   return match (a) (Play(c, _) -> c; Burn(c) -> c;);
 }
