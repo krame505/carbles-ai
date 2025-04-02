@@ -1,4 +1,5 @@
 #include <json.xh>
+#include <stdbool.h>
 
 size_t showJsonMaxLen(Json j) {
   return match (j) (
@@ -74,4 +75,145 @@ size_t showJson(char buf[], Json j) {
       bufIndex;
     });
   );
+}
+
+static inline void skipWhitespace(string s, size_t *i) {
+  while (s[*i] == ' ' || s[*i] == '\n' || s[*i] == '\r' || s[*i] == '\t') {
+    (*i)++;
+  }
+}
+
+static Result<string> parseStringAt(string s, size_t *i, arena_t ar) {
+  allocate_using arena ar;
+  if (s[*i] != '"') {
+    return Err<string>("expected '\"' at index " + str(*i));
+  }
+  (*i)++;
+  size_t len = 0;
+  size_t j = *i;
+  while (s[j] != '"' && s[j] != '\0') {
+    if (s[j] == '\\') j++;
+    j++; len++;
+  }
+  char unescaped[len + 1];
+  j = 0;
+  while (s[*i] != '"') {
+    if (s[*i] == '\0') {
+      return Err<string>("unterminated string at index " + str(*i));
+    } else if (s[*i] == '\\') {
+      (*i)++;
+      switch (s[*i]) {
+      case 'n':
+        unescaped[j] = '\n';
+        break;
+      case 'r':
+        unescaped[j] = '\r';
+        break;
+      case 't':
+        unescaped[j] = '\t';
+        break;
+      case 'v':
+        unescaped[j] = '\v';
+        break;
+      case '\"':
+      case '\\':
+      case '?':
+        unescaped[j] = s[*i];
+        break;
+      default:
+        return Err<string>("unexpected escape sequence at index " + str(*i));
+      }
+    } else {
+      unescaped[j] = s[*i];
+    }
+    j++; (*i)++;
+  }
+  unescaped[j] = '\0';
+  (*i)++;
+  return Ok(str(unescaped));
+}
+
+// TODO: could use a regex extension here...
+static Result<Json> parseJsonAt(string s, size_t *i, arena_t ar) {
+  allocate_using arena ar;
+  long l; double d; int n; // for sscanf
+  skipWhitespace(s, i);
+  if (!strncmp(s.text + *i, "null", 4)) {
+    *i += 4;
+    return Ok(JsonNull());
+  } else if (!strncmp(s.text + *i, "true", 4)) {
+    *i += 4;
+    return Ok(JsonBool(true));
+  } else if (!strncmp(s.text + *i, "false", 5)) {
+    *i += 5;
+    return Ok(JsonBool(false));
+  } else if (s[*i] == '"') {
+    match (parseStringAt(s, i, ar)) {
+      Ok(s) -> { return Ok(JsonString(s)); }
+      Err(msg) -> { return Err<Json>(msg); }
+    }
+  } else if (s[*i] == '[') {
+    (*i)++;
+    vector<Json> items = {};
+    while (s[*i] != ']') {
+      match (parseJsonAt(s, i, ar)) {
+        Ok(item) -> { items.append(item); }
+        Err(msg) -> { return Err<Json>(msg); }
+      }
+      skipWhitespace(s, i);
+      if (s[*i] == ',') {
+        (*i)++;
+      } else if (s[*i] != ']') {
+        return Err<Json>("expected ',' or ']' at index " + str(*i));
+      }
+    }
+    (*i)++;
+    return Ok(JsonArray(items));
+  } else if (s[*i] == '{') {
+    (*i)++;
+    vector<JsonItem> items = {};
+    while (s[*i] != '}') {
+      skipWhitespace(s, i);
+      string key;
+      match (parseStringAt(s, i, ar)) {
+        Ok(k) -> { key = k; }
+        Err(msg) -> { return Err<Json>(msg); }
+      }
+      skipWhitespace(s, i);
+      if (s[*i] != ':') {
+        return Err<Json>("expected ':' at index " + str(*i));
+      }
+      (*i)++;
+      match (parseJsonAt(s, i, ar)) {
+        Ok(value) -> { items.append((JsonItem){key, value}); }
+        Err(msg) -> { return Err<Json>(msg); }
+      }
+      skipWhitespace(s, i);
+      if (s[*i] == ',') {
+        (*i)++;
+      } else if (s[*i] != '}') {
+        return Err<Json>("expected ',' or '}' at index " + str(*i));
+      }
+    }
+    (*i)++;
+    return Ok(JsonObject(items));
+  } else if (sscanf(s.text + *i, "%ld%n", &l, &n)) {
+    *i += n;
+    return Ok(JsonInteger(l));
+  } else if (sscanf(s.text + *i, "%lf%n", &d, &n)) {
+    *i += n;
+    return Ok(JsonNumber(n));
+  } else {
+    return Err<Json>("unexpected character at index " + str(*i));
+  }
+}
+
+Result<Json> parseJson(string s, arena_t ar) {
+  allocate_using arena ar;
+  size_t i = 0;
+  Result<Json> result = parseJsonAt(s, &i, ar);
+  if (i < s.length) {
+    return Err<Json>("trailing characters at index " + str(i));
+  }
+  return result;
 }

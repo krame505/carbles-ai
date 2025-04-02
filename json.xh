@@ -5,6 +5,13 @@
 #ifndef _JSON_XH
 #define _JSON_XH
 
+// TODO: belongs in a more general library
+template <typename T>
+datatype Result {
+  Ok(T value);
+  Err(string msg);
+};
+
 typedef datatype Json Json;
 typedef struct JsonItem JsonItem;
 
@@ -26,5 +33,7 @@ struct JsonItem {
 size_t showJsonMaxLen(Json j);
 size_t showJson(char buf[], Json j);
 show datatype Json with showJsonMaxLen, showJson;
+
+Result<Json> parseJson(string s, arena_t ar);
 
 #endif
