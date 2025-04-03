@@ -158,54 +158,54 @@ function reloadState() {
     reloadPending = true
     console.log("Reloading state")
     $.ajax({url: `state.json?room=${room}&id=${id}`, cache: false, timeout: 3000}).done(
-	function (s) {
-	  reloadPending = false
-	  state = JSON.parse(s)
-	  console.log("Got state", state)
-	  playersInGame = state.playersInGame
-	  started = state.turn != null
-	  if (started) {
-            turn.innerHTML = `${playersInGame[state.turn]}'s turn`
-	    if ('hand' in state) {
-              hand.innerHTML = "Current hand: " + state.hand
-	    } else {
-              hand.innerHTML = ""
-	    }
-	    if ('hands' in state) {
-	      for (p = 0; p < state.board.numPlayers; p++) {
-		if (p != state.id) {
-		  hand.innerHTML += `<br><span style="color: ${getColor(p)};">${playersInGame[p]}</span>'s hand: ` + state.hands[p]
-		}
-	      }
-	    }
-            turn.style.color = getColor(state.turn)
-            startEndGame.innerHTML = "End Game"
-	  } else {
-            turn.innerHTML = ""
+      function (s) {
+        reloadPending = false
+        state = JSON.parse(s)
+        console.log("Got state", state)
+        playersInGame = state.playersInGame
+        started = state.turn != null
+        if (started) {
+          turn.innerHTML = `${playersInGame[state.turn]}'s turn`
+          if ('hand' in state) {
+            hand.innerHTML = "Current hand: " + state.hand
+          } else {
             hand.innerHTML = ""
-            startEndGame.innerHTML = "Start Game"
-	  }
-	  playersInRoom.innerHTML = ""
-	  state.playersInRoom.forEach(
-              function (p, i) {
-		playersInRoom.innerHTML += (i? ",  " : "") + p
-              })
-	  aiPlayers.value = state.aiPlayers
-	  randomPlayers.value = state.randomPlayers
-	  partners.checked = state.partners
-	  openHands.checked = state.openHands
-          aiTime.value = state.aiTime
-	  actions.innerHTML = ""
-	  state.actions.forEach(
-	      function (a, i) {
-		actions.innerHTML +=
-		    `<li><a href="javascript:void(0);" onclick="sendAction(${i})" class="action">${a}</a></li>`
-	      })
-	  updateBoard(state.board, state.playerLabels)
-	}).fail(function () {
-	  reloadPending = false
-	  console.log("Failed to reload state")
-	})
+          }
+          if ('hands' in state) {
+            for (p = 0; p < state.board.numPlayers; p++) {
+              if (p != state.id) {
+                hand.innerHTML += `<br><span style="color: ${getColor(p)};">${playersInGame[p]}</span>'s hand: ` + state.hands[p]
+              }
+            }
+          }
+          turn.style.color = getColor(state.turn)
+          startEndGame.innerHTML = "End Game"
+        } else {
+          turn.innerHTML = ""
+          hand.innerHTML = ""
+          startEndGame.innerHTML = "Start Game"
+        }
+        playersInRoom.innerHTML = ""
+        state.playersInRoom.forEach(
+          function (p, i) {
+            playersInRoom.innerHTML += (i? ",  " : "") + p
+          })
+        aiPlayers.value = state.aiPlayers
+        randomPlayers.value = state.randomPlayers
+        partners.checked = state.partners
+        openHands.checked = state.openHands
+        aiTime.value = state.aiTime
+        actions.innerHTML = ""
+        state.actions.forEach(
+          function (a, i) {
+            actions.innerHTML +=
+              `<li><a href="javascript:void(0);" onclick="sendAction(${i})" class="action">${a}</a></li>`
+          })
+        updateBoard(state.board, state.playerLabels)
+      }).fail(function () {
+        reloadPending = false
+        console.log("Failed to reload state")
+      })
   }
 }
 
@@ -241,10 +241,10 @@ function connect() {
       actions.innerHTML = ""
     } else if (msg.room == room) {
       if (msg.content) {
-	addMessage(msg.id, msg.name, msg.chat, msg.content)
+        addMessage(msg.id, msg.name, msg.chat, msg.content)
       }
       if (msg.reload) {
-	reloadState()
+        reloadState()
       }
     }
   }
