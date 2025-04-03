@@ -10,6 +10,7 @@ prolog {
   seqAdvance(State, PlayerId, Position ?, unsigned, list<Move ?> ?);
   splitAdvance(State, PlayerId, list<Position ?>, unsigned, list<Move ?>, list<Move ?> ?);
 
+  card(Card ?);
   directCard(Card ?);
   moveOutCard(Card ?);
   partnerMoveOutCard(Card ?);
@@ -19,9 +20,6 @@ prolog {
 
   isFinished(Board, PlayerId);
   isWon(State, PlayerId ?);
-
-  // Use unsigned version of between
-#define between(A, B, C) betweenU(A, B, C)
 
 #include "state.pl"
 
@@ -47,20 +45,15 @@ vector<list<Move ?> ?> getCardMoves(State s, PlayerId p, Card c, arena_t ar) {
 vector<Action> getActions(State s, PlayerId p, const Hand h, arena_t ar) {
   allocate_using arena ar;
   vector<Action> result = new vector<Action>();
-  for (Card c = 0; c < CARD_MAX; c++) {
-    if (h[c]) {
-      query S is s, P is p, C is c, cardMoves(S, P, C, MS) {
-        result.append(Play(c, copyMoves(MS, ar)));
-        return false;
-      };
-    }
-  }
+  query S is s, P is p, card(C), (h[C]) > 0, cardMoves(S, P, C, MS) {
+    result.append(Play(value(C), copyMoves(MS, ar)));
+    return false;
+  };
   if (result.size == 0) {
-    for (Card c = 0; c < CARD_MAX; c++) {
-      if (h[c]) {
-        result.append(Burn(c));
-      }
-    }
+    query S is s, card(C), (h[C]) > 0 {
+      result.append(Burn(value(C)));
+      return false;
+    };
   }
   return result;
 }

@@ -18,14 +18,14 @@ unsigned getPlayerHeuristicValue(State s, PlayerId p) {
     St(?&numPlayers, ?&partners, board, lot) -> {
       unsigned homeIndex = p * SECTOR_SIZE;
       unsigned boardSize = numPlayers * SECTOR_SIZE;
-      query B is board, P is p, MAX_PIECE is ((unsigned)(NUM_PIECES - 1)),
-            betweenU(0, MAX_PIECE, N), mapContains(B, Finish(P, N), P) {
+      query B is board, P is p, MAX_PIECE is (NUM_PIECES - 1),
+            between(0u, MAX_PIECE, N), mapContains(B, Finish(P, N), P) {
         *result += FINISH_WEIGHT;
         return false;
       };
-      query B is board, P is p, MAX_PIECE is ((unsigned)(NUM_PIECES - 1)),
-            betweenU(0, MAX_PIECE, N), mapContains(B, Finish(P, N), P),
-            betweenU(N, MAX_PIECE, M), \+ mapContains(B, Finish(P, M), P) {
+      query B is board, P is p, MAX_PIECE is (NUM_PIECES - 1),
+            between(0u, MAX_PIECE, N), mapContains(B, Finish(P, N), P),
+            between(N, MAX_PIECE, M), \+ mapContains(B, Finish(P, M), P) {
         *result -= FINISH_GAP_WEIGHT;
         return false;
       };
