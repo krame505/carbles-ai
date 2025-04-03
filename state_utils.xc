@@ -216,33 +216,21 @@ size_t showHand(char buf[], const Hand h) {
   return len;
 }
 
-JsonItem jsonStatePosition(State s, Position pos, arena_t ar) {
-  allocate_using arena ar;
-  return match (s) (
-    St(?&numPlayers, _, board, _) -> (JsonItem){
-      show(pos),
-      mapContains(board, pos)? JsonString(str(mapGet(board, pos))) : JsonNull()
-    };
-  );
-}
-
 Json jsonState(State s, arena_t ar) {
   allocate_using arena ar;
   match (s) {
     St(?&numPlayers, ?&partners, board, lot) -> {
       vector<JsonItem> boardItems = {};
-      for (PlayerId p = 0; p < numPlayers; p++) {
-        for (unsigned i = 0; i < SECTOR_SIZE; i++) {
-          boardItems.append(jsonStatePosition(s, Out(new var(i + p * SECTOR_SIZE)), ar));
-        }
-        for (unsigned i = 0; i < NUM_PIECES; i++) {
-          boardItems.append(jsonStatePosition(s, Finish(new var(p), new var(i)), ar));
-        }
-      }
+      query B is board, mapContainsValue(B, Pos, P) {
+        allocate_using arena ar;
+        boardItems.append((JsonItem){show(Pos), JsonInteger(value(P))});
+        return false;
+      };
       vector<Json> lotItems = new vector<Json>(numPlayers);
-      for (PlayerId p = 0; p < numPlayers; p++) {
-        lotItems[p] = JsonInteger(mapGet(lot, p));
-      }
+      query L is lot, mapContainsValue(L, P, N) {
+        lotItems[value(P)] = JsonInteger(value(N));
+        return false;
+      };
       vector<JsonItem> items = {
         {"numPlayers", JsonInteger(numPlayers)},
         {"partners", JsonBool(partners)},
