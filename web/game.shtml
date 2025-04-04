@@ -3,11 +3,11 @@
   <head>
     <meta charset='utf-8'>
     <meta content='width=device-width, initial-scale=1' name='viewport'>
-    <link rel="stylesheet" media="all" href="main.css">
-    <link rel="stylesheet" type="text/css" href="emoji.css"/>
+    <link rel="stylesheet" media="all" href="main.css" asp-append-version="true">
+    <link rel="stylesheet" type="text/css" href="emoji.css" asp-append-version="true"/>
     <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
-    <script src="emoji.js"></script>
-    <script src="app.js"></script>
+    <script src="emoji.js" asp-append-version="true"></script>
+    <script src="app.js" asp-append-version="true"></script>
 
     <title>Carbles Online</title>
   </head>
