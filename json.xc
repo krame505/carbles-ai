@@ -217,3 +217,17 @@ Result<Json> parseJson(string s, arena_t ar) {
   }
   return result;
 }
+
+Json getJsonField(Json j, string key) {
+  match (j) {
+    JsonObject(items) -> {
+      for (size_t i = 0; i < items.size; i++) {
+        if (items[i].key == key) {
+          return items[i].value;
+        }
+      }
+      return JsonNull();
+    }
+    _ -> { return JsonNull(); }
+  }
+}

@@ -36,6 +36,10 @@ var playersInGame = []
 
 var ws = null
 
+function wsSend(msg) {
+  ws.send(JSON.stringify(msg))
+}
+
 function partner(numPlayers, p) {
   return (p + Math.floor(numPlayers / 2)) % numPlayers
 }
@@ -250,7 +254,7 @@ function connect() {
   }
   ws.onopen = function(e) {
     console.log("Joining room")
-    ws.send(`join:${room}:${id}:${name}`)
+    wsSend({type: "register", room: room, id: id, name: name})
     reconnectInterval = 1
   }
   ws.onclose = function(e) {
@@ -305,14 +309,15 @@ function handleChat() {
 
 function sendAction(i) {
   console.log("Sending action", i)
-  ws.send(`action:${i}`)
+  wsSend({type: "action", action: i})
 }
 
 function sendChat(msg) {
-  ws.send(`chat:${msg}`)
+  console.log("Sending chat", i)
+  wsSend({type: "chat", content: msg})
 }
 
 function updateLabel(e) {
   console.log("Setting label to", e)
-  ws.send(`label:${e}`)
+  wsSend({type: "label", label: e})
 }

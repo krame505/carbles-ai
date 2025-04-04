@@ -170,21 +170,24 @@ static void notify(
     string roomId, PlayerId p, string name, bool chat, bool reload,
     string msg) {
   allocate_using stack;
-  string encoded =
-      "{\"room\": " + show(roomId) +
-      (p < MAX_PLAYERS? ", \"id\": " + show(p) : str("")) +
-      ", \"name\": " + show(name) +
-      ", \"chat\": " + show(chat) +
-      ", \"reload\": " + show(reload) +
-      ", \"content\": " + show(msg) +
-      "}";
-  // logmsg("Sending notification to room %s: %s", roomId.text, encoded.text);
-  for (struct mg_connection *nc = mgr.conns; nc != NULL; nc = nc->next) {
-    query RID is roomId, RS is rooms, mapContains(RS, RID, R),
-      SP is (R->socketPlayers), NC is ((SocketId)nc), mapContains(SP, NC, _) {
-      mg_ws_send(nc, encoded.text, encoded.length, WEBSOCKET_OP_TEXT);
-      return false;
+  with_arena ar {
+    vector<JsonItem> items = {
+      {"room", JsonString(roomId)},
+      {"id", p < MAX_PLAYERS? JsonInteger(p) : JsonNull()},
+      {"name", JsonString(name)},
+      {"chat", JsonBool(chat)},
+      {"reload", JsonBool(reload)},
+      {"content", JsonString(msg)}
     };
+    string encoded = show(JsonObject(items));
+    // logmsg("Sending notification to room %s: %s", roomId.text, encoded.text);
+    for (struct mg_connection *nc = mgr.conns; nc != NULL; nc = nc->next) {
+      query RID is roomId, RS is rooms, mapContains(RS, RID, R),
+        SP is (R->socketPlayers), NC is ((SocketId)nc), mapContains(SP, NC, _) {
+        mg_ws_send(nc, encoded.text, encoded.length, WEBSOCKET_OP_TEXT);
+        return false;
+      };
+    }
   }
 }
 
@@ -232,16 +235,19 @@ static void initializeState(Room *room) {
 }
 
 static void handleStats(struct mg_connection *nc, struct mg_http_message *hm) {
-  allocate_using stack;
   // Generate and send response
   size_t numUsers = mapSize(users), numActiveUsers = mapSize(activeUsers);
-  string result = str("{") +
-    "\"startTime\": " + show(str(startTime)) +
-    ", \"games\": " + numGames +
-    ", \"activeGames\": " + numActiveGames +
-    ", \"users\": " + numUsers +
-    ", \"activeUsers\": " + numActiveUsers + "}";
-  mg_http_reply(nc, 200, "", "%s", result.text);
+  with_arena ar {
+    vector<JsonItem> items = {
+      {"startTime", JsonString(str(startTime))},
+      {"games", JsonInteger(numGames)},
+      {"activeGames", JsonInteger(numActiveGames)},
+      {"users", JsonInteger(numUsers)},
+      {"activeUsers", JsonInteger(numActiveUsers)}
+    };
+    string result = show(JsonObject(items));
+    mg_http_reply(nc, 200, "", "%s", result.text);
+  }
 }
 
 static void handleState(struct mg_connection *nc, struct mg_http_message *hm) {
@@ -562,173 +568,188 @@ static void httpHandler(struct mg_connection *nc, int ev, struct mg_http_message
   }
 }
 
-static void handleRegister(struct mg_connection *nc, const char *data, size_t size) {
+static void handleRegister(struct mg_connection *nc, Json msg) {
   allocate_using stack;
-  char roomId_s[MAX_ROOM_ID + 1], connId_s[MAX_CONN_ID + 1], name_s[MAX_NAME + 1];
-  if (sscanf(data, "join:%"STRINGIFY_MACRO(MAX_ROOM_ID)"[^:]:%"STRINGIFY_MACRO(MAX_CONN_ID)"[^:]:%"STRINGIFY_MACRO(MAX_NAME)"[^\n]", roomId_s, connId_s, name_s) == 3) {
-    string roomId = roomId_s, connId = connId_s, name = name_s;
-    char addr[MAX_IP_ADDR];
-    mg_ntoa(&nc->rem, addr, sizeof(addr));
-    logmsg("Registering %s (%s@%s) to %s", connId_s, name_s, addr, roomId_s);
+  match (getJsonField(msg, str("room")), getJsonField(msg, str("id")), getJsonField(msg, str("name"))) {
+    JsonString(roomId), JsonString(connId), JsonString(name) -> {
+      char addr[MAX_IP_ADDR];
+      mg_ntoa(&nc->rem, addr, sizeof(addr));
+      logmsg("Registering %s (%s@%s) to %s", connId.text, name.text, addr, roomId.text);
 
-    // Create the room if needed
-    if (!mapContains(rooms, roomId)) {
-      createRoom(roomId);
-    }
-    Room *room = mapGet(rooms, roomId);
-    pthread_mutex_lock(&room->mutex);
-
-    // Add the connection to the global map
-    mapInsertMut(socketRooms, (SocketId)nc, room->id);
-
-    PlayerConn *conn = NULL;
-    if (mapContains(room->connections, connId)) {
-      // The player is already in the room
-      conn = mapGet(room->connections, connId);
-      if (conn->socket != (SocketId)nc) {
-        logmsg("Player %s already in room, rejoined from a different socket", connId_s);
-
-        // Send a notification to the current tab, but leave the socket open to avoid attempting to reconnect
-        string disconnectMsg = "{\"disconnect\": true}";
-        mg_ws_send((struct mg_connection *)conn->socket, disconnectMsg.text, disconnectMsg.length, WEBSOCKET_OP_TEXT);
-
-        // Update the connection
-        if (mapContains(socketRooms, conn->socket)) {
-          mapDeleteMut(socketRooms, conn->socket);
-        }
-        if (mapContains(room->socketPlayers, conn->socket)) {
-          mapDeleteMut(room->socketPlayers, conn->socket);
-        }
-        mapInsertMut(room->socketPlayers, (SocketId)nc, conn->id);
-        conn->socket = (SocketId)nc;
-      } else {
-        logmsg("Player %s already in room, rejoined from the same socket", connId_s);
+      // Create the room if needed
+      if (!mapContains(rooms, roomId)) {
+        createRoom(roomId);
       }
-      notify(roomId, -1, str(""), false, true, str(""));
-    } else {
-      if (mapContains(room->droppedConnections, connId)) {
-        // The player is rejoining after having dropped
-        logmsg("Player %s rejoined after leaving", connId_s);
-        conn = mapGet(room->droppedConnections, connId);
-        mapDeleteMut(room->droppedConnections, connId);
-        conn->socket = (SocketId)nc;
-        if (name.length && name != conn->name) {
+      Room *room = mapGet(rooms, roomId);
+      pthread_mutex_lock(&room->mutex);
+
+      // Add the connection to the global map
+      mapInsertMut(socketRooms, (SocketId)nc, room->id);
+
+      PlayerConn *conn = NULL;
+      if (mapContains(room->connections, connId)) {
+        // The player is already in the room
+        conn = mapGet(room->connections, connId);
+        if (conn->socket != (SocketId)nc) {
+          logmsg("Player %s already in room, rejoined from a different socket", connId.text);
+
+          // Send a notification to the current tab, but leave the socket open to avoid attempting to reconnect
+          string disconnectMsg = "{\"disconnect\": true}";
+          mg_ws_send((struct mg_connection *)conn->socket, disconnectMsg.text, disconnectMsg.length, WEBSOCKET_OP_TEXT);
+
+          // Update the connection
+          if (mapContains(socketRooms, conn->socket)) {
+            mapDeleteMut(socketRooms, conn->socket);
+          }
+          if (mapContains(room->socketPlayers, conn->socket)) {
+            mapDeleteMut(room->socketPlayers, conn->socket);
+          }
+          mapInsertMut(room->socketPlayers, (SocketId)nc, conn->id);
+          conn->socket = (SocketId)nc;
+        } else {
+          logmsg("Player %s already in room, rejoined from the same socket", connId.text);
+        }
+        notify(roomId, -1, str(""), false, true, str(""));
+      } else {
+        if (mapContains(room->droppedConnections, connId)) {
+          // The player is rejoining after having dropped
+          logmsg("Player %s rejoined after leaving", connId.text);
+          conn = mapGet(room->droppedConnections, connId);
+          mapDeleteMut(room->droppedConnections, connId);
+          conn->socket = (SocketId)nc;
+          if (name.length && name != conn->name) {
+            allocate_using arena globalArena;
+            conn->name = name.copy();
+          }
+        } else {
+          // The player is initially joining, add them
+          logmsg("Player %s newly joined", connId.text);
           allocate_using arena globalArena;
-          conn->name = name.copy();
+          string globalConnId = connId.copy();
+          conn = allocate(sizeof(PlayerConn));
+          *conn = (PlayerConn){
+            globalConnId, false, (SocketId)nc, 0, 0,
+            name.length? name.copy() : globalConnId,
+            str("")
+          };
         }
-      } else {
-        // The player is initially joining, add them
-        logmsg("Player %s newly joined", connId_s);
-        allocate_using arena globalArena;
-        string connId = connId_s;
-        conn = allocate(sizeof(PlayerConn));
-        *conn = (PlayerConn){
-          connId, false, (SocketId)nc, 0, 0,
-          name.length? name.copy() : connId,
-          str("")
-        };
-      }
-      if (name.length && room->gameInProgress && conn->inGame) {
-        allocate_using arena room->gameArena;
-        room->playerNames[conn->player] = conn->label + conn->name;
-      }
-      mapInsertMut(room->connections, conn->id, conn);
-      mapInsertMut(room->socketPlayers, (SocketId)nc, conn->id);
-      room->numWeb++;
-      logmsg("Room has %d players", room->numWeb);
+        if (name.length && room->gameInProgress && conn->inGame) {
+          allocate_using arena room->gameArena;
+          room->playerNames[conn->player] = conn->label + conn->name;
+        }
+        mapInsertMut(room->connections, conn->id, conn);
+        mapInsertMut(room->socketPlayers, (SocketId)nc, conn->id);
+        room->numWeb++;
+        logmsg("Room has %d players", room->numWeb);
 
-      initializeState(room);
-      notify(roomId, -1, str(""), false, true, name + " joined");
+        initializeState(room);
+        notify(roomId, -1, str(""), false, true, name + " joined");
 
-      pthread_mutex_lock(&globalMutex);
-      if (!mapContains(users, connId)) {
-        mapInsertMut(users, conn->id, 1);
-        FILE *usersOut = fopen(usersFile, "a");
-        fprintf(usersOut, "%s: %s\n", connId_s, name_s);
-        fclose(usersOut);
-      } else {
-        mapInsertMut(users, conn->id, mapGet(users, connId) + 1);
+        pthread_mutex_lock(&globalMutex);
+        if (!mapContains(users, connId)) {
+          mapInsertMut(users, conn->id, 1);
+          FILE *usersOut = fopen(usersFile, "a");
+          fprintf(usersOut, "%s: %s\n", connId.text, name.text);
+          fclose(usersOut);
+        } else {
+          mapInsertMut(users, conn->id, mapGet(users, connId) + 1);
+        }
+        if (!mapContains(activeUsers, connId)) {
+          mapInsertMut(activeUsers, conn->id, 1);
+        } else {
+          mapInsertMut(activeUsers, conn->id, mapGet(activeUsers, connId) + 1);
+        }
+        pthread_mutex_unlock(&globalMutex);
       }
-      if (!mapContains(activeUsers, connId)) {
-        mapInsertMut(activeUsers, conn->id, 1);
-      } else {
-        mapInsertMut(activeUsers, conn->id, mapGet(activeUsers, connId) + 1);
-      }
-      pthread_mutex_unlock(&globalMutex);
+
+      pthread_mutex_unlock(&room->mutex);
     }
-
-    pthread_mutex_unlock(&room->mutex);
-  }
-}
-
-static void handleAction(struct mg_connection *nc, const char *data, size_t size) {
-  // Get form variables
-  unsigned a;
-  if (sscanf(data, "action:%u", &a) == 1) {
-    query NC is ((SocketId)nc), SRS is socketRooms, mapContains(SRS, NC, RID),
-          RS is rooms, mapContains(RS, RID, R),
-          initially { pthread_mutex_lock(&R->mutex); },
-          finally   { pthread_mutex_unlock(&R->mutex); },
-          SPS is (R->socketPlayers), mapContains(SPS, NC, CID),
-          CS is (R->connections), mapContains(CS, CID, C) {
-      Room *room = value(R);
-      PlayerConn *conn = value(C);
-      if (room->gameInProgress && conn->player == room->turn) {
-        // Record the action and wake up the driver thread
-        room->action = a;
-        room->actionReady = true;
-        pthread_cond_signal(&room->cv);
-
-        // Update the game timeout
-        room->timeoutTimer->expire = mg_millis() + 1000 * GAME_TIMEOUT;
-      }
-    };
-  }
-}
-
-static void handleChat(struct mg_connection *nc, const char *data, size_t size) {
-  allocate_using stack;
-  char msg_s[size];
-  if (sscanf(data, "chat:%[^\n]", msg_s) == 1) {
-    string msg = msg_s;
-    query NC is ((SocketId)nc), SRS is socketRooms, mapContains(SRS, NC, RID),
-          RS is rooms, mapContains(RS, RID, R),
-          initially { pthread_mutex_lock(&R->mutex); },
-          finally   { pthread_mutex_unlock(&R->mutex); },
-          SPS is (R->socketPlayers), mapContains(SPS, NC, CID),
-          CS is (R->connections), mapContains(CS, CID, C) {
-      string roomId = value(RID);
-      PlayerConn *conn = value(C);
-      notify(roomId, conn->player, conn->label + conn->name, true, false, msg);
-    };
-  }
-}
-
-static void handleLabel(struct mg_connection *nc, const char *data, size_t size) {
-  char label_s[MAX_LABEL + 1] = {0};
-  sscanf(data, "label:%"STRINGIFY_MACRO(MAX_LABEL)"[^\n]", label_s); // Unchecked since label can be empty
-
-  query NC is ((SocketId)nc), SRS is socketRooms, mapContains(SRS, NC, RID),
-        RS is rooms, mapContains(RS, RID, R),
-        initially { pthread_mutex_lock(&R->mutex); },
-        finally   { pthread_mutex_unlock(&R->mutex); },
-        SPS is (R->socketPlayers), mapContains(SPS, NC, CID),
-        CS is (R->connections), mapContains(CS, CID, C) {
-    string roomId = value(RID);
-    Room *room = value(R);
-    PlayerConn *conn = value(C);
-    string oldLabel = conn->label;
-    {
-      allocate_using arena globalArena;
-      conn->label = str(label_s);
+    _, _, _ -> {
+      logmsg("Bad register message: %s", show(msg).text);
     }
-    if (room->gameInProgress && conn->inGame) {
-      allocate_using arena room->gameArena;
-      room->playerNames[conn->player] = conn->label + conn->name;
-      room->playerLabels[conn->player] = conn->label;
-    }
-    notify(roomId, -1, str(""), false, true, oldLabel + conn->name + " is now " + conn->label + conn->name);
   };
+}
+
+static void handleAction(struct mg_connection *nc, Json msg) {
+  match (getJsonField(msg, str("action"))) {
+    JsonInteger(a) -> {
+      query NC is ((SocketId)nc), SRS is socketRooms, mapContains(SRS, NC, RID),
+            RS is rooms, mapContains(RS, RID, R),
+            initially { pthread_mutex_lock(&R->mutex); },
+            finally   { pthread_mutex_unlock(&R->mutex); },
+            SPS is (R->socketPlayers), mapContains(SPS, NC, CID),
+            CS is (R->connections), mapContains(CS, CID, C) {
+        Room *room = value(R);
+        PlayerConn *conn = value(C);
+        if (room->gameInProgress && conn->player == room->turn) {
+          // Record the action and wake up the driver thread
+          room->action = a;
+          room->actionReady = true;
+          pthread_cond_signal(&room->cv);
+
+          // Update the game timeout
+          room->timeoutTimer->expire = mg_millis() + 1000 * GAME_TIMEOUT;
+        }
+      };
+    }
+    _ -> {
+      allocate_using stack;
+      logmsg("Bad action message: %s", show(msg).text);
+    }
+  }
+}
+
+static void handleChat(struct mg_connection *nc, Json msg) {
+  match (getJsonField(msg, str("content"))) {
+    JsonString(content) -> {
+      query NC is ((SocketId)nc), SRS is socketRooms, mapContains(SRS, NC, RID),
+            RS is rooms, mapContains(RS, RID, R),
+            initially { pthread_mutex_lock(&R->mutex); },
+            finally   { pthread_mutex_unlock(&R->mutex); },
+            SPS is (R->socketPlayers), mapContains(SPS, NC, CID),
+            CS is (R->connections), mapContains(CS, CID, C) {
+        string roomId = value(RID);
+        PlayerConn *conn = value(C);
+        notify(roomId, conn->player, conn->label + conn->name, true, false, content);
+      };
+    }
+    _ -> {
+      allocate_using stack;
+      logmsg("Bad chat message: %s", show(msg).text);
+    }
+  }
+}
+
+static void handleLabel(struct mg_connection *nc, Json msg) {
+  match (getJsonField(msg, str("label"))) {
+    JsonString(label) -> {
+      query NC is ((SocketId)nc), SRS is socketRooms, mapContains(SRS, NC, RID),
+            RS is rooms, mapContains(RS, RID, R),
+            initially { pthread_mutex_lock(&R->mutex); },
+            finally   { pthread_mutex_unlock(&R->mutex); },
+            SPS is (R->socketPlayers), mapContains(SPS, NC, CID),
+            CS is (R->connections), mapContains(CS, CID, C) {
+        string roomId = value(RID);
+        Room *room = value(R);
+        PlayerConn *conn = value(C);
+        string oldLabel = conn->label;
+        {
+          allocate_using arena globalArena;
+          conn->label = label.copy();
+        }
+        if (room->gameInProgress && conn->inGame) {
+          allocate_using arena room->gameArena;
+          room->playerNames[conn->player] = conn->label + conn->name;
+          room->playerLabels[conn->player] = conn->label;
+        }
+        notify(roomId, -1, str(""), false, true, oldLabel + conn->name + " is now " + conn->label + conn->name);
+      };
+    }
+    _ -> {
+      allocate_using stack;
+      logmsg("Bad label message: %s", show(msg).text);
+    }
+  }
 }
 
 static void websocketHandler(struct mg_connection *nc, int ev, struct mg_ws_message *wm) {
@@ -739,17 +760,35 @@ static void websocketHandler(struct mg_connection *nc, int ev, struct mg_ws_mess
   memcpy(data, wm->data.ptr, size);
   data[size] = 0;
 
-  // Dispatch to the appropriate handler
-  if (!strncmp(wm->data.ptr, "join", 4)) {
-    handleRegister(nc, data, size);
-  } else if (!strncmp(wm->data.ptr, "chat", 4)) {
-    handleChat(nc, data, size);
-  } else if (!strncmp(wm->data.ptr, "label", 5)) {
-    handleLabel(nc, data, size);
-  } else if (!strncmp(wm->data.ptr, "action", 5)) {
-    handleAction(nc, data, size);
-  } else {
-    logmsg("Bad websocket message: %s\n", wm->data.ptr);
+  with_arena ar {
+    // Parse the message
+    match (parseJson(str(data), ar)) {
+      Ok(msg) -> {
+        //logmsg("Received websocket message: %s", show(msg).text);
+        match (getJsonField(msg, str("type"))) {
+          JsonString(type) -> {
+            // Dispatch to the appropriate handler
+            if (type == "register") {
+              handleRegister(nc, msg);
+            } else if (type == "chat") {
+              handleChat(nc, msg);
+            } else if (type == "label") {
+              handleLabel(nc, msg);
+            } else if (type == "action") {
+              handleAction(nc, msg);
+            } else {
+              logmsg("Bad websocket message type: %s\n", show(msg).text);
+            }
+          }
+          JsonNull() -> {
+            logmsg("Bad websocket message: %s\n", show(msg).text);
+          }
+        }
+      }
+      Err(msg) -> {
+        logmsg("Failed to parse websocket message %s: %s\n", data, msg.text);
+      }
+    }
   }
 }
 

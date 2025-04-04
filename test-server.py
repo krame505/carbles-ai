@@ -14,8 +14,10 @@ host = 'localhost:8000' if len(sys.argv) < 2 else sys.argv[1]
 def join(room, user):
     print("Joining", room, "with", user)
     ws = websocket.create_connection("ws://{}/websocket".format(host))
-    ws.send("join:{room}:{user}:{user}".format(room=room, user=user))
     sockets[room][user] = ws
+
+    msg = {"type": "register", "room": room, "id": user, "name": user}
+    ws.send(json.dumps(msg))
 
 def leave(room, user):
     print("Quitting", room, "with", user)
@@ -30,6 +32,9 @@ def get_state(room, user):
         connection.request('GET', "/state.json?room={room}&id={user}".format(room=room, user=user))
         response = connection.getresponse()
         status = response.status
+        if status != 200:
+            print("Error getting state:", status)
+            time.sleep(0.1)
     content = response.read().decode()
     return json.loads(content)
 
@@ -51,16 +56,19 @@ def end(room):
 
 def chat(room, user):
     print("Chat in", room, "for", user)
-    sockets[room][user].send("chat:" + lorem.sentence())
+    msg = {"type": "chat", "content": lorem.sentence()}
+    sockets[room][user].send(json.dumps(msg))
 
 def label(room, user):
     label = random.choice(labels)
     print("Label in", room, "for", user, ":", label)
-    sockets[room][user].send("label:" + label)
+    msg = {"type": "label", "label": label}
+    sockets[room][user].send(json.dumps(msg))
 
 def action(room, user, i):
     print("Action", i, "in", room, "for", user)
-    sockets[room][user].send("action:" + str(i))
+    msg = {"type": "action", "action": i}
+    sockets[room][user].send(json.dumps(msg))
 
 def test(timeout=None):
     startTime = time.time()

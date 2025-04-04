@@ -36,4 +36,6 @@ show datatype Json with showJsonMaxLen, showJson;
 
 Result<Json> parseJson(string s, arena_t ar);
 
+Json getJsonField(Json j, string key);
+
 #endif
