@@ -6,6 +6,9 @@ rooms = [str(i) for i in range(20)]
 users = [''.join(random.choice(string.ascii_letters + string.digits) for k in range(10)) for i in range(20)]
 
 sockets = {room: {} for room in rooms}
+def socketSend(room, user, msg):
+    # TODO: handle unicode escapes in JSON implementation
+    sockets[room][user].send(json.dumps(msg, ensure_ascii=False))
 
 labels = "🍏,🍎,🍐,🍊,🍋,🍌,🍉,🍇,🍓,🍈,🍒,🍑,🍍,🥝,🥑,🍅,🍆,🥒,🥕,🌽,🌶,🥔,🍠,🌰,🥜,🍯,🥐,🍞,🥖,🧀,🥚,🍳,🥓,🥞,🍤,🍗,🍖,🍕,🌭,🍔,🍟,🥙,🌮,🌯,🥗,🥘,🍝,🍜,🍲,🍥,🍣,🍱,🍛,🍚,🍙,🍘,🍢,🍡,🍧,🍨,🍦,🍰,🎂,🍮,🍭,🍬,🍫,🍿,🍩,🍪,🥛,🍼,☕️,🍵,🍶,🍺,🍻,🥂,🍷,🥃,🍸,🍹,🍾,🥄,🍴,🍽,⚽️,🏀,🏈,⚾️,🎾,🏐,🏉,🎱,🏓,🏸,🥅,🏒,🏑,🏏,⛳️,🏹,🎣,🥊,🥋,⛸,🎿,⛷,🏂,🏋️‍♀️,🏋️,🤺,🤼‍♀️,🤼‍♂️,🤸‍♀️,🤸‍♂️,⛹️‍♀️,⛹️,🤾‍♀️,🤾‍♂️,🏌️‍♀️,🏌️,🏄‍♀️,🏄,🏊‍♀️,🏊,🤽‍♀️,🤽‍♂️,🚣‍♀️,🚣,🏇,🚴‍♀️,🚴,🚵‍♀️,🚵,🎽,🏅,🎖,🥇,🥈,🥉,🏆,🏵,🎗,🎫,🎟,🎪,🤹‍♀️,🤹‍♂️,🎭,🎨,🎬,🎤,🎧,🎼,🎹,🥁,🎷,🎺,🎸,🎻,🎲,🎯,🎳,🎮,🎰".split(",")
 
@@ -38,37 +41,30 @@ def get_state(room, user):
     content = response.read().decode()
     return json.loads(content)
 
-def set_config(room, ai, random, partners, openhands, aitime):
-    config = "room={room}&ai={}&random={}&partners={}&openhands={}&aitime={}".format(ai, random, "true" if partners else "false", "true" if openhands else "false", aitime, room=room)
+def set_config(room, user, **config):
     print("Setting config for", room, ":", config)
-    connection = http.client.HTTPConnection(host)
-    connection.request('GET', "/config?" + config)
+    socketSend(room, user, {"type": "config", **config})
 
-def start(room):
+def start(room, user):
     print("Starting", room)
-    connection = http.client.HTTPConnection(host)
-    connection.request('GET', '/start?room=' + room)
+    socketSend(room, user, {"type": "start"})
 
-def end(room):
+def end(room, user):
     print("Ending", room)
-    connection = http.client.HTTPConnection(host)
-    connection.request('GET', '/end?room=' + room)
+    socketSend(room, user, {"type": "end"})
 
 def chat(room, user):
     print("Chat in", room, "for", user)
-    msg = {"type": "chat", "content": lorem.sentence()}
-    sockets[room][user].send(json.dumps(msg))
+    socketSend(room, user, {"type": "chat", "content": lorem.sentence()})
 
 def label(room, user):
     label = random.choice(labels)
     print("Label in", room, "for", user, ":", label)
-    msg = {"type": "label", "label": label}
-    sockets[room][user].send(json.dumps(msg))
+    socketSend(room, user, {"type": "label", "label": label})
 
 def action(room, user, i):
     print("Action", i, "in", room, "for", user)
-    msg = {"type": "action", "action": i}
-    sockets[room][user].send(json.dumps(msg))
+    socketSend(room, user, {"type": "action", "action": i})
 
 def test(timeout=None):
     startTime = time.time()
@@ -80,14 +76,14 @@ def test(timeout=None):
         user = random.choice(list(sockets[room].keys()))
         state = get_state(room, user)
         actions = [
-            lambda: set_config(room, min(state['aiPlayers'] + 1, 4), state['randomPlayers'], state['partners'], state['openHands'], state['aiTime']),
-            lambda: set_config(room, state['aiPlayers'] - 1, state['randomPlayers'], state['partners'], state['openHands'], state['aiTime']),
-            lambda: set_config(room, state['aiPlayers'], min(state['randomPlayers'] + 1, 4), state['partners'], state['openHands'], state['aiTime']),
-            lambda: set_config(room, state['aiPlayers'], state['randomPlayers'] - 1, state['partners'], state['openHands'], state['aiTime']),
-            lambda: set_config(room, state['aiPlayers'], state['randomPlayers'], state['partners'] == 'true', state['openHands'], state['aiTime']),
-            lambda: set_config(room, state['aiPlayers'], state['randomPlayers'], state['partners'], state['openHands'] == 'true', state['aiTime']),
-            lambda: set_config(room, state['aiPlayers'], state['randomPlayers'], state['partners'], state['openHands'], min(state['aiTime'] + 1, 5)),
-            lambda: set_config(room, state['aiPlayers'], state['randomPlayers'], state['partners'], state['openHands'], state['aiTime'] - 1),
+            lambda: set_config(room, user, aiPlayers=min(state['aiPlayers'] + 1, 4)),
+            lambda: set_config(room, user, aiPlayers=state['aiPlayers'] - 1),
+            lambda: set_config(room, user, randomPlayers=min(state['randomPlayers'] + 1, 4)),
+            lambda: set_config(room, user, randomPlayers=state['randomPlayers'] - 1),
+            lambda: set_config(room, user, partners=not state['partners']),
+            lambda: set_config(room, user, openHands=not state['openHands']),
+            lambda: set_config(room, user, aiTime=min(state['aiTime'] + 1, 5)),
+            lambda: set_config(room, user, aiTime=state['aiTime'] - 1),
             lambda: chat(room, user),
             lambda: label(room, user),
         ]
@@ -100,22 +96,22 @@ def test(timeout=None):
                     actions.append(lambda u=u: join(room, u))
         if 'turn' in state:
             if random.random() < 0.001:
-                actions.append(lambda: end(room))
+                actions.append(lambda: end(room, user))
             turnUser = state['playersInGame'][state['turn']]
             if not turnUser.startswith('AI') and not turnUser.startswith('Random'):
                 turnUser = turnUser[len(turnUser) - 10:]  # Strip the label
                 if turnUser not in users:
                     # Game has a player that is not included by the test script, possibly from a previous run: end the game
-                    end(room)
+                    end(room, user)
                     continue
                 elif turnUser not in sockets[room]:
                     # User isn't currently in the room: rejoin
                     join(room, turnUser)
                 turnUserState = get_state(room, turnUser)
                 moves = [lambda: action(room, turnUser, i) for i in range(0, len(turnUserState['actions']))]
-                actions.extend(moves)
+                actions.extend(moves * 2)
         else:
-            actions.append(lambda: start(room))
+            actions.append(lambda: start(room, user))
         random.choice(actions)()
 
 if __name__ == '__main__':

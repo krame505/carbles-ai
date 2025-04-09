@@ -102,6 +102,7 @@ static Result<string> parseStringAt(string s, size_t *i, arena_t ar) {
       return Err<string>("unterminated string at index " + str(*i));
     } else if (s[*i] == '\\') {
       (*i)++;
+      // TODO: handle hex and unicode escapes
       switch (s[*i]) {
       case 'n':
         unescaped[j] = '\n';
@@ -212,7 +213,7 @@ Result<Json> parseJson(string s, arena_t ar) {
   allocate_using arena ar;
   size_t i = 0;
   Result<Json> result = parseJsonAt(s, &i, ar);
-  if (i < s.length) {
+  if (!isErr(result) && i < s.length) {
     return Err<Json>("trailing characters at index " + str(i));
   }
   return result;

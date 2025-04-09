@@ -286,17 +286,29 @@ function copyLink() {
   document.execCommand("copy");
 }
 
-function updateConfig() {
-  $.ajax({url: `config?room=${room}&ai=${aiPlayers.value}&random=${randomPlayers.value}&partners=${partners.checked}&openhands=${openHands.checked}&aitime=${aiTime.value}`, cache: false})
+function updateAIPlayers() {
+  wsSend({type: "config", aiPlayers: aiPlayers.valueAsNumber})
+}
+function updateRandomPlayers() {
+  wsSend({type: "config", randomPlayers: randomPlayers.valueAsNumber})
+}
+function updatePartners() {
+  wsSend({type: "config", partners: partners.checked})
+}
+function updateOpenHands() {
+  wsSend({type: "config", openHands: openHands.checked})
+}
+function updateAITime() {
+  wsSend({type: "config", aiTime: aiTime.valueAsNumber})
 }
 
 function handleStartEndGame() {
   if (started) {
     if (confirm("Really end the game?  This will end the game for all players.")) {
-      $.ajax({url: "end?room=" + room, cache: false})
+      wsSend({type: "end"})
     }
   } else {
-    $.ajax({url: "start?room=" + room, cache: false})
+    wsSend({type: "start"})
   }
 }
 

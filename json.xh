@@ -12,6 +12,11 @@ datatype Result {
   Err(string msg);
 };
 
+template <typename T>
+_Bool isErr(Result<T> r) {
+  return match (r) (Ok(_) -> 0; Err(_) -> 1;);
+}
+
 typedef datatype Json Json;
 typedef struct JsonItem JsonItem;
 
