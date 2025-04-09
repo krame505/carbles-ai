@@ -110,7 +110,7 @@ endif
 all: $(COMPILER_JAR) $(GEN_C_FILES) $(OBJECTS) $(TARGETS)
 
 $(EXTS_BASE)/%.jar: $(GRAMMAR_SOURCES)
-	flock $(@D) $(MAKE) CONF=rel -C $(@D) $(@F)
+	flock $(@D) $(MAKE) CONF=opt -C $(@D) $(@F)
 
 # TODO: Not including the full dependency chain here, but everything is built by ableC_prolog
 $(COMPILER_JAR): $(GRAMMAR_SOURCES) $(EXTS_BASE)/ableC-prolog/ableC-prolog.jar | $(GEN_DIR)
