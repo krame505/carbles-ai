@@ -100,6 +100,11 @@ partnerCardMovePossible(St(NP, true, B, L), P1, C) :-
     P2 is mod(P1 + NP / 2, NP), isFinished(B, P2),
     cardMovePossible(St(NP, false, B, L), P1, C).
 
+cardActionPossible(S, P, C, _, _) :-
+    (h[C]) > 0, cardMovePossible(S, P, C), !.
+cardActionPossible(S, P, C, _, _) :-
+    partnerHand =\= ((Card*)0), (partnerHand[C]) > 0, partnerCardMovePossible(S, P, C).
+
 isFinished(B, P) :-
     mapContains(B, Finish(P, 0), P),
     mapContains(B, Finish(P, 1), P),

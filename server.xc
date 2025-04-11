@@ -182,8 +182,7 @@ static void notify(
     string encoded = show(JsonObject(items));
     // logmsg("Sending notification to room %s: %s", roomId.text, encoded.text);
     for (struct mg_connection *nc = mgr.conns; nc != NULL; nc = nc->next) {
-      query RID is roomId, RS is rooms, mapContains(RS, RID, R),
-        SP is (R->socketPlayers), NC is ((SocketId)nc), mapContains(SP, NC, _) {
+      query mapContains((rooms), (roomId), R), SP is (R->socketPlayers), mapContains(SP, ((SocketId)nc), _) {
         mg_ws_send(nc, encoded.text, encoded.length, WEBSOCKET_OP_TEXT);
         return false;
       };
@@ -259,7 +258,7 @@ static void handleState(struct mg_connection *nc, struct mg_http_message *hm) {
   string roomId = roomId_s, connId = connId_s;
 
   bool success = query
-    RID is roomId, RS is rooms, mapContains(RS, RID, R),
+    RID is roomId, mapContains((rooms), RID, R),
     initially { pthread_mutex_lock(&R->mutex); },
     finally   { pthread_mutex_unlock(&R->mutex); },
     CID is connId, CS is (R->connections), mapContains(CS, CID, C) {
@@ -273,7 +272,7 @@ static void handleState(struct mg_connection *nc, struct mg_http_message *hm) {
           (St(?&numPlayers, ?&true, _, _) -> partner(numPlayers, conn->player);
           _ -> PLAYER_ID_NONE;);
         vector<Json> playersInRoom = {};
-        query CS is (room->connections), mapContainsValue(CS, _, C) {
+        query mapContainsValue((room->connections), _, C) {
           allocate_using arena ar;
           PlayerConn *otherConn = value(C);
           playersInRoom.append(JsonString(otherConn->label + otherConn->name));
@@ -329,8 +328,8 @@ static void handleState(struct mg_connection *nc, struct mg_http_message *hm) {
 
 static void handleConfig(struct mg_connection *nc, Json msg) {
   query
-    NC is ((SocketId)nc), SRS is socketRooms, mapContains(SRS, NC, RID),
-    RS is rooms, mapContains(RS, RID, R) {
+    NC is ((SocketId)nc), mapContains((socketRooms), NC, RID),
+    mapContains((rooms), RID, R) {
       string roomId = value(RID);
       Room *room = value(R);
       pthread_mutex_lock(&room->mutex);
@@ -365,7 +364,7 @@ static void handleConfig(struct mg_connection *nc, Json msg) {
 static void handleTimeout(void *rid) {
   allocate_using stack;
   string roomId = str((const char *)rid);
-  query RID is roomId, RS is rooms, mapContains(RS, RID, R) {
+  query mapContains((rooms), (roomId), R) {
     Room *room = value(R);
     
     if (room->gameInProgress) {
@@ -391,8 +390,8 @@ static void handleTimeout(void *rid) {
 
 static void handleStart(struct mg_connection *nc) {
   query
-    NC is ((SocketId)nc), SRS is socketRooms, mapContains(SRS, NC, RID),
-    RS is rooms, mapContains(RS, RID, R) {
+    NC is ((SocketId)nc), mapContains((socketRooms), NC, RID),
+    mapContains((rooms), RID, R) {
       string roomId = value(RID);
       Room *room = value(R);
       pthread_mutex_lock(&room->mutex);
@@ -427,7 +426,7 @@ static void handleStart(struct mg_connection *nc) {
           bool assigned[numPlayers];
           memset(assigned, 0, sizeof(assigned));
           PlayerId p = rand() % numPlayers, *p_p = &p;
-          query CS is (room->connections), mapContainsValue(CS, _, C) {
+          query mapContainsValue((room->connections), _, C) {
             allocate_using arena gameArena;
             PlayerConn *conn = value(C);
             while (assigned[*p_p]) {*p_p = rand() % numPlayers; }
@@ -440,7 +439,7 @@ static void handleStart(struct mg_connection *nc) {
             *p_p = partner(numPlayers, *p_p);
             return false;
           };
-          query CS is (room->droppedConnections), mapContainsValue(CS, _, C) {
+          query mapContainsValue((room->droppedConnections), _, C) {
             PlayerConn *conn = value(C);
             conn->inGame = false;
             return false;
@@ -484,8 +483,8 @@ static void handleStart(struct mg_connection *nc) {
 
 static void handleEnd(struct mg_connection *nc) {
   query
-    NC is ((SocketId)nc), SRS is socketRooms, mapContains(SRS, NC, RID),
-    RS is rooms, mapContains(RS, RID, R) {
+    NC is ((SocketId)nc), mapContains((socketRooms), NC, RID),
+    mapContains((rooms), RID, R) {
       string roomId = value(RID);
       Room *room = value(R);
       pthread_mutex_lock(&room->mutex);
@@ -622,24 +621,25 @@ static void handleRegister(struct mg_connection *nc, Json msg) {
 static void handleAction(struct mg_connection *nc, Json msg) {
   match (getJsonField(msg, str("action"))) {
     JsonInteger(a) -> {
-      query NC is ((SocketId)nc), SRS is socketRooms, mapContains(SRS, NC, RID),
-            RS is rooms, mapContains(RS, RID, R),
-            initially { pthread_mutex_lock(&R->mutex); },
-            finally   { pthread_mutex_unlock(&R->mutex); },
-            SPS is (R->socketPlayers), mapContains(SPS, NC, CID),
-            CS is (R->connections), mapContains(CS, CID, C) {
-        Room *room = value(R);
-        PlayerConn *conn = value(C);
-        if (room->gameInProgress && conn->player == room->turn) {
-          // Record the action and wake up the driver thread
-          room->action = a;
-          room->actionReady = true;
-          pthread_cond_signal(&room->cv);
+      query
+        NC is ((SocketId)nc), mapContains((socketRooms), NC, RID),
+        mapContains((rooms), RID, R),
+        initially { pthread_mutex_lock(&R->mutex); },
+        finally   { pthread_mutex_unlock(&R->mutex); },
+        SPS is (R->socketPlayers), mapContains(SPS, NC, CID),
+        CS is (R->connections), mapContains(CS, CID, C) {
+          Room *room = value(R);
+          PlayerConn *conn = value(C);
+          if (room->gameInProgress && conn->player == room->turn) {
+            // Record the action and wake up the driver thread
+            room->action = a;
+            room->actionReady = true;
+            pthread_cond_signal(&room->cv);
 
-          // Update the game timeout
-          room->timeoutTimer->expire = mg_millis() + 1000 * GAME_TIMEOUT;
-        }
-      };
+            // Update the game timeout
+            room->timeoutTimer->expire = mg_millis() + 1000 * GAME_TIMEOUT;
+          }
+        };
     }
     _ -> {
       allocate_using stack;
@@ -651,16 +651,17 @@ static void handleAction(struct mg_connection *nc, Json msg) {
 static void handleChat(struct mg_connection *nc, Json msg) {
   match (getJsonField(msg, str("content"))) {
     JsonString(content) -> {
-      query NC is ((SocketId)nc), SRS is socketRooms, mapContains(SRS, NC, RID),
-            RS is rooms, mapContains(RS, RID, R),
-            initially { pthread_mutex_lock(&R->mutex); },
-            finally   { pthread_mutex_unlock(&R->mutex); },
-            SPS is (R->socketPlayers), mapContains(SPS, NC, CID),
-            CS is (R->connections), mapContains(CS, CID, C) {
-        string roomId = value(RID);
-        PlayerConn *conn = value(C);
-        notify(roomId, conn->player, conn->label + conn->name, true, false, content);
-      };
+      query
+        NC is ((SocketId)nc), mapContains((socketRooms), NC, RID),
+        mapContains((rooms), RID, R),
+        initially { pthread_mutex_lock(&R->mutex); },
+        finally   { pthread_mutex_unlock(&R->mutex); },
+        SPS is (R->socketPlayers), mapContains(SPS, NC, CID),
+        CS is (R->connections), mapContains(CS, CID, C) {
+          string roomId = value(RID);
+          PlayerConn *conn = value(C);
+          notify(roomId, conn->player, conn->label + conn->name, true, false, content);
+        };
     }
     _ -> {
       allocate_using stack;
@@ -672,27 +673,28 @@ static void handleChat(struct mg_connection *nc, Json msg) {
 static void handleLabel(struct mg_connection *nc, Json msg) {
   match (getJsonField(msg, str("label"))) {
     JsonString(label) -> {
-      query NC is ((SocketId)nc), SRS is socketRooms, mapContains(SRS, NC, RID),
-            RS is rooms, mapContains(RS, RID, R),
-            initially { pthread_mutex_lock(&R->mutex); },
-            finally   { pthread_mutex_unlock(&R->mutex); },
-            SPS is (R->socketPlayers), mapContains(SPS, NC, CID),
-            CS is (R->connections), mapContains(CS, CID, C) {
-        string roomId = value(RID);
-        Room *room = value(R);
-        PlayerConn *conn = value(C);
-        string oldLabel = conn->label;
-        {
-          allocate_using arena globalArena;
-          conn->label = label.copy();
-        }
-        if (room->gameInProgress && conn->inGame) {
-          allocate_using arena room->gameArena;
-          room->playerNames[conn->player] = conn->label + conn->name;
-          room->playerLabels[conn->player] = conn->label;
-        }
-        notify(roomId, -1, str(""), false, true, oldLabel + conn->name + " is now " + conn->label + conn->name);
-      };
+      query
+        NC is ((SocketId)nc), mapContains((socketRooms), NC, RID),
+        mapContains((rooms), RID, R),
+        initially { pthread_mutex_lock(&R->mutex); },
+        finally   { pthread_mutex_unlock(&R->mutex); },
+        SPS is (R->socketPlayers), mapContains(SPS, NC, CID),
+        CS is (R->connections), mapContains(CS, CID, C) {
+          string roomId = value(RID);
+          Room *room = value(R);
+          PlayerConn *conn = value(C);
+          string oldLabel = conn->label;
+          {
+            allocate_using arena globalArena;
+            conn->label = label.copy();
+          }
+          if (room->gameInProgress && conn->inGame) {
+            allocate_using arena room->gameArena;
+            room->playerNames[conn->player] = conn->label + conn->name;
+            room->playerLabels[conn->player] = conn->label;
+          }
+          notify(roomId, -1, str(""), false, true, oldLabel + conn->name + " is now " + conn->label + conn->name);
+        };
     }
     _ -> {
       allocate_using stack;
@@ -898,7 +900,7 @@ void serve(const char *url_http, const char *url_https) {
 
     // Graceful shutdown on SIGINT
     signal_received = 0;
-    query RS is rooms, mapContainsValue(RS, RID, _) {
+    query mapContainsValue((rooms), RID, _) {
       string roomId = value(RID);
       logmsg("Notifying %s\n", roomId.text);
       notify(roomId, -1, str(""), false, false, str("Server is shutting down for maintenance now!  Please stand by..."));
@@ -908,7 +910,7 @@ void serve(const char *url_http, const char *url_https) {
     logmsg("Server shutting down");
 
     // Cancel running threads
-    query RS is rooms, mapContainsValue(RS, _, R) {
+    query mapContainsValue((rooms), _, R) {
       Room *room = value(R);
       if (room->threadRunning) {
         logmsg("Cancelling game thread for room %s", room->id.text);
@@ -920,7 +922,7 @@ void serve(const char *url_http, const char *url_https) {
     mg_mgr_free(&mgr);
 
     // Free global variables
-    query RS is rooms, mapContainsValue(RS, _, R) {
+    query mapContainsValue((rooms), _, R) {
       Room *room = value(R);
       logmsg("Deleting room %s", room->id.text);
       if (room->threadRunning) {

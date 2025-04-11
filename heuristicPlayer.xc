@@ -18,32 +18,30 @@ unsigned getPlayerHeuristicValue(State s, PlayerId p) {
     St(?&numPlayers, ?&partners, board, lot) -> {
       unsigned homeIndex = p * SECTOR_SIZE;
       unsigned boardSize = numPlayers * SECTOR_SIZE;
-      query B is board, P is p, MAX_PIECE is (NUM_PIECES - 1),
-            between(0u, MAX_PIECE, N), mapContains(B, Finish(P, N), P) {
+      query between(0u, (NUM_PIECES - 1), N), mapContains((board), Finish((p), N), (p)) {
         *result += FINISH_WEIGHT;
         return false;
       };
-      query B is board, P is p, MAX_PIECE is (NUM_PIECES - 1),
-            between(0u, MAX_PIECE, N), mapContains(B, Finish(P, N), P),
-            between(N, MAX_PIECE, M), \+ mapContains(B, Finish(P, M), P) {
+      query between(0u, (NUM_PIECES - 1), N), mapContains((board), Finish((p), N), (p)),
+            between(N, (NUM_PIECES - 1), M), \+ mapContains((board), Finish((p), M), (p)) {
         *result -= FINISH_GAP_WEIGHT;
         return false;
       };
-      query B is board, P is p, mapContainsValue(B, Out(I), P) {
+      query mapContainsValue((board), Out(I), (p)) {
         unsigned index = value(I);
         if ((index + boardSize - 2) % boardSize <= homeIndex && (index + 2) % boardSize >= homeIndex) {
           *result += AHEAD_CLOSE_WEIGHT;
         }
         return false;
       };
-      query B is board, P is p, mapContainsValue(B, Out(I), P) {
+      query mapContainsValue((board), Out(I), (p)) {
         unsigned index = value(I);
         if ((index + 2) % boardSize < homeIndex && (index + 10) % boardSize >= homeIndex) {
           *result += BEHIND_CLOSE_WEIGHT;
         }
         return false;
       };
-      query B is board, P is p, mapContainsValue(B, Out(I), P) {
+      query mapContainsValue((board), Out(I), (p)) {
         *result += OUT_WEIGHT;
         return false;
       };

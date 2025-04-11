@@ -122,7 +122,6 @@ State applyMoves(list<Move ?> ?, State, arena_t ar);
 State applyAction(Action, State, Hand, Hand discard, arena_t ar);
 
 _Bool cardHasMoves(State s, PlayerId p, Card c);
-vector<list<Move ?> ?> getCardMoves(State s, PlayerId p, Card c, arena_t);
 vector<Action> getActions(State s, PlayerId p, const Hand h, arena_t);
 _Bool actionPossible(State s, PlayerId p, const Hand h, const Hand partnerHand);
 _Bool isWon(State s);
