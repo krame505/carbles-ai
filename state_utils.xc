@@ -355,7 +355,7 @@ State applyMove(Move m, State s, arena_t ar) {
       assert(comparePosition(f, t) != 0);
       assert(mapContains(board, f));
       PlayerId p = mapGet(board, f);
-      Board ?newBoard = mapInsert(mapDelete(board, f, ar), t, p, ar);
+      Board ?newBoard = mapInsert(mapDelete(board, f, ar), copyPosition(t, ar), p, ar);
       if (mapContains(board, t)) {
         PlayerId destPlayer = mapGet(board, t);
         return St(n, ps, newBoard, mapInsert(lot, destPlayer, mapGet(lot, destPlayer) + 1, ar));
@@ -369,7 +369,7 @@ State applyMove(Move m, State s, arena_t ar) {
       assert(mapContains(board, b));
       PlayerId p1 = mapGet(board, a);
       PlayerId p2 = mapGet(board, b);
-      return St(n, ps, mapInsert(mapInsert(board, a, p2, ar), b, p1, ar), lot);
+      return St(n, ps, mapInsert(mapInsert(board, copyPosition(a, ar), p2, ar), copyPosition(b, ar), p1, ar), lot);
     }
   }
 }
