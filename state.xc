@@ -17,14 +17,16 @@ prolog {
   cardMoves(State, PlayerId, Card ?, list<Move ?> ?);
   cardMovePossible(State, PlayerId, Card ?);
   partnerCardMovePossible(State, PlayerId, Card ?);
-  cardActionPossible(State, PlayerId, Card, const Card *h, const Card *partnerHand);
+  cardActionPossible(State, PlayerId, Card ?, const Card *h, const Card *partnerHand);
 
   isFinished(Board, PlayerId);
   isWon(State, PlayerId ?);
 
+  statesEqual(State, State);
+  isRedundantMove(Card ?, list<Move ?> ?, State ?, list<State ?> sevenStates);
+
 #include "state.pl"
 
-#undef between
 }
 
 bool cardHasMoves(State s, PlayerId p, Card c) {
@@ -34,10 +36,19 @@ bool cardHasMoves(State s, PlayerId p, Card c) {
 vector<Action> getActions(State s, PlayerId p, const Hand h, arena_t ar) {
   allocate_using arena ar;
   vector<Action> result = {};
-  query card(C), (h[C]) > 0, cardMoves((s), (p), C, MS) {
-    result.append(Play(value(C), copyMoves(MS, ar)));
-    return false;
-  };
+  with_arena tempAr {
+    list<State ?> sevenStates[] = {term<list<State ?>>{ [] }};
+    query card(C), (h[C]) > 0, cardMoves((s), (p), C, MS),
+        \+ isRedundantMove(C, MS, (s), (*sevenStates)) {
+      Card c = value(C);
+      result.append(Play(c, copyMoves(MS, ar)));
+      if (c == 7) {
+        allocate_using arena tempAr;
+        *sevenStates = term<list<State ?>>{ [(applyMoves(MS, s, tempAr)) | (*sevenStates)] };
+      }
+      return false;
+    };
+  }
   if (result.size == 0) {
     query card(C), (h[C]) > 0 {
       result.append(Burn(value(C)));

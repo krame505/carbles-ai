@@ -118,3 +118,9 @@ isWon(St(NP, true, B, _), P1) :-
     MAX_PLAYER is (NP / 2 - 1), between(0u, MAX_PLAYER, P1),
     P2 is mod(P1 + NP / 2, NP),
     isFinished(B, P1), isFinished(B, P2).
+
+statesEqual(St(NP, PT, B1, L1), St(NP, PT, B2, L2)) :-
+    mapsEqual(B1, B2), mapsEqual(L1, L2).
+
+isRedundantMove(7, MS, S, SS) :-
+    moves(S, MS, S1), member(S2, SS), statesEqual(S1, S2), !.
