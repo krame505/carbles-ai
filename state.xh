@@ -24,7 +24,9 @@ string showPlayerId(PlayerId p, arena_t ar);
 
 #define PLAYER_ID_NONE ((PlayerId)-1)
 
-PlayerId partner(unsigned numPlayers, PlayerId p);
+static inline PlayerId partner(unsigned numPlayers, PlayerId p) {
+  return (p + numPlayers / 2) % numPlayers;
+}
 
 datatype Position {
   Out(unsigned ?);
@@ -101,7 +103,9 @@ typedef datatype Action Action;
 string showAction(Action a, PlayerId p1, PlayerId p2, arena_t ar);
 string showActions(vector<Action> a, PlayerId p1, PlayerId p2, arena_t ar);
 
-Card getActionCard(Action);
+static inline Card getActionCard(Action a) {
+  return match (a) (Play(c, _) -> c; Burn(c) -> c;);
+}
 list<Move ?> ?getActionMoves(Action);
 
 Json jsonState(State s, arena_t);

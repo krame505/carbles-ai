@@ -3,14 +3,6 @@
 #include <stdbool.h>
 #include <assert.h>
 
-PlayerId partner(unsigned numPlayers, PlayerId p) {
-  return (p + numPlayers / 2) % numPlayers;
-}
-
-Card getActionCard(Action a) {
-  return match (a) (Play(c, _) -> c; Burn(c) -> c;);
-}
-
 list<Move ?> ?getActionMoves(Action a) {
   allocate_using heap;
   static list<Move ?> ?noMoves;
