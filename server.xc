@@ -261,7 +261,7 @@ static void handleState(struct mg_connection *nc, struct mg_http_message *hm) {
     RID is roomId, mapContains((rooms), RID, R),
     initially { pthread_mutex_lock(&R->mutex); },
     finally   { pthread_mutex_unlock(&R->mutex); },
-    CID is connId, CS is (R->connections), mapContains(CS, CID, C) {
+    mapContains((R->connections), (connId), C) {
       Room *room = value(R);
       PlayerConn *conn = value(C);
 
@@ -626,8 +626,8 @@ static void handleAction(struct mg_connection *nc, Json msg) {
         mapContains((rooms), RID, R),
         initially { pthread_mutex_lock(&R->mutex); },
         finally   { pthread_mutex_unlock(&R->mutex); },
-        SPS is (R->socketPlayers), mapContains(SPS, NC, CID),
-        CS is (R->connections), mapContains(CS, CID, C) {
+        mapContains((R->socketPlayers), NC, CID),
+        mapContains((R->connections), CID, C) {
           Room *room = value(R);
           PlayerConn *conn = value(C);
           if (room->gameInProgress && conn->player == room->turn) {
@@ -656,8 +656,8 @@ static void handleChat(struct mg_connection *nc, Json msg) {
         mapContains((rooms), RID, R),
         initially { pthread_mutex_lock(&R->mutex); },
         finally   { pthread_mutex_unlock(&R->mutex); },
-        SPS is (R->socketPlayers), mapContains(SPS, NC, CID),
-        CS is (R->connections), mapContains(CS, CID, C) {
+        mapContains((R->socketPlayers), NC, CID),
+        mapContains((R->connections), CID, C) {
           string roomId = value(RID);
           PlayerConn *conn = value(C);
           notify(roomId, conn->player, conn->label + conn->name, true, false, content);
@@ -678,8 +678,8 @@ static void handleLabel(struct mg_connection *nc, Json msg) {
         mapContains((rooms), RID, R),
         initially { pthread_mutex_lock(&R->mutex); },
         finally   { pthread_mutex_unlock(&R->mutex); },
-        SPS is (R->socketPlayers), mapContains(SPS, NC, CID),
-        CS is (R->connections), mapContains(CS, CID, C) {
+        mapContains((R->socketPlayers), NC, CID),
+        mapContains((R->connections), CID, C) {
           string roomId = value(RID);
           Room *room = value(R);
           PlayerConn *conn = value(C);
