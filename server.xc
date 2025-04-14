@@ -902,7 +902,7 @@ void serve(const char *url_http, const char *url_https) {
     signal_received = 0;
     query mapContainsValue((rooms), RID, _) {
       string roomId = value(RID);
-      logmsg("Notifying %s\n", roomId.text);
+      logmsg("Notifying %s", roomId.text);
       notify(roomId, -1, str(""), false, false, str("Server is shutting down for maintenance now!  Please stand by..."));
       return false;
     };
