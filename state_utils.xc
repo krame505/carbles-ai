@@ -3,6 +3,40 @@
 #include <stdbool.h>
 #include <assert.h>
 
+Lot ?incLot(Lot ?l, PlayerId p, arena_t ar) {
+  allocate_using arena ar;
+  match (l) {
+    ?&[h | t] -> {
+      if (p == 0) {
+        assert(value(h) < NUM_PIECES);
+        return cons(new var(value(h) + 1), t, ar);
+      } else {
+        return cons(h, incLot(t, p - 1, ar), ar);
+      }
+    }
+    ?&[] -> {
+      assert(false);
+    }
+  }
+}
+
+Lot ?decLot(Lot ?l, PlayerId p, arena_t ar) {
+  allocate_using arena ar;
+  match (l) {
+    ?&[h | t] -> {
+      if (p == 0) {
+        assert(value(h) > 0);
+        return cons(new var(value(h) - 1), t, ar);
+      } else {
+        return cons(h, decLot(t, p - 1, ar), ar);
+      }
+    }
+    ?&[] -> {
+      assert(false);
+    }
+  }
+}
+
 list<Move ?> ?getActionMoves(Action a) {
   allocate_using heap;
   static list<Move ?> ?noMoves;
@@ -94,7 +128,7 @@ string showState(State s, arena_t ar) {
         for (unsigned i = 0; i < 7; i++) {
           rows[i + 1] = showStatePosition(s, Out(new var(i + 8 + p * SECTOR_SIZE)), ar) + " " + rows[i + 1];
         }
-        unsigned lotCount = mapGet(lot, (p + 1) % numPlayers);
+        unsigned lotCount = value(nthList(lot, (p + 1) % numPlayers));
         rows[0] =
           "   " +
           EFFECT(INVERSE) +
@@ -141,6 +175,11 @@ string showState(State s, arena_t ar) {
   return result;
 }
 
+unsigned ?copyUnsignedVar(unsigned ?v, arena_t ar) {
+  allocate_using arena ar;
+  return new var(value(v));
+}
+
 State copyState(State s, arena_t ar) {
   allocate_using arena ar;
   return match (s)
@@ -148,7 +187,7 @@ State copyState(State s, arena_t ar) {
        St(
         new var(numPlayers), new var(partners),
         copyMap(board, copyPosition, NULL, ar),
-        copyMap(lot, NULL, NULL, ar));
+        copyList(lot, copyUnsignedVar, ar));
       );
 }
 
@@ -213,13 +252,13 @@ Json jsonState(State s, arena_t ar) {
   match (s) {
     St(?&numPlayers, ?&partners, board, lot) -> {
       vector<JsonItem> boardItems = {};
-      query B is board, mapContainsValue(B, Pos, P) {
+      query mapContainsValue((board), Pos, P) {
         allocate_using arena ar;
         boardItems.append((JsonItem){show(Pos), JsonInteger(value(P))});
         return false;
       };
       vector<Json> lotItems = new vector<Json>(numPlayers);
-      query L is lot, mapContainsValue(L, P, N) {
+      query nth((lot), P, N) {
         lotItems[value(P)] = JsonInteger(value(N));
         return false;
       };
@@ -317,14 +356,11 @@ list<Move ?> ?copyMoves(list<Move ?> ?ms, arena_t ar) {
 
 State initialState(unsigned numPlayers, bool partners, arena_t ar) {
   allocate_using arena ar;
-  Lot ?lot = emptyMap<PlayerId, unsigned, compareUnsigned>(ar);
-  for (PlayerId p = 0; p < numPlayers; p++) {
-    lot = mapInsert(lot, p, NUM_PIECES, ar);
-  }
-  return St(new var(numPlayers),
-            new var(partners),
-            emptyMap<Position, PlayerId, comparePosition>(ar),
-            lot);
+  return St(
+    new var(numPlayers),
+    new var(partners),
+    emptyMap<Position, PlayerId, comparePosition>(ar),
+    replicateList(numPlayers, new var(NUM_PIECES), ar));
 }
 
 State applyMove(Move m, State s, arena_t ar) {
@@ -335,10 +371,10 @@ State applyMove(Move m, State s, arena_t ar) {
       assert(mapGet(lot, p) > 0);
       Position dest = Out(new var(p * SECTOR_SIZE));
       Board ?newBoard = mapInsert(board, dest, p, ar);
-      Lot ?newLot = mapInsert(lot, p, mapGet(lot, p) - 1, ar);
+      Lot ?newLot = decLot(lot, p, ar);
       if (mapContains(board, dest)) {
         PlayerId destPlayer = mapGet(board, dest);
-        return St(n, ps, newBoard, mapInsert(newLot, destPlayer, mapGet(newLot, destPlayer) + 1, ar));
+        return St(n, ps, newBoard, incLot(newLot, destPlayer, ar));
       } else {
         return St(n, ps, newBoard, newLot);
       }
@@ -350,7 +386,7 @@ State applyMove(Move m, State s, arena_t ar) {
       Board ?newBoard = mapInsert(mapDelete(board, f, ar), copyPosition(t, ar), p, ar);
       if (mapContains(board, t)) {
         PlayerId destPlayer = mapGet(board, t);
-        return St(n, ps, newBoard, mapInsert(lot, destPlayer, mapGet(lot, destPlayer) + 1, ar));
+        return St(n, ps, newBoard, incLot(lot, destPlayer, ar));
       } else {
         return St(n, ps, newBoard, lot);
       }

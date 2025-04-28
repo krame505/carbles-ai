@@ -52,7 +52,7 @@ static inline int compareUnsigned(unsigned x, unsigned y) {
 }
 
 typedef map<Position, PlayerId, comparePosition> Board;
-typedef map<PlayerId, unsigned, compareUnsigned> Lot;
+typedef list<unsigned ?> Lot;
 
 datatype State {
   St(unsigned ?numPlayers, _Bool ?partners,
@@ -120,6 +120,9 @@ void initializeDeck(Hand);
 unsigned getDeckSize(const Hand);
 unsigned deal(unsigned min, unsigned max, Hand deck, unsigned numPlayers, Hand hands[numPlayers]);
 
+Lot ?incLot(Lot ?l, PlayerId p, arena_t ar);
+Lot ?decLot(Lot ?l, PlayerId p, arena_t ar);
+
 State initialState(unsigned numPlayers, _Bool partners, arena_t ar);
 State applyMove(Move, State, arena_t ar);
 State applyMoves(list<Move ?> ?, State, arena_t ar);
@@ -132,6 +135,10 @@ _Bool isWon(State s);
 PlayerId getWinner(State s);
 
 prolog {
+  hasLot(Lot, PlayerId);
+  incLot(Lot, PlayerId, Lot ?);
+  decLot(Lot, PlayerId, Lot ?);
+
   move(State, Move, State ?);
   moves(State, list<Move ?>, State ?);
 

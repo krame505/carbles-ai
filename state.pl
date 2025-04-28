@@ -59,12 +59,10 @@ cardMoves(S, P, C, [MoveDirect(X, Y)]) :-
     directCard(C), S = St(_, _, B, _),
     mapContainsValue(B, X, P), advance(S, P, X, ((unsigned)C), Y).
 cardMoves(St(_, _, _, L), P, C, [MoveOut(P)]) :-
-    moveOutCard(C),
-    mapContains(L, P, N), N > 0 .
+    moveOutCard(C), hasLot(L, P).
 cardMoves(St(NP, true, _, L), P1, C, [MoveOut(P2)]) :-
     partnerMoveOutCard(C),
-    P2 is (partner(NP, P1)),
-    mapContains(L, P2, N), N > 0 .
+    P2 is (partner(NP, P1)), hasLot(L, P2).
 cardMoves(S, P, Joker, []).
 cardMoves(S, P, 4, [MoveDirect(X, Y)]) :-
     S = St(_, _, B, _),
@@ -114,8 +112,8 @@ isWon(St(NP, true, B, _), P) :-
     between(0u, (NP / 2 - 1), P),
     isFinished(B, P), isFinished(B, (partner(NP, P))).
 
-statesEqual(St(NP, PT, B1, L1), St(NP, PT, B2, L2)) :-
-    mapsEqual(B1, B2), mapsEqual(L1, L2).
+statesEqual(St(NP, PT, B1, L), St(NP, PT, B2, L)) :-
+    mapsEqual(B1, B2).
 
 isRedundantMove(7, MS, S, SS) :-
     moves(S, MS, S1), member(S2, SS), statesEqual(S1, S2), !.
