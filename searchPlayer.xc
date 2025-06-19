@@ -502,7 +502,7 @@ unsigned getSearchMove(State s, const Hand h, const Hand hands[], const Hand dis
             float maxScore = -INFINITY;
             for (unsigned i = 0; i < actions.size; i++) {
               float w = match (expandedChild(children[i]).status)
-                (Expanded(_, trials, wins) -> (float)wins[p] / trials;
+                 (Expanded(_, trials, wins) -> (float)wins[p] / trials;
                   Leaf(winner) -> winner == p || (partners && winner == partner(numPlayers, p));
                   Unexpanded() -> -INFINITY;);
               if (w > maxScore) {
