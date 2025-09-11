@@ -19,7 +19,7 @@ melt.trynode(extension_name) {
 
   stage ("Build") {
     withEnv(newenv) {
-      dir("extensions/carbles-ai") {
+      dir("${params.EXTS_BASE}/carbles-ai") {
         sh "make -j"
       }
     }
@@ -27,7 +27,7 @@ melt.trynode(extension_name) {
 
   stage ("Test") {
     withEnv(newenv) {
-      dir("extensions/carbles-ai") {
+      dir("${params.EXTS_BASE}/carbles-ai") {
         sh "./bin/rel/play random heuristic random rule"
         sh './bin/rel/serve & serve_pid=$!; /export/scratch/jenkins/python-venv/bin/python test-server.py localhost:8000 30; kill $serve_pid'
       }
